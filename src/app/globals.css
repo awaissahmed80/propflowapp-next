@@ -1,26 +1,348 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.3211 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.3211 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.3211 0 0);
+  --primary: #1528a0; /* logo navy */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.967 0.0029 264.5419);
+  --secondary-foreground: oklch(0.4461 0.0263 256.8018);
+  --muted: oklch(0.9846 0.0017 247.8389);
+  --muted-foreground: oklch(0.551 0.0234 264.3637);
+  --accent: oklch(0.95 0.025 267.04); /* light tint of logo navy */
+  --accent-foreground: #1528a0;
+  --destructive: oklch(0.6368 0.2078 25.3313);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.9276 0.0058 264.5313);
+  --input: oklch(0.9276 0.0058 264.5313);
+  --ring: #1528a0;
+  --chart-1: oklch(0.5486 0.1729 253.84);
+  --chart-2: #1528a0;
+  --chart-3: oklch(0.4882 0.2172 264.3763);
+  --chart-4: oklch(0.4244 0.1809 265.6377);
+  --chart-5: oklch(0.3791 0.1378 265.5222);
+  --sidebar: oklch(0.9846 0.0017 247.8389);
+  --sidebar-foreground: oklch(0.3211 0 0);
+  --sidebar-primary: #1528a0;
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.95 0.025 267.04); /* active/hover nav: navy tint */
+  --sidebar-accent-foreground: #1528a0;
+  --sidebar-border: oklch(0.9276 0.0058 264.5313);
+  --sidebar-ring: #1528a0;
+  --brand-bright: oklch(0.74 0.13 253.84); /* logo blue lifted for dark panels */
+  --font-sans: var(--font-inter), Inter, sans-serif;
+  --font-serif: Source Serif 4, serif;
+  --font-mono: JetBrains Mono, monospace;
+  --radius: 0.375rem;
+  --shadow-x: 0;
+  --shadow-y: 1px;
+  --shadow-blur: 3px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0.1;
+  --shadow-color: oklch(0 0 0);
+  --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+  --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+  --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+  --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+  --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+  --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+  --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
+  --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+
+  /* Form control heights (Button, Input, Select, ...). Single source — not theme-dependent */
+  --control-height: 2.25rem; /* 36px = size-9 */
+  --control-height-sm: 2.25rem;
+  --control-height-lg: 2.75rem; /* 44px */
+  --control-height-icon: 2.25rem;
+
+  /* Chart colours (validated with the dataviz palette checks). Keyed by lookup colour name. */
+  --viz-blue: #2a78d6;
+  --viz-green: #1baf7a;
+  --viz-amber: #eda100;
+  --viz-red: #e34948;
+  --viz-violet: #4a3aa7;
+  --viz-sky: #2a9fd6;
+  --viz-teal: #1b9f96;
+  --viz-gray: #b8b7b2;
+}
+
+.dark {
+  --background: oklch(0.2046 0 0);
+  --foreground: oklch(0.9219 0 0);
+  --card: oklch(0.2686 0 0);
+  --card-foreground: oklch(0.9219 0 0);
+  --popover: oklch(0.2686 0 0);
+  --popover-foreground: oklch(0.9219 0 0);
+  --primary: #0270d2; /* logo blue */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.2686 0 0);
+  --secondary-foreground: oklch(0.9219 0 0);
+  --muted: oklch(0.2393 0 0);
+  --muted-foreground: oklch(0.7155 0 0);
+  --accent: oklch(0.34 0.095 253.84); /* deep tint of logo blue */
+  --accent-foreground: oklch(0.89 0.055 253.84);
+  --destructive: oklch(0.6368 0.2078 25.3313);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.3715 0 0);
+  --input: oklch(0.3715 0 0);
+  --ring: #0270d2;
+  --chart-1: oklch(0.68 0.15 253.84);
+  --chart-2: #0270d2;
+  --chart-3: oklch(0.5461 0.2152 262.8809);
+  --chart-4: oklch(0.4882 0.2172 264.3763);
+  --chart-5: oklch(0.4244 0.1809 265.6377);
+  --sidebar: oklch(0.2046 0 0);
+  --sidebar-foreground: oklch(0.9219 0 0);
+  --sidebar-primary: #0270d2;
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.34 0.095 253.84); /* active/hover nav: deep logo blue */
+  --sidebar-accent-foreground: oklch(0.89 0.055 253.84);
+  --sidebar-border: oklch(0.3715 0 0);
+  --sidebar-ring: #0270d2;
+  --font-sans: var(--font-inter), Inter, sans-serif;
+  --font-serif: Source Serif 4, serif;
+  --font-mono: JetBrains Mono, monospace;
+  --radius: 0.375rem;
+  --shadow-x: 0;
+  --shadow-y: 1px;
+  --shadow-blur: 3px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0.1;
+  --shadow-color: oklch(0 0 0);
+  --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+  --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+  --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+  --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+  --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+  --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+  --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
+  --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+
+  --viz-blue: #3987e5;
+  --viz-green: #199e70;
+  --viz-amber: #c98500;
+  --viz-red: #e66767;
+  --viz-violet: #9085e9;
+  --viz-sky: #3aa6dd;
+  --viz-teal: #1f9c93;
+  --viz-gray: #5c5b57;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-brand-bright: var(--brand-bright);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-serif: var(--font-serif);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --shadow-2xs: var(--shadow-2xs);
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow: var(--shadow);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+  --shadow-2xl: var(--shadow-2xl);
+
+  --height-control: var(--control-height);
+  --height-control-sm: var(--control-height-sm);
+  --height-control-lg: var(--control-height-lg);
+  --height-control-icon: var(--control-height-icon);
+  --min-height-control: var(--control-height);
+  --min-width-control: var(--control-height);
+  --min-width-control-sm: var(--control-height-sm);
+  --min-width-control-lg: var(--control-height-lg);
+  --width-control: var(--control-height);
+  --width-control-sm: var(--control-height-sm);
+  --width-control-lg: var(--control-height-lg);
+  --width-control-icon: var(--control-height-icon);
+  --size-control: var(--control-height);
+  --size-control-icon: var(--control-height-icon);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Auth slider: progress bar fill; its animationend advances the slide */
+@keyframes auth-slide-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Auth slider: data flowing along workflow connectors, and a soft float for callouts */
+@keyframes auth-flow {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+@keyframes auth-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+/* Marketing site: smooth jumps to #sections, highlight rings on screenshots, feature tab fade */
+:root:has([data-site="web"]) {
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root:has([data-site="web"]) {
+    scroll-behavior: auto;
+  }
+}
+@keyframes pulse-ring {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 35%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in oklab, var(--primary) 0%, transparent);
+  }
+}
+@keyframes feature-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Blinking caret in the one-time-code input */
+@theme {
+  --animate-caret-blink: caret-blink 1.25s ease-out infinite;
+}
+@keyframes caret-blink {
+  0%,
+  70%,
+  100% {
+    opacity: 1;
+  }
+  20%,
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Printing (e.g. an invoice): only the page content, on white */
+@media print {
+  [data-slot="sidebar"],
+  [data-slot="sidebar-gap"],
+  [data-slot="sidebar-container"],
+  [data-print="hide"] {
+    display: none !important;
+  }
+  html,
+  body,
+  [data-slot="sidebar-inset"] {
+    background: #fff !important;
+    color: #111 !important;
+  }
+}
+
+/* A4 documents (components/document/a4-page.jsx): on screen a white sheet at A4 size;
+   printed on A4 with no browser margins (the sheet's padding is the page margin) */
+.a4-page {
+  box-sizing: border-box;
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 18mm 16mm;
+  background: #fff;
+  color: #111827;
+  box-shadow:
+    0 1px 3px rgb(0 0 0 / 0.08),
+    0 8px 24px rgb(0 0 0 / 0.08);
+  border-radius: 2px;
+}
+@media (max-width: 860px) {
+  .a4-page {
+    width: 100%;
+    min-height: 0;
+    padding: 24px 20px;
+  }
+}
+@page {
+  size: A4;
+  margin: 0;
+}
+@media print {
+  /* The paper is A4 already: no minimum height, or a full sheet plus anything around it would
+     spill a blank second page. Long documents still flow onto more pages. */
+  .a4-page {
+    width: 210mm;
+    min-height: 0;
+    padding: 18mm 16mm;
+    margin: 0;
+    box-shadow: none;
+    border-radius: 0;
+  }
+  /* Only the document: drop page padding around it */
+  [data-a4-desk] {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
 }

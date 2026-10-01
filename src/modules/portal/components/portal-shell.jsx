@@ -1,0 +1,34 @@
+"use client"
+
+import Link from "next/link"
+import { Logo } from "@/components/logo"
+import { SpotlightSearchProvider } from "@/components/ui/spotlight-search"
+import { HeaderActions } from "./header-actions"
+import { UserMenu } from "./user-menu"
+import { useAppSearch } from "./app-search"
+
+// Portal frame for the launcher and apps that don't have their own sidebar yet:
+// top bar (logo, search, messages, notifications, account) and ⌘K search over the apps
+export function PortalShell({ portal, children }) {
+  const { user, role, tenant, apps, workspaces, canSetUp } = portal
+  const search = useAppSearch(apps)
+  return (
+    <SpotlightSearchProvider search={search} placeholder="Search apps…">
+      <div className="min-h-svh bg-muted/40">
+        <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-md">
+          <div className="flex h-14 items-center gap-3 px-4 sm:px-6 lg:px-8">
+            <Link href="/" aria-label="All apps" className="shrink-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <Logo className="h-7" />
+            </Link>
+            <div className="ml-auto flex items-center gap-1">
+              <HeaderActions />
+              <div className="mx-1 h-6 w-px bg-border" />
+              <UserMenu user={user} role={role} tenant={tenant} workspaces={workspaces} canSetUp={canSetUp} />
+            </div>
+          </div>
+        </header>
+        {children}
+      </div>
+    </SpotlightSearchProvider>
+  )
+}

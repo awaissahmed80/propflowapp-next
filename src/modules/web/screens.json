@@ -1,0 +1,258 @@
+{
+  "launcher": {
+    "src": "/images/screens/launcher.webp",
+    "srcDark": "/images/screens/launcher-dark.webp",
+    "width": 2880,
+    "height": 1800,
+    "callouts": [
+      {
+        "id": "critical",
+        "x": 74.86,
+        "y": 17.56,
+        "w": 25.14,
+        "h": 32
+      },
+      {
+        "id": "apps",
+        "x": 1.39,
+        "y": 28.56,
+        "w": 72.22,
+        "h": 29.11
+      }
+    ]
+  },
+  "estate-overview": {
+    "src": "/images/screens/estate-overview.webp",
+    "srcDark": "/images/screens/estate-overview-dark.webp",
+    "width": 2880,
+    "height": 1800,
+    "callouts": [
+      {
+        "id": "stock",
+        "x": 39.1,
+        "y": 17.56,
+        "w": 19.93,
+        "h": 12.33
+      },
+      {
+        "id": "attention",
+        "x": 72.41,
+        "y": 30.78,
+        "w": 25.93,
+        "h": 48.97
+      },
+      {
+        "id": "chart",
+        "x": 19.44,
+        "y": 30.78,
+        "w": 52.41,
+        "h": 48.97
+      }
+    ]
+  },
+  "inventory": {
+    "src": "/images/screens/inventory.webp",
+    "srcDark": "/images/screens/inventory-dark.webp",
+    "width": 2880,
+    "height": 1800,
+    "callouts": [
+      {
+        "id": "premium",
+        "x": 52.78,
+        "y": 25.33,
+        "w": 30.56,
+        "h": 14.89
+      },
+      {
+        "id": "stock",
+        "x": 18.89,
+        "y": 8.22,
+        "w": 21.94,
+        "h": 9.33
+      }
+    ]
+  },
+  "project": {
+    "src": "/images/screens/project.webp",
+    "srcDark": "/images/screens/project-dark.webp",
+    "width": 2880,
+    "height": 1800,
+    "callouts": [
+      {
+        "id": "approval",
+        "x": 24.03,
+        "y": 12,
+        "w": 32.19,
+        "h": 9.33
+      },
+      {
+        "id": "availability",
+        "x": 72.78,
+        "y": 36,
+        "w": 25.56,
+        "h": 17.33
+      },
+      {
+        "id": "authority",
+        "x": 73.96,
+        "y": 72.78,
+        "w": 23.19,
+        "h": 15.78
+      }
+    ]
+  },
+  "price-list": {
+    "src": "/images/screens/price-list.webp",
+    "srcDark": "/images/screens/price-list-dark.webp",
+    "width": 2880,
+    "height": 1800,
+    "callouts": [
+      {
+        "id": "versions",
+        "x": 23.82,
+        "y": 31.22,
+        "w": 67.08,
+        "h": 18
+      }
+    ]
+  },
+  "listings": {
+    "src": "/images/screens/listings.webp",
+    "srcDark": "/images/screens/listings-dark.webp",
+    "width": 2880,
+    "height": 1800,
+    "callouts": [
+      {
+        "id": "card",
+        "x": 45.42,
+        "y": 33.33,
+        "w": 27.01,
+        "h": 32.89
+      },
+      {
+        "id": "enquiries",
+        "x": 58.75,
+        "y": 20.89,
+        "w": 19.93,
+        "h": 12.33
+      }
+    ]
+  },
+  "crm-board": {
+    "src": "/images/screens/crm-board.webp",
+    "srcDark": "/images/screens/crm-board-dark.webp",
+    "width": 2880,
+    "height": 1800,
+    "callouts": [
+      {
+        "id": "card",
+        "x": 20.35,
+        "y": 43.89,
+        "w": 19.31,
+        "h": 18.67
+      },
+      {
+        "id": "chips",
+        "x": 19.17,
+        "y": 8.67,
+        "w": 43.47,
+        "h": 12.89
+      }
+    ]
+  },
+  "lead": {
+    "src": "/images/screens/lead.webp",
+    "srcDark": "/images/screens/lead-dark.webp",
+    "width": 2880,
+    "height": 1800,
+    "callouts": [
+      {
+        "id": "log",
+        "x": 19.44,
+        "y": 21.56,
+        "w": 52.78,
+        "h": 31.78
+      },
+      {
+        "id": "matches",
+        "x": 19.44,
+        "y": 69.11,
+        "w": 52.78,
+        "h": 30.89
+      },
+      {
+        "id": "header",
+        "x": 19.03,
+        "y": 11.56,
+        "w": 27.92,
+        "h": 10
+      }
+    ]
+  },
+  "campaign": {
+    "src": "/images/screens/campaign.webp",
+    "srcDark": "/images/screens/campaign-dark.webp",
+    "width": 2880,
+    "height": 1800,
+    "callouts": [
+      {
+        "id": "goals",
+        "x": 19.44,
+        "y": 40.56,
+        "w": 26.11,
+        "h": 31.33
+      },
+      {
+        "id": "funnel",
+        "x": 46.11,
+        "y": 40.56,
+        "w": 26.11,
+        "h": 31.33
+      },
+      {
+        "id": "cpl",
+        "x": 82.33,
+        "y": 21.56,
+        "w": 16,
+        "h": 12.33
+      }
+    ]
+  },
+  "page-editor": {
+    "src": "/images/screens/page-editor.webp",
+    "srcDark": "/images/screens/page-editor-dark.webp",
+    "width": 2880,
+    "height": 1800,
+    "callouts": [
+      {
+        "id": "phone",
+        "x": 57.85,
+        "y": 14.33,
+        "w": 28.75,
+        "h": 38.44
+      }
+    ]
+  },
+  "report": {
+    "src": "/images/screens/report.webp",
+    "srcDark": "/images/screens/report-dark.webp",
+    "width": 2880,
+    "height": 1800,
+    "callouts": [
+      {
+        "id": "tiles",
+        "x": 39.1,
+        "y": 27.11,
+        "w": 19.93,
+        "h": 10.89
+      },
+      {
+        "id": "chart",
+        "x": 19.44,
+        "y": 38.89,
+        "w": 78.89,
+        "h": 42
+      }
+    ]
+  }
+}

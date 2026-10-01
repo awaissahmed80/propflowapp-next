@@ -1,0 +1,72 @@
+---
+subject: "{% if kind == 'quote' %}You're on the list for PropFlow, {{ name | first_name }}{% else %}We've received your request ({{ code }}){% endif %}"
+preheader: "{% if kind == 'quote' %}We're putting the final touches on PropFlow. Your workspace will be one of the first we set up, at an early-bird price.{% else %}Thanks, {{ name | first_name }}. Your reference is {{ code }}.{% endif %}"
+---
+{%- comment -%}
+  Thank-you to a website visitor.
+  Data: name, code, kind (sales | trial | quote: create workspace)
+  For quote also: company, needs (labels they picked), trial_days
+{%- endcomment -%}
+{% layout "email" %}
+{% block content %}
+{%- if kind == "quote" %}
+<p style="margin:0 0 14px;"><span style="display:inline-block;padding:4px 12px;border-radius:999px;background:#eef1fb;{{ style.eyebrow }}color:{{ color.brand }};">Final touches in progress</span></p>
+<h1 style="margin:0 0 20px;{{ style.h1 }}">You're on the list, {{ name | first_name }}!</h1>
+<p style="margin:0 0 16px;{{ style.p }}">Thank you for choosing PropFlow{% if company %} for <strong>{{ company }}</strong>{% endif %}. We're really glad you're here.</p>
+<p style="margin:0 0 16px;{{ style.p }}">We're in the final round of testing, polishing everything so inventory, leads, bookings and collections just work from your very first day.</p>
+<p style="margin:0 0 32px;{{ style.p }}">Your workspace will be one of the first we set up when we open the doors.</p>
+
+{%- comment -%} Three cards, same padding and heading style {%- endcomment -%}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;background:#f5f7fd;border-radius:12px;">
+<tr><td style="padding:22px 24px 14px;">
+  <p style="margin:0 0 14px;{{ style.eyebrow }}">What happens next</p>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+    {%- capture last_step %}Your {% if trial_days %}{{ trial_days }}-day {% endif %}free trial begins. No card needed.{% endcapture %}
+    {%- assign steps = "We set up your workspace with what you picked.|We email you a sign-in link when it's ready." | split: "|" | push: last_step %}
+    {%- for step in steps %}
+    <tr>
+      <td width="36" valign="top" style="padding:0 0 10px;"><span style="display:block;{{ style.dot }}background:{{ color.brand }};color:#ffffff;">{{ forloop.index }}</span></td><td valign="top" style="padding:0 0 10px;{{ style.item }}">{{ step }}</td>
+    </tr>
+    {%- endfor %}
+  </table>
+</td></tr>
+</table>
+
+{%- if needs.size > 0 %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;border:1px solid #e5e7eb;border-radius:12px;">
+<tr><td style="padding:22px 24px 14px;">
+  <p style="margin:0 0 14px;{{ style.eyebrow }}">What you picked</p>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+    {%- for n in needs %}
+    <tr>
+      <td width="36" valign="top" style="padding:0 0 10px;"><span style="display:block;{{ style.dot }}background:#eef1fb;color:{{ color.brand }};">✓</span></td><td valign="top" style="padding:0 0 10px;{{ style.item }}">{{ n }}</td>
+    </tr>
+    {%- endfor %}
+  </table>
+</td></tr>
+</table>
+{%- endif %}
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 32px;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;">
+<tr><td style="padding:22px 24px;">
+  <p style="margin:0 0 10px;"><span style="display:inline-block;padding:3px 10px;border-radius:999px;background:#fde68a;{{ style.eyebrow }}color:#92400e;">Early-bird offer</span></p>
+  <p style="margin:0 0 6px;{{ style.label }}">A special price for our first customers</p>
+  <p style="margin:0;{{ style.item }}">As a thank-you for joining us at the start, you'll get PropFlow at a discounted early-bird price. We'll share the details before your trial ends.</p>
+</td></tr>
+</table>
+
+<p style="margin:0 0 16px;{{ style.p }}">Want to add something or tell us about your projects? Just reply to this email. We read every message, and it helps us get your workspace exactly right.</p>
+<p style="margin:0 0 28px;{{ style.p }}">We can't wait to show you around.</p>
+<p style="margin:0;{{ style.p }}">Warm regards,<br><strong style="color:{{ color.ink }};">The PropFlow team</strong></p>
+<p style="margin:28px 0 0;{{ style.small }}">Reference: <strong style="color:{{ color.ink }};">{{ code }}</strong>. Mention it if you get in touch.</p>
+{%- else %}
+<h1 style="margin:0 0 20px;{{ style.h1 }}">Thanks, {{ name | first_name }}</h1>
+{%- if kind == "trial" %}
+<p style="margin:0 0 16px;{{ style.p }}">We've received your trial request. We'll set up your PropFlow workspace and email you a link to get started when it's ready.</p>
+{%- else %}
+<p style="margin:0 0 16px;{{ style.p }}">We've received your message. Someone from our team will call you to talk it through.</p>
+{%- endif %}
+<p style="margin:0 0 16px;{{ style.p }}">If there's anything you'd like to add, just reply to this email.</p>
+<p style="margin:0 0 16px;{{ style.small }}">Your reference: <strong style="color:{{ color.ink }};">{{ code }}</strong></p>
+{%- endif %}
+{% endblock %}

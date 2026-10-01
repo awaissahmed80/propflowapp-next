@@ -1,0 +1,63 @@
+---
+subject: "Invoice {{ code }} from PropFlow · {{ total | rupees }}"
+preheader: "{{ total | rupees }} due by {{ due_at | pkt_date }}."
+---
+{%- comment -%}
+  A workspace's subscription invoice.
+  Data: name, company, code, issued_at, due_at, period_start, period_end,
+        lines [{ description, quantity, unit_price, amount }], subtotal, tax_rate, tax, total, notes,
+        bank { bankName, accountTitle, accountNumber, iban, branch, instructions } or null
+{%- endcomment -%}
+{% layout "email" %}
+{% block content %}
+<h1 style="margin:0 0 20px;{{ style.h1 }}">Invoice {{ code }}</h1>
+<p style="margin:0 0 16px;{{ style.p }}">Hi {{ name | first_name }},</p>
+<p style="margin:0 0 20px;{{ style.p }}">Here's the invoice for {{ company }}{% if period_start %} for {{ period_start | pkt_date }} to {{ period_end | pkt_date }}{% endif %}. Please pay <strong>{{ total | rupees }}</strong> by <strong>{{ due_at | pkt_date }}</strong>.</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;border-collapse:collapse;">
+  <tr>
+    <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;{{ style.small }}">Item</td>
+    <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;{{ style.small }}">Amount</td>
+  </tr>
+  {%- for line in lines %}
+  <tr>
+    <td style="padding:10px 12px 10px 0;border-bottom:1px solid #f3f4f6;vertical-align:top;{{ style.p }}">
+      {{ line.description }}{% if line.quantity != 1 %}<br><span style="{{ style.small }}">{{ line.quantity }} × {{ line.unit_price | rupees }}</span>{% endif %}
+    </td>
+    <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;text-align:right;white-space:nowrap;vertical-align:top;{{ style.p }}">{{ line.amount | rupees }}</td>
+  </tr>
+  {%- endfor %}
+  <tr>
+    <td style="padding:10px 12px 2px 0;text-align:right;{{ style.small }}">Subtotal</td>
+    <td style="padding:10px 0 2px;text-align:right;white-space:nowrap;{{ style.p }}">{{ subtotal | rupees }}</td>
+  </tr>
+  {%- if tax_rate > 0 %}
+  <tr>
+    <td style="padding:2px 12px 2px 0;text-align:right;{{ style.small }}">Sales tax {{ tax_rate }}%</td>
+    <td style="padding:2px 0;text-align:right;white-space:nowrap;{{ style.p }}">{{ tax | rupees }}</td>
+  </tr>
+  {%- endif %}
+  <tr>
+    <td style="padding:8px 12px 0 0;text-align:right;{{ style.label }}">Total due</td>
+    <td style="padding:8px 0 0;text-align:right;white-space:nowrap;{{ style.label }}">{{ total | rupees }}</td>
+  </tr>
+</table>
+
+{%- if notes %}
+<p style="margin:0 0 20px;{{ style.small }}">{{ notes | escape | newline_to_br | raw }}</p>
+{%- endif %}
+
+{%- if bank %}
+<div style="margin:0 0 20px;padding:16px;border:1px solid #e5e7eb;border-radius:8px;">
+  <p style="margin:0 0 8px;{{ style.label }}">Pay by bank transfer</p>
+  <p style="margin:0;{{ style.p }}">
+    {{ bank.accountTitle }}<br>
+    {{ bank.bankName }}{% if bank.branch %}, {{ bank.branch }}{% endif %}<br>
+    IBAN <strong style="font-family:ui-monospace,Menlo,monospace;letter-spacing:0.5px;">{{ bank.iban }}</strong>{% if bank.accountNumber %}<br>Account {{ bank.accountNumber }}{% endif %}
+  </p>
+  <p style="margin:10px 0 0;{{ style.small }}">Use <strong style="color:{{ color.ink }};">{{ code }}</strong> as the payment reference.{% if bank.instructions %} {{ bank.instructions }}{% endif %}</p>
+</div>
+{%- endif %}
+
+<p style="margin:0;{{ style.small }}">The invoice is attached as a PDF ({{ code }}.pdf). Questions about it? Reply to this email.</p>
+{% endblock %}

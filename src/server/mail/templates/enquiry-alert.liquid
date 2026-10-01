@@ -1,0 +1,25 @@
+---
+subject: "{{ kind_label }}: {{ company }} ({{ code }})"
+preheader: "{{ name }} · {{ phone }}{% if city %} · {{ city }}{% endif %}"
+---
+{%- comment -%}
+  To the sales inbox (SALES_NOTIFY_EMAIL) for each website enquiry.
+  Data: kind_label, code, company, name, email, phone, city, plan, projects, team_size, call_time, message, console_url
+{%- endcomment -%}
+{% layout "email" %}
+{% block content %}
+<h1 style="margin:0 0 20px;{{ style.h1 }}">{{ kind_label }} from {{ company }}</h1>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;">
+  <tr><td style="padding:4px 16px 4px 0;vertical-align:top;{{ style.small }}">Contact</td><td style="padding:4px 0;{{ style.p }}">{{ name }}<br><a href="mailto:{{ email }}" style="color:{{ color.brand }};">{{ email }}</a> · {{ phone }}</td></tr>
+  {%- if city %}<tr><td style="padding:4px 16px 4px 0;{{ style.small }}">City</td><td style="padding:4px 0;{{ style.p }}">{{ city }}</td></tr>{% endif %}
+  {%- if plan %}<tr><td style="padding:4px 16px 4px 0;{{ style.small }}">Plan</td><td style="padding:4px 0;{{ style.p }}">{{ plan }}</td></tr>{% endif %}
+  {%- if projects %}<tr><td style="padding:4px 16px 4px 0;{{ style.small }}">Projects</td><td style="padding:4px 0;{{ style.p }}">{{ projects }}</td></tr>{% endif %}
+  {%- if team_size %}<tr><td style="padding:4px 16px 4px 0;{{ style.small }}">Team</td><td style="padding:4px 0;{{ style.p }}">{{ team_size }} people</td></tr>{% endif %}
+  {%- if call_time %}<tr><td style="padding:4px 16px 4px 0;{{ style.small }}">Best time</td><td style="padding:4px 0;{{ style.p }}">{{ call_time }}</td></tr>{% endif %}
+</table>
+{%- if message %}
+<p style="margin:0 0 20px;padding:12px 16px;border-left:3px solid {{ color.brand }};background:#f3f4f6;{{ style.p }}">{{ message | escape | newline_to_br | raw }}</p>
+{%- endif %}
+{% render "button", label: "Open in the console", href: console_url %}
+<p style="margin:0 0 16px;{{ style.small }}">Reply to this email to answer {{ name | first_name }} directly. Reference {{ code }}.</p>
+{% endblock %}

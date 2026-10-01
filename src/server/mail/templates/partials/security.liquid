@@ -1,0 +1,5 @@
+{%- comment -%} Wrap in {% capture %} and pass as body: {% render "security", title: "Didn't request this?", body: note %} {%- endcomment -%}
+<div style="margin:32px 0 0;">
+  <p style="margin:0 0 6px;{{ style.label }}">{{ title | default: "Didn't request this?" }}</p>
+  <p style="margin:0;{{ style.p }}">{{ body | raw }}</p>
+</div>

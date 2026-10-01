@@ -1,0 +1,14 @@
+---
+subject: "{{ inviter }} invited you to {{ workspace }} on PropFlow"
+preheader: "Join {{ workspace }} on PropFlow as {{ role }}."
+---
+{%- comment -%} Invitation to join a workspace. Data: name, inviter, workspace, role (label), link, days {%- endcomment -%}
+{% layout "email" %}
+{% block content %}
+<h1 style="margin:0 0 20px;{{ style.h1 }}">Join {{ workspace }}</h1>
+<p style="margin:0 0 16px;{{ style.p }}">Hi {{ name | first_name | default: "there" }},</p>
+<p style="margin:0 0 16px;{{ style.p }}">{{ inviter }} has invited you to {{ workspace }} on PropFlow as <strong>{{ role }}</strong>. Accept the invitation to set up your account; you can use a password or your Google account. If you already use PropFlow, sign in with your existing account.</p>
+{% render "button", label: "Accept invitation", href: link %}
+<p style="margin:0 0 16px;{{ style.small }}">The link works once and expires in {{ days }} days.</p>
+{% render "security", title: "Not expecting this?", body: "You can ignore this email. Nobody gets access until the invitation is accepted." %}
+{% endblock %}

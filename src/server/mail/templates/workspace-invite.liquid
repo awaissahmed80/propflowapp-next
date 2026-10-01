@@ -1,0 +1,18 @@
+---
+subject: "{{ inviter }} invited you to set up PropFlow"
+preheader: "Your {{ plan }} workspace is ready to set up. Nothing to pay."
+---
+{%- comment -%}
+  Invitation to set up a new workspace (plan chosen in the console).
+  Data: contact_name, company, inviter, plan, trial_days (empty when it starts active), link, days
+{%- endcomment -%}
+{% layout "email" %}
+{% block content %}
+<h1 style="margin:0 0 20px;{{ style.h1 }}">Set up your PropFlow workspace</h1>
+<p style="margin:0 0 16px;{{ style.p }}">Hi {{ contact_name | first_name }},</p>
+<p style="margin:0 0 16px;{{ style.p }}">{{ inviter }} has invited {{ company | default: "your company" }} to PropFlow, the real estate ERP built for Pakistan.</p>
+<p style="margin:0 0 16px;{{ style.p }}">Your workspace is ready on the <strong>{{ plan }}</strong> plan{% if trial_days %} with a {{ trial_days }}-day free trial{% endif %}. There's nothing to pay and no card needed to get started.</p>
+{% render "button", label: "Set up workspace", href: link %}
+<p style="margin:0 0 16px;{{ style.small }}">The link works once and expires in {{ days }} days.</p>
+{% render "security", title: "Not expecting this?", body: "You can safely ignore this email; nothing is set up until you use the link." %}
+{% endblock %}

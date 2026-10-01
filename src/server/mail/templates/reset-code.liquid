@@ -1,0 +1,22 @@
+---
+subject: "{{ code }} is your PropFlow reset code"
+preheader: "Your code is {{ code }}. It works for {{ minutes }} minutes."
+---
+{%- comment -%}
+  Forgot password: the 6-digit code.
+  Data: name, code, minutes, ip, requested_at, google_only (signs in with Google, no password yet)
+{%- endcomment -%}
+{% layout "email" %}
+{% block content %}
+<h1 style="margin:0 0 20px;{{ style.h1 }}">{% if google_only %}Set a password{% else %}Reset your password{% endif %}</h1>
+<p style="margin:0 0 16px;{{ style.p }}">Hi {{ name | first_name }},</p>
+{%- if google_only %}
+<p style="margin:0 0 16px;{{ style.p }}">You usually sign in with Google, so you can keep using <strong>Continue with Google</strong>. To add a password as well, enter this code when asked:</p>
+{%- else %}
+<p style="margin:0 0 16px;{{ style.p }}">Enter this code on the reset page to choose a new password:</p>
+{%- endif %}
+{% render "code", code: code %}
+<p style="margin:0 0 16px;{{ style.small }}">The code works for {{ minutes }} minutes. To protect your account, don't share it with anyone, including PropFlow staff.</p>
+{% capture note %}This code was requested from <strong style="color:{{ color.ink }};">{{ ip | default: "an unknown address" }}</strong> at <strong style="color:{{ color.ink }};">{{ requested_at | pkt_time }}</strong>. If it wasn't you, you can safely ignore this email; your password hasn't changed.{% endcapture %}
+{% render "security", body: note %}
+{% endblock %}
