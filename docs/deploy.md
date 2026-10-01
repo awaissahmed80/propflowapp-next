@@ -26,7 +26,7 @@ Settings → Environments → `production`:
 | `SSH_HOST` | Variable | Server IP |
 | `SSH_USER` | Variable | The user the app runs as |
 | `SSH_PORT` | Variable | `22` unless changed |
-| `DEPLOY_PATH` | Variable | App folder, e.g. `/var/www/propflow` |
+| `DEPLOY_PATH` | Variable | App folder, e.g. `/node-hosting/propflow` |
 
 The matching public key (e.g. `id_rsa.pub`) must be in `~/.ssh/authorized_keys` of `SSH_USER` on the server.
 
@@ -46,11 +46,11 @@ npm install -g yarn pm2
 **The app folder.** The marker file tells the workflow this folder is safe to sync into. The sync deletes files that aren't in the repo, so never put the marker in a folder shared with other sites.
 
 ```bash
-sudo mkdir -p /var/www/propflow && sudo chown "$USER": /var/www/propflow
-touch /var/www/propflow/.propflow-app
+sudo mkdir -p /node-hosting/propflow && sudo chown "$USER": /node-hosting/propflow
+touch /node-hosting/propflow/.propflow-app
 ```
 
-**Uploads.** With `STORAGE_DRIVER=local`, uploads go to `STORAGE_LOCAL_PATH`. Point it at a folder outside the app, e.g. `/var/www/propflow-storage`, so a deploy or a fresh copy of the app can never touch it. Create the folder and set the path in the `ENV_PRODUCTION` secret.
+**Uploads.** With `STORAGE_DRIVER=local`, uploads go to `STORAGE_LOCAL_PATH`. Point it at a folder outside the app, e.g. `/node-hosting/propflow-storage`, so a deploy or a fresh copy of the app can never touch it. Create the folder and set the path in the `ENV_PRODUCTION` secret.
 
 **First deploy.** Nothing extra: the deploy creates the central databases if they're missing (`yarn db:create`), then migrates and seeds them, including the platform owner from `PLATFORM_OWNER_*`. Workspace databases are created when a workspace is created.
 
@@ -86,7 +86,7 @@ cat .next-current       # which build is live
 **Roll back to the previous build:**
 
 ```bash
-cd /var/www/propflow
+cd /node-hosting/propflow
 echo .next-a > .next-current    # the other one of .next-a / .next-b
 pm2 startOrReload ecosystem.config.cjs --update-env
 ```
