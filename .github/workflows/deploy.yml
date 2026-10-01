@@ -64,13 +64,17 @@ jobs:
       # rsync --delete below removes anything in DEPLOY_PATH that isn't in the repo, so only go
       # ahead if the folder is really the PropFlow app (marked during server setup)
       - name: Check the app folder
-        run: $SSH "$SSH_USER@$SSH_HOST" "test -f '$DEPLOY_PATH/.propflow-app'" || { echo "::error::$DEPLOY_PATH has no .propflow-app marker. See docs/deploy.md."; exit 1; }
+        run: |
+          $SSH "$SSH_USER@$SSH_HOST" true || { echo "::error::Can't sign in to $SSH_USER@$SSH_HOST:$SSH_PORT over SSH. Check SSH_PRIVATE_KEY and that its public key is in ~/.ssh/authorized_keys on the server."; exit 1; }
+          $SSH "$SSH_USER@$SSH_HOST" "test -f '$DEPLOY_PATH/.propflow-app'" || { echo "::error::$DEPLOY_PATH has no .propflow-app marker. On the server run: mkdir -p '$DEPLOY_PATH' && touch '$DEPLOY_PATH/.propflow-app'"; exit 1; }
 
       - name: Copy the code
         run: |
+          # Leading "/" = only at the app root. Without it rsync matches at any depth, and e.g.
+          # 'storage/' would also skip the code in src/server/storage
           rsync -az --delete \
-            --exclude='.git/' --exclude='.github/' --exclude='node_modules/' \
-            --exclude='.next*' --exclude='storage/' --exclude='.env*' --exclude='.propflow-app' \
+            --exclude='/.git/' --exclude='/.github/' --exclude='/node_modules/' \
+            --exclude='/.next*' --exclude='/storage/' --exclude='/.env*' --exclude='/.propflow-app' \
             -e "$SSH" ./ "$SSH_USER@$SSH_HOST:$DEPLOY_PATH/"
 
       # Through stdin, so the values never appear in a command line or the logs
