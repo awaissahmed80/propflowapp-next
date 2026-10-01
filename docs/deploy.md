@@ -63,7 +63,7 @@ pm2 save
 
 ## nginx
 
-nginx proxies to the app on port 4045 (`ecosystem.config.cjs`). The app binds to `localhost` on purpose; see the note in that file.
+nginx proxies to the app on port 4050 (`ecosystem.config.cjs`). The app binds to `localhost` on purpose; see the note in that file.
 
 Check what `localhost` means on the server:
 
@@ -71,7 +71,7 @@ Check what `localhost` means on the server:
 getent hosts localhost
 ```
 
-If it shows `127.0.0.1` (usual on Ubuntu), use `server 127.0.0.1:4045;` in the `upstream` block. If it shows `::1`, use `server [::1]:4045;`.
+If it shows `127.0.0.1` (usual on Ubuntu), use `server 127.0.0.1:4050;` in the `upstream` block. If it shows `::1`, use `server [::1]:4050;`.
 
 nginx must pass `Host`, `X-Forwarded-Host` and `X-Forwarded-Proto`. The app picks the site from the hostname.
 
