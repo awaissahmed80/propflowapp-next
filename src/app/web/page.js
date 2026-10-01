@@ -75,7 +75,7 @@ function Heading({ eyebrow, title, text, center, dark }) {
 function Hero({ trialDays, showPrices, quoteMode }) {
   return (
     <section id="top" className="relative overflow-hidden px-4 pt-32 pb-24 sm:px-6 lg:pt-40">
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-40 h-[40rem] bg-[radial-gradient(ellipse_at_top,color-mix(in_oklab,var(--primary)_18%,transparent),transparent_65%)]" />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-40 h-160 bg-[radial-gradient(ellipse_at_top,color-mix(in_oklab,var(--primary)_18%,transparent),transparent_65%)]" />
       <div className="relative mx-auto max-w-6xl text-center">
         <p className="inline-flex items-center gap-2 rounded-full border bg-background/70 px-3 py-1 text-sm text-muted-foreground">
           <span className="size-1.5 rounded-full bg-emerald-500" />

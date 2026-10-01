@@ -2,7 +2,8 @@ import { hashPassword, newPassword } from "../../../auth/secrets.js"
 
 // The first console account, from PLATFORM_OWNER_* in .env, and its owner row in
 // pf_platform.platform_staff. No workspaces or tenant data are created here.
-// Safe to run again: an existing account keeps its password.
+// Safe to run again (every deploy does): it only adds what's missing and never changes an
+// existing account, its password or its console role.
 export async function seed(knex) {
   const name = process.env.PLATFORM_OWNER_NAME?.trim()
   const email = process.env.PLATFORM_OWNER_EMAIL?.trim().toLowerCase()
@@ -24,7 +25,9 @@ export async function seed(knex) {
     })
     user = { id }
     console.log(`  Platform owner created: ${email}`)
-    if (!given) console.log(`  One-time password: ${password}  (shown once; you'll be asked to change it)`)
+    // Shown only in a terminal: deploy logs (GitHub Actions) must never contain a password
+    if (!given && process.stdout.isTTY) console.log(`  One-time password: ${password}  (shown once; you'll be asked to change it)`)
+    else if (!given) console.log("  A one-time password was set. Use Forgot password on the sign-in page to choose your own.")
   } else {
     console.log(`  Platform owner already exists: ${email} (password unchanged)`)
   }
@@ -33,8 +36,5 @@ export async function seed(knex) {
   if (!staff) {
     await knex(staffTable).insert({ user_id: user.id, role: "owner", created_by: user.id })
     console.log("  Added to the console team as owner")
-  } else if (staff.role !== "owner" || !staff.is_active) {
-    await knex(staffTable).where({ id: staff.id }).update({ role: "owner", is_active: true, updated_at: knex.fn.now(3) })
-    console.log("  Console role set back to owner")
   }
 }

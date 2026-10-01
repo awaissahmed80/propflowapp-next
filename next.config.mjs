@@ -5,6 +5,8 @@ const rootDomain = process.env.ROOT_DOMAIN || "propflowapp.test"
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Production deploys build into .next-a / .next-b and switch over when ready (scripts/deploy-remote.sh)
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   // Let the dev server answer the root domain and its subdomains
   allowedDevOrigins: [rootDomain, `*.${rootDomain}`],
   // Load these with Node's own require instead of bundling: Knex refers to every database
