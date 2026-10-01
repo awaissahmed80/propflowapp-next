@@ -15,7 +15,7 @@ const distDir = (() => {
 })()
 
 // nginx proxies to this port (upstream propflow_app)
-const PORT = 4045
+const PORT = 4050   // not 4045: browsers block it, so Next.js refuses it
 
 module.exports = {
   apps: [

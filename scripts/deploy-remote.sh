@@ -46,7 +46,7 @@ pm2 save >/dev/null   # remembered across reboots once `pm2 startup` has been ru
 pm2 list
 
 # The website answers on its own domain (the app picks the site from the Host header)
-port=$(grep -oE 'const PORT = [0-9]+' ecosystem.config.cjs | grep -oE '[0-9]+$' || echo 4045)
+port=$(grep -oE 'const PORT = [0-9]+' ecosystem.config.cjs | grep -oE '[0-9]+$' || echo 4050)
 root=$(grep -E '^ROOT_DOMAIN=' .env.production | cut -d= -f2- | tr -d '"' || true)
 echo "→ Checking https://${root:-propflowapp.com} through the app"
 for i in $(seq 1 30); do
