@@ -1,0 +1,87 @@
+# Deploy to production (Hostinger VPS) on every push to main, or by hand from the Actions tab.
+#
+# The runner lints the code, copies it to the server over SSH, writes .env.production from the
+# ENV_PRODUCTION secret, then runs scripts/deploy-remote.sh there (install, build, migrate,
+# restart with pm2). One-time server setup: docs/deploy.md.
+#
+# GitHub → Settings → Environments → production
+#   Secrets:   ENV_PRODUCTION (the whole .env.production), SSH_PRIVATE_KEY
+#   Variables: SSH_HOST, SSH_USER, SSH_PORT, DEPLOY_PATH
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# One deploy at a time; a newer push waits for the running one instead of cutting it off
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://propflowapp.com
+    timeout-minutes: 30
+    env:
+      SSH_HOST: ${{ vars.SSH_HOST }}
+      SSH_USER: ${{ vars.SSH_USER }}
+      SSH_PORT: ${{ vars.SSH_PORT || '22' }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+
+      - name: Check the code
+        run: |
+          yarn install --frozen-lockfile --non-interactive
+          yarn lint
+
+      - name: Set up SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          for v in SSH_HOST SSH_USER DEPLOY_PATH; do
+            [ -n "${!v}" ] || { echo "::error::Variable $v is not set in the production environment"; exit 1; }
+          done
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          echo "SSH=ssh -i $HOME/.ssh/deploy_key -p $SSH_PORT -o BatchMode=yes -o ServerAliveInterval=30" >> "$GITHUB_ENV"
+
+      # rsync --delete below removes anything in DEPLOY_PATH that isn't in the repo, so only go
+      # ahead if the folder is really the PropFlow app (marked during server setup)
+      - name: Check the app folder
+        run: $SSH "$SSH_USER@$SSH_HOST" "test -f '$DEPLOY_PATH/.propflow-app'" || { echo "::error::$DEPLOY_PATH has no .propflow-app marker. See docs/deploy.md."; exit 1; }
+
+      - name: Copy the code
+        run: |
+          rsync -az --delete \
+            --exclude='.git/' --exclude='.github/' --exclude='node_modules/' \
+            --exclude='.next*' --exclude='storage/' --exclude='.env*' --exclude='.propflow-app' \
+            -e "$SSH" ./ "$SSH_USER@$SSH_HOST:$DEPLOY_PATH/"
+
+      # Through stdin, so the values never appear in a command line or the logs
+      - name: Write .env.production
+        env:
+          ENV_PRODUCTION: ${{ secrets.ENV_PRODUCTION }}
+        run: printf '%s\n' "$ENV_PRODUCTION" | $SSH "$SSH_USER@$SSH_HOST" "umask 077 && cat > '$DEPLOY_PATH/.env.production'"
+
+      - name: Build, migrate and restart
+        run: $SSH "$SSH_USER@$SSH_HOST" "cd '$DEPLOY_PATH' && bash scripts/deploy-remote.sh"
+
+      - name: Clean up
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
