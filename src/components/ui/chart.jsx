@@ -382,14 +382,15 @@ function BarChart({
   )
 }
 
-function LineChart({ data, xKey, series, valueFormatter, axisFormatter = valueFormatter, area = false, showLegend = series.length > 1, className }) {
+// wholeNumbers: counts (visitors, leads) get 0, 1, 2… on the axis, never 0.75
+function LineChart({ data, xKey, series, valueFormatter, axisFormatter = valueFormatter, area = false, showLegend = series.length > 1, wholeNumbers = false, className }) {
   const Chart = area ? RechartsPrimitive.AreaChart : RechartsPrimitive.LineChart
   return (
     <ChartContainer config={toConfig(series)} className={cn("aspect-auto h-64 w-full", className)}>
       <Chart data={data} margin={{ left: 4, right: 12, top: 8 }}>
         <RechartsPrimitive.CartesianGrid vertical={false} />
         <RechartsPrimitive.XAxis dataKey={xKey} {...axisProps} />
-        <RechartsPrimitive.YAxis {...axisProps} width={56} tickFormatter={axisFormatter} />
+        <RechartsPrimitive.YAxis {...axisProps} width={56} tickFormatter={axisFormatter} allowDecimals={!wholeNumbers} />
         <ChartTooltip content={<ChartTooltipContent indicator="line" valueFormatter={valueFormatter} />} />
         {showLegend && <ChartLegend itemSorter={null} content={<ChartLegendContent />} />}
         {series.map((s) =>

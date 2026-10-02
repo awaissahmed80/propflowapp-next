@@ -9,4 +9,6 @@ export const SETTINGS_NAV = [
     ],
   },
   { label: "Customise", items: [{ label: "Lists & Labels", icon: "list-settings-line", to: "/settings/lists", description: "Statuses, types and other choices used across the workspace" }] },
+  { label: "Apps", items: [{ label: "CRM", icon: "user-star-line", to: "/settings/crm", description: "How your team works leads" }] },
+  { label: "Connections", items: [{ label: "Email", icon: "mail-settings-line", to: "/settings/email", description: "Your own email account for sending to leads and customers" }] },
 ]

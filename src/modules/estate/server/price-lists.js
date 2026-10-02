@@ -19,12 +19,13 @@ import { shapeList } from "./price-list-queries"
 const pct = z.coerce.number().min(0).max(100)
 const today = () => new Date().toISOString().slice(0, 10)
 
-
-
 // Rates from what the project's units are priced at now: one row per type, category and size,
 // at the most common rate among them
 async function ratesFromInventory(ctx, projectId) {
-  const [units, lists] = await Promise.all([live(ctx.db, "units").where({ projectId }).select("type", "category", "sizeValue", "sizeUnit", "areaSqft", "baseRate", "basePrice"), getLookups(ctx.db, ["area-unit", "unit-type", "block-category"])])
+  const [units, lists] = await Promise.all([
+    live(ctx.db, "units").where({ projectId }).select("type", "category", "sizeValue", "sizeUnit", "areaSqft", "baseRate", "basePrice"),
+    getLookups(ctx.db, ["area-unit", "unit-type", "block-category"]),
+  ])
   const { sizeInMarla } = measures(lists)
   const groups = new Map()
   for (const u of units) {
@@ -110,7 +111,17 @@ const saveSchema = z.object({
     )
     .max(200),
   premiums: z.array(z.object({ feature: z.string().min(1).max(60), percent: pct })).max(50),
-  charges: z.array(z.object({ key: z.string().max(10), name: z.string().trim().min(1, "Name every charge.").max(120), basis: z.enum(["fixed", "per-marla", "per-sqft", "percent"]), amount: z.coerce.number().min(0).max(1e10), due: z.string().trim().max(120).default("") })).max(30),
+  charges: z
+    .array(
+      z.object({
+        key: z.string().max(10),
+        name: z.string().trim().min(1, "Name every charge.").max(120),
+        basis: z.enum(["fixed", "per-marla", "per-sqft", "percent"]),
+        amount: z.coerce.number().min(0).max(1e10),
+        due: z.string().trim().max(120).default(""),
+      }),
+    )
+    .max(30),
   plans: z
     .array(
       z.object({
@@ -145,7 +156,8 @@ export async function savePriceList(code, input) {
     if (seen.has(k)) return { error: "Two rates are for the same unit type and size. Remove one." }
     seen.add(k)
   }
-  await ctx.db("priceLists")
+  await ctx
+    .db("priceLists")
     .where({ id: list.id })
     .update({
       name: v.name,
@@ -235,7 +247,14 @@ export async function applyPriceList(code) {
   await ctx.db.transaction(async (trx) => {
     repriced = await applyList(trx, ctx.user.id, list)
   })
-  await logActivity(ctx.db, { type: "estate", action: "price_list.applied", actorUserId: ctx.user.id, summary: `re-priced ${repriced} unsold ${repriced === 1 ? "unit" : "units"} under ${list.name}`, subjectType: "project", subjectId: list.projectId })
+  await logActivity(ctx.db, {
+    type: "estate",
+    action: "price_list.applied",
+    actorUserId: ctx.user.id,
+    summary: `re-priced ${repriced} unsold ${repriced === 1 ? "unit" : "units"} under ${list.name}`,
+    subjectType: "project",
+    subjectId: list.projectId,
+  })
   return { ok: true, repriced }
 }
 

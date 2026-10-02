@@ -92,13 +92,7 @@ function InviteWorkspaceDialog({ plans, defaults, apps = [], initial = {}, onClo
 
         <fieldset className="grid gap-4 border-t pt-4 sm:grid-cols-2">
           <legend className="mb-2 pt-4 text-sm font-medium">Plan and terms</legend>
-          <Select
-            label="Plan"
-            value={form.planId}
-            onChange={set("planId")}
-            options={plans.map((p) => ({ value: p.id, label: `${p.name} · ${formatAmount(p.priceMonthly)}/mo` }))}
-            error={errors.planId}
-          />
+          <Select label="Plan" value={form.planId} onChange={set("planId")} options={plans.map((p) => ({ value: p.id, label: `${p.name} · ${formatAmount(p.priceMonthly)}/mo` }))} error={errors.planId} />
           <div>
             <Label className="mb-0.5 text-base text-muted-foreground">Billing</Label>
             <ToggleGroup
@@ -287,7 +281,13 @@ export function PendingWorkspaceInvites({ invites, manage }) {
                       Copy link
                     </Button>
                     {i.state !== "cancelled" && (
-                      <Button size="sm" variant="ghost" leftIcon="close-line" disabled={pending} onClick={() => run(() => revokeWorkspaceInvite(i.id), { text: `Invitation to ${i.email} cancelled. Its link no longer works.` })}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        leftIcon="close-line"
+                        disabled={pending}
+                        onClick={() => run(() => revokeWorkspaceInvite(i.id), { text: `Invitation to ${i.email} cancelled. Its link no longer works.` })}
+                      >
                         Cancel
                       </Button>
                     )}

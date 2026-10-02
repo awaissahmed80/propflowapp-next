@@ -35,7 +35,7 @@ export function AppCard({ app, pending = 0, pinned, onTogglePin }) {
           aria-label={pinned ? `Unpin ${app.name}` : `Pin ${app.name}`}
           className={cn(
             "absolute top-3 right-3 flex size-7 cursor-pointer items-center justify-center rounded-md text-base transition outline-none hover:bg-accent focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring",
-            pinned ? "text-amber-500" : "text-muted-foreground opacity-0 group-hover:opacity-100 max-md:opacity-100"
+            pinned ? "text-amber-500" : "text-muted-foreground opacity-0 group-hover:opacity-100 max-md:opacity-100",
           )}
         >
           <Icon name={pinned ? "star-fill" : "star-line"} />

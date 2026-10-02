@@ -85,7 +85,6 @@ export function GetStartedWizard({ trialDays = 15 }) {
         if (r.fieldErrors.businessType) go(0)
       } else if (r.error) setError(r.error)
       else {
-        track("generate_lead", { lead_type: "get_started", business_type: form.businessType, needs_count: form.interests.length })
         setDone(true)
         top.current?.scrollIntoView({ behavior: "smooth", block: "start" })
       }

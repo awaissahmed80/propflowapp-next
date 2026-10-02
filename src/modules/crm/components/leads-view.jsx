@@ -1,25 +1,32 @@
 "use client"
 
-import { useMemo, useState, useTransition } from "react"
+import { useEffect, useMemo, useRef, useState, useTransition } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { useMediaQuery } from "@/hooks/use-media-query"
 import { timeAgo } from "@/lib/format"
 import { urlCode } from "@/lib/url"
 import { useList } from "@/modules/lookups/context"
+import { LookupSelect } from "@/modules/lookups/components/lookup-select"
 import { Notice } from "@/modules/users/components/user-parts"
 import { DataTable } from "@/components/data-table"
 import { ActiveFilters, FilterMenu } from "@/components/filter-menu"
 import { PageHeader } from "@/components/page-header"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { Dialog } from "@/components/ui/dialog"
 import { Icon } from "@/components/ui/icon"
 import { Input } from "@/components/ui/input"
+import { ScrollView } from "@/components/ui/scroll-view"
 import { ToggleGroup } from "@/components/ui/toggle-group"
 import { Tooltip } from "@/components/ui/tooltip"
 import { OPEN_STEPS, interestText } from "../constants"
 import { setLeadStatus } from "../server/leads"
-import { LeadDialog } from "./lead-dialog"
+import { LeadDialog, LogDialog } from "./lead-dialog"
 import { LeadForm } from "./lead-form"
+import { StatusChangeDialog } from "./status-change-dialog"
+import { ScoreBadge } from "./lead-score"
+import { BulkActions } from "./bulk-actions"
 import { AgentChip, LeadStatusBadge, TempIcon, dueText, telHref, whatsappHref } from "./lead-parts"
 
 const EMPTY = { status: [], source: [], project: [], agent: [], priority: [] }
@@ -46,71 +53,152 @@ function QuickContact({ lead, className }) {
 }
 
 // Open leads by status, one column each; drag a card to move it along
-function Board({ leads, onOpen, onMove, canEdit }) {
+function Board({ leads, onOpen, onMove, canEdit, activeCode, staleLimit }) {
   const statuses = useList("lead-status")
   const types = useList("unit-type")
   const [over, setOver] = useState(null)
+
+  // ← → buttons: one column at a time, shown only while there's more that way
+  const viewport = useRef(null)
+  const [can, setCan] = useState({ left: false, right: false })
+  useEffect(() => {
+    const el = viewport.current
+    if (!el) return undefined
+    const update = () => setCan({ left: el.scrollLeft > 4, right: el.scrollLeft + el.clientWidth < el.scrollWidth - 4 })
+    update()
+    el.addEventListener("scroll", update, { passive: true })
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    if (el.firstElementChild) ro.observe(el.firstElementChild)
+    return () => {
+      el.removeEventListener("scroll", update)
+      ro.disconnect()
+    }
+  }, [])
+  const step = (dir) => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    viewport.current?.scrollBy({ left: dir * BOARD_COLUMN_STEP, behavior: reduce ? "auto" : "smooth" })
+  }
+
   return (
-    <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
-      {OPEN_STEPS.map((st) => {
-        const list = leads.filter((l) => l.status === st)
-        return (
-          <section
-            key={st}
-            aria-label={statuses.label(st)}
-            onDragOver={(e) => {
-              if (!canEdit) return
-              e.preventDefault()
-              setOver(st)
-            }}
-            onDragLeave={() => setOver((o) => (o === st ? null : o))}
-            onDrop={(e) => {
-              setOver(null)
-              const code = e.dataTransfer.getData("text/lead")
-              if (code) onMove(code, st)
-            }}
-            className={cn("flex w-72 shrink-0 flex-col rounded-xl border bg-muted/30 transition-colors", over === st && "border-primary/50 bg-primary/5")}
-          >
-            <header className="flex items-center justify-between px-3 py-2.5">
-              <LeadStatusBadge status={st} />
-              <span className="text-xs text-muted-foreground tabular-nums">{list.length}</span>
-            </header>
-            <div className="flex min-h-24 flex-col gap-2 px-2 pb-2">
-              {list.map((l) => {
-                const due = dueText(l.next?.at)
-                return (
-                  <article
-                    key={l.code}
-                    draggable={canEdit}
-                    onDragStart={(e) => e.dataTransfer.setData("text/lead", l.code)}
-                    onClick={() => onOpen(l)}
-                    className="group cursor-pointer rounded-lg border bg-background p-3 shadow-xs transition hover:border-primary/40 hover:shadow-sm"
-                  >
-                    <div className="flex items-center gap-2">
-                      <TempIcon priority={l.priority} />
-                      <span className="min-w-0 flex-1 truncate text-sm font-medium">{l.name}</span>
-                      <QuickContact lead={l} className="opacity-0 transition-opacity group-hover:opacity-100" />
-                    </div>
-                    <p className="mt-1 truncate text-xs text-muted-foreground">{interestText(l.interest, { typeLabel: types.label })}</p>
-                    <div className="mt-2 flex items-center justify-between gap-2 text-xs">
-                      <span className={cn("flex items-center gap-1", due.tone)}>
-                        {l.next && <Icon name="alarm-line" />}
-                        {l.next ? due.text : "No follow-up"}
-                      </span>
-                      {l.agent && <Avatar name={l.agent.name} source={l.agent.avatarUrl} size="sm" />}
-                    </div>
-                  </article>
-                )
-              })}
-            </div>
-          </section>
-        )
-      })}
+    // Full-bleed: edge to edge and down to the window's bottom, where the scrollbar sits. The
+    // row inside lines the first column up with the page header; each column scrolls its cards.
+    <div className="relative -mx-4 h-full sm:-mx-6 lg:-mx-8">
+      {can.left && <BoardArrow dir={-1} onClick={() => step(-1)} />}
+      {can.right && <BoardArrow dir={1} onClick={() => step(1)} />}
+      <ScrollView orientation="horizontal" viewportRef={viewport} className="h-full" viewportClassName="overscroll-x-contain scroll-smooth motion-reduce:scroll-auto">
+        <div className="flex h-full w-max gap-3 px-4 pb-4 sm:px-6 lg:px-8">
+          {BOARD_STEPS.map((st) => {
+            const list = leads.filter((l) => l.status === st)
+            return (
+              <section
+                key={st}
+                aria-label={statuses.label(st)}
+                onDragOver={(e) => {
+                  if (!canEdit) return
+                  e.preventDefault()
+                  setOver(st)
+                }}
+                onDragLeave={() => setOver((o) => (o === st ? null : o))}
+                onDrop={(e) => {
+                  setOver(null)
+                  const code = e.dataTransfer.getData("text/lead")
+                  if (code) onMove(code, st)
+                }}
+                className={cn("flex h-full w-72 shrink-0 flex-col rounded-xl border bg-muted/30 transition-colors", over === st && "border-primary/50 bg-primary/5")}
+              >
+                <header className="flex items-center justify-between px-3 py-2.5">
+                  <LeadStatusBadge status={st} className="h-7 px-3 text-sm font-semibold" />
+                  <span className="text-xs text-muted-foreground tabular-nums" title={["booked", "lost"].includes(st) ? `Last ${CLOSED_ON_BOARD_DAYS} days` : undefined}>
+                    {list.length}
+                    {["booked", "lost"].includes(st) && <span className="ml-1 opacity-70">· {CLOSED_ON_BOARD_DAYS}d</span>}
+                  </span>
+                </header>
+                <ScrollView className="min-h-0 flex-1" viewportClassName="flex flex-col gap-2 overscroll-auto px-2 pb-2">
+                  {list.map((l) => {
+                    const due = dueText(l.next?.at)
+                    return (
+                      <article
+                        key={l.code}
+                        draggable={canEdit}
+                        onDragStart={(e) => e.dataTransfer.setData("text/lead", l.code)}
+                        onClick={() => onOpen(l)}
+                        aria-current={l.code === activeCode ? "true" : undefined}
+                        className="group cursor-pointer rounded-lg border bg-background p-3 shadow-xs transition hover:border-primary/40 hover:shadow-sm aria-[current=true]:border-primary/60 aria-[current=true]:bg-primary/5"
+                      >
+                        <div className="flex items-center gap-2">
+                          <TempIcon priority={l.priority} />
+                          <span className="min-w-0 flex-1 truncate text-sm font-medium">{l.name}</span>
+                          <StalePill days={staleDays(l, staleLimit)} />
+                          <QuickContact lead={l} className="opacity-0 transition-opacity group-hover:opacity-100" />
+                        </div>
+                        <p className="mt-1 truncate text-xs text-muted-foreground">{interestText(l.interest, { typeLabel: types.label })}</p>
+                        <div className="mt-2 flex items-center justify-between gap-2 text-xs">
+                          <span className={cn("flex items-center gap-1", due.tone)}>
+                            {l.next && <Icon name="alarm-line" />}
+                            {l.next ? due.text : "No follow-up"}
+                          </span>
+                          {l.agent && <Avatar name={l.agent.name} source={l.agent.avatarUrl} size="sm" />}
+                        </div>
+                      </article>
+                    )
+                  })}
+                </ScrollView>
+              </section>
+            )
+          })}
+        </div>
+      </ScrollView>
     </div>
   )
 }
 
-export function LeadsView({ leads, agents, projects, me, access }) {
+// Round ← / → over the board's edge (w-72 column + gap-3 = 300px per step)
+const BOARD_COLUMN_STEP = 300
+function BoardArrow({ dir, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={dir < 0 ? "Scroll left" : "Scroll right"}
+      className={cn(
+        "absolute top-1/2 z-20 flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border bg-background/95 text-lg text-foreground shadow-md backdrop-blur-sm transition hover:bg-background hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+        dir < 0 ? "left-2 sm:left-3" : "right-2 sm:right-3",
+      )}
+    >
+      <Icon name={dir < 0 ? "arrow-left-s-line" : "arrow-right-s-line"} />
+    </button>
+  )
+}
+
+// Open lead with no activity for the workspace's set number of days (Settings › CRM) → days, else 0
+function staleDays(l, limit, now = Date.now()) {
+  if (!limit || !OPEN_STEPS.includes(l.status)) return 0
+  const days = Math.floor((now - new Date(l.lastContactAt ?? l.createdAt).getTime()) / 86_400_000)
+  return days >= limit ? days : 0
+}
+export function StalePill({ days, className }) {
+  if (!days) return null
+  return (
+    <Tooltip content={`No activity for ${days} days`}>
+      <span className={cn("inline-flex shrink-0 items-center gap-0.5 rounded-full bg-amber-500/12 px-1.5 py-px text-[11px] font-semibold text-amber-700 dark:text-amber-400", className)}>
+        <Icon name="hourglass-line" className="text-[11px]" />
+        Stale · {days}d
+      </span>
+    </Tooltip>
+  )
+}
+
+// With a lead open beside the table: just who, where they are, what's next and who has them
+// (the panel has the rest, including Call and WhatsApp)
+const DOCKED_COLUMNS = ["name", "status", "next", "agent"]
+
+// Board columns: every status. Booked and Lost show only recent ones so they don't grow forever
+// (older ones are in the Booked / Lost tabs of the list).
+const BOARD_STEPS = [...OPEN_STEPS, "booked", "lost"]
+const CLOSED_ON_BOARD_DAYS = 30
+
+export function LeadsView({ leads, agents, projects, me, access, brand, userName }) {
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
@@ -121,10 +209,15 @@ export function LeadsView({ leads, agents, projects, me, access }) {
   const [q, setQ] = useState("")
   const [filters, setFilters] = useState(EMPTY)
   const [message, setMessage] = useState(null)
+  const [selected, setSelected] = useState(() => new Set()) // ticked lead codes (list only)
   const [, startTransition] = useTransition()
-  const tab = ["due", "booked", "lost"].includes(params.get("tab")) ? params.get("tab") : "open"
+  const tab = ["due", "booked", "lost", "archived"].includes(params.get("tab")) ? params.get("tab") : "open"
   const view = params.get("view") === "board" ? "board" : "list"
   const openCode = params.get("lead")
+  // Wide screens: the open lead docks next to the table (from the table's top); else a sheet
+  const wide = useMediaQuery("(min-width: 1024px)")
+  const docked = Boolean(openCode) && view === "list" && wide && leads.length > 0
+  const activeCode = docked ? leads.find((l) => urlCode(l.code) === openCode)?.code : undefined
 
   const setParam = (key, value) => {
     const next = new URLSearchParams(params)
@@ -138,7 +231,16 @@ export function LeadsView({ leads, agents, projects, me, access }) {
     const term = q.trim().toLowerCase()
     const digits = term.replace(/\D/g, "")
     return leads.filter((l) => {
-      if (term && !(l.name.toLowerCase().includes(term) || (digits.length >= 3 && l.phone.replace(/\D/g, "").includes(digits.replace(/^0/, ""))) || l.code.toLowerCase().includes(term) || (l.city ?? "").toLowerCase().includes(term))) return false
+      if (
+        term &&
+        !(
+          l.name.toLowerCase().includes(term) ||
+          (digits.length >= 3 && l.phone.replace(/\D/g, "").includes(digits.replace(/^0/, ""))) ||
+          l.code.toLowerCase().includes(term) ||
+          (l.city ?? "").toLowerCase().includes(term)
+        )
+      )
+        return false
       if (filters.status.length && !filters.status.includes(l.status)) return false
       if (filters.source.length && !filters.source.includes(l.source)) return false
       if (filters.project.length && !filters.project.includes(l.interest.project?.code ?? "none")) return false
@@ -150,32 +252,55 @@ export function LeadsView({ leads, agents, projects, me, access }) {
 
   const [now] = useState(() => Date.now())
   const endOfToday = new Date(new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi" }).format(now) + "T23:59:59+05:00").getTime()
+  // Archived leads are out of the pipeline: only in the Archived tab
+  const live = filtered.filter((l) => !l.archivedAt)
   const isOpen = (l) => OPEN_STEPS.includes(l.status)
   const isDue = (l) => isOpen(l) && l.next && new Date(l.next.at).getTime() <= endOfToday
   const tabs = {
-    open: filtered.filter(isOpen),
-    due: filtered.filter(isDue).sort((a, b) => new Date(a.next.at) - new Date(b.next.at)),
-    booked: filtered.filter((l) => l.status === "booked"),
-    lost: filtered.filter((l) => l.status === "lost"),
+    open: live.filter(isOpen),
+    due: live.filter(isDue).sort((a, b) => new Date(a.next.at) - new Date(b.next.at)),
+    booked: live.filter((l) => l.status === "booked"),
+    lost: live.filter((l) => l.status === "lost"),
+    archived: filtered.filter((l) => l.archivedAt).sort((a, b) => new Date(b.archivedAt) - new Date(a.archivedAt)),
   }
   const overdue = tabs.due.filter((l) => new Date(l.next.at).getTime() < now).length
-  const shown = view === "board" ? tabs.open : tabs[tab]
+  const recentlyClosed = (l) => ["booked", "lost"].includes(l.status) && l.closedAt && now - new Date(l.closedAt).getTime() < CLOSED_ON_BOARD_DAYS * 86_400_000
+  // Ticks only count for rows in the tab being looked at
+  const picked = view === "list" ? tabs[tab].filter((l) => selected.has(l.code)) : []
+  const shown = view === "board" ? live.filter((l) => isOpen(l) || recentlyClosed(l)) : tabs[tab]
 
   const groups = [
     { key: "status", label: "Status", icon: "flag-line", options: statuses.options },
     { key: "priority", label: "Temperature", icon: "fire-line", options: priorities.options },
     { key: "source", label: "Source", icon: "megaphone-line", options: sources.options },
     { key: "project", label: "Project", icon: "community-line", options: [...projects.map((p) => ({ value: p.code, label: p.name })), { value: "none", label: "No project" }] },
-    ...(access.scope !== "own" ? [{ key: "agent", label: "Agent", icon: "user-line", options: [...agents.map((a) => ({ value: String(a.id), label: a.id === me ? `${a.name} (me)` : a.name })), { value: "none", label: "Unassigned" }] }] : []),
+    ...(access.scope !== "own"
+      ? [{ key: "agent", label: "Agent", icon: "user-line", options: [...agents.map((a) => ({ value: String(a.id), label: a.id === me ? `${a.name} (me)` : a.name })), { value: "none", label: "Unassigned" }] }]
+      : []),
   ]
 
   const open = (l) => setParam("lead", urlCode(l.code))
-  const move = (code, status) =>
+  // Dragging to a status: straight away, unless it's Lost (asks why) or the workspace asks for an
+  // update with every change (Settings › CRM)
+  const [changing, setChanging] = useState(null) // { code, name, status }
+  const [moving, setMoving] = useState(null) // { code, name, status }: just the log form (notes required)
+  const [closing, setClosing] = useState(null) // { code, mode }: dragged to Booked / Lost → the lead's Close deal tab
+  const move = (code, status, extra = null) => {
+    if (!extra && (status === "booked" || status === "lost")) {
+      setClosing({ code, mode: status === "booked" ? "won" : "lost" })
+      setParam("lead", urlCode(code))
+      return
+    }
+    // Notes required (Settings › CRM): open the lead with its log form set for the move
+    if (!extra && access.statusNote) return setMoving({ code, status, name: leads.find((l) => l.code === code)?.name ?? "This lead" })
+    if (!extra && status === "lost") return setChanging({ code, status, name: leads.find((l) => l.code === code)?.name ?? "this lead" })
     startTransition(async () => {
-      const r = await setLeadStatus(code, status)
+      const r = await setLeadStatus(code, status, extra ?? {})
       if (r.error) setMessage({ tone: "error", text: r.error })
+      setChanging(null)
       router.refresh()
     })
+  }
 
   const columns = [
     {
@@ -187,17 +312,25 @@ export function LeadsView({ leads, agents, projects, me, access }) {
           <TempIcon priority={l.priority} />
           <span className="truncate font-medium">{l.name}</span>
           {l.overseas && <Icon name="earth-line" className="shrink-0 text-muted-foreground" title="Overseas" />}
+          <StalePill days={staleDays(l, access.staleDays)} />
         </span>
       ),
     },
-    { key: "interest", header: "Looking for", sortValue: (l) => interestText(l.interest), cell: (l) => <span className="block max-w-72 truncate text-muted-foreground">{interestText(l.interest, { typeLabel: types.label })}</span> },
+    {
+      key: "interest",
+      header: "Looking for",
+      sortValue: (l) => interestText(l.interest),
+      cell: (l) => <span className="block max-w-72 truncate text-muted-foreground">{interestText(l.interest, { typeLabel: types.label })}</span>,
+    },
     { key: "status", header: "Status", sortValue: (l) => OPEN_STEPS.indexOf(l.status), cell: (l) => <LeadStatusBadge status={l.status} /> },
+    ...(leads.some((l) => l.score) ? [{ key: "score", header: "Score", sortValue: (l) => l.score?.value ?? -1, cell: (l) => <ScoreBadge score={l.score} /> }] : []),
     { key: "agent", header: "Agent", sortValue: (l) => l.agent?.name ?? "~", cell: (l) => <AgentChip agent={l.agent} /> },
     {
       key: "next",
-      header: tab === "booked" || tab === "lost" ? "Closed" : "Next follow-up",
-      sortValue: (l) => (tab === "booked" || tab === "lost" ? new Date(l.closedAt ?? 0).getTime() : l.next ? new Date(l.next.at).getTime() : Infinity),
+      header: tab === "archived" ? "Archived" : tab === "booked" || tab === "lost" ? "Closed" : "Next follow-up",
+      sortValue: (l) => (tab === "archived" ? new Date(l.archivedAt).getTime() : tab === "booked" || tab === "lost" ? new Date(l.closedAt ?? 0).getTime() : l.next ? new Date(l.next.at).getTime() : Infinity),
       cell: (l) => {
+        if (tab === "archived") return <span className="whitespace-nowrap text-muted-foreground">{timeAgo(l.archivedAt)}</span>
         if (tab === "booked" || tab === "lost") return <span className="text-muted-foreground">{l.closedAt ? timeAgo(l.closedAt) : "—"}</span>
         const d = dueText(l.next?.at)
         return <span className={cn("whitespace-nowrap", d.tone)}>{l.next ? d.text : "None planned"}</span>
@@ -212,16 +345,56 @@ export function LeadsView({ leads, agents, projects, me, access }) {
     { value: "due", label: "Due today", count: tabs.due.length, alert: overdue > 0 },
     { value: "booked", label: "Booked", count: tabs.booked.length },
     { value: "lost", label: "Lost", count: tabs.lost.length },
+    { value: "archived", label: "Archived", count: tabs.archived.length },
   ]
 
   return (
-    <div className="space-y-4 p-4 sm:p-6 lg:p-8">
+    // The page fills the screen. List: the table scrolls inside it (sticky header, pagination at the
+    // bottom, like Inventory and People). Board: full-height columns down to the window's bottom edge.
+    <div className={cn("p-4 transition-[padding] sm:p-6 lg:p-8", leads.length ? "flex h-[calc(100svh-3.5rem)] flex-col gap-4" : "space-y-4", view === "board" && leads.length > 0 && "pb-0 sm:pb-0 lg:pb-0")}>
       <PageHeader
         title="Leads"
         toolbar={
           <>
-            <Input type="search" aria-label="Search leads" placeholder="Search name, mobile, city…" className="w-full max-w-72" value={q} onChange={(e) => setQ(e.target.value)} startElement={<Icon name="search-line" />} />
+            <Input
+              type="search"
+              aria-label="Search leads"
+              placeholder="Search name, mobile, city…"
+              className="w-full max-w-60"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              startElement={<Icon name="search-line" />}
+            />
             <FilterMenu groups={groups} value={filters} onChange={setFilters} />
+            {/* Quick filters (list only): a compact segmented control in the header row */}
+            {view === "list" && (
+              <div
+                role="tablist"
+                aria-label="Leads"
+                className="flex h-control min-w-0 shrink items-center gap-0.5 overflow-x-auto rounded-md border border-input bg-background p-[3px] shadow-xs [scrollbar-width:none] dark:bg-input/30"
+              >
+                {TABS.map((t) => {
+                  const on = tab === t.value
+                  return (
+                    <button
+                      key={t.value}
+                      type="button"
+                      role="tab"
+                      aria-selected={on}
+                      onClick={() => setParam("tab", t.value === "open" ? null : t.value)}
+                      className={cn(
+                        "flex h-full shrink-0 cursor-pointer items-center gap-1.5 rounded-[5px] px-2.5 text-sm font-medium whitespace-nowrap transition-colors",
+                        on ? "bg-muted text-foreground dark:bg-input/60" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground dark:hover:bg-input/40",
+                      )}
+                    >
+                      {t.alert && <span className="size-1.5 rounded-full bg-red-500" />}
+                      {t.label}
+                      <span className={cn("tabular-nums", on ? "text-muted-foreground" : "opacity-70")}>{t.count}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </>
         }
         actions={
@@ -245,27 +418,25 @@ export function LeadsView({ leads, agents, projects, me, access }) {
       />
       <ActiveFilters groups={groups} value={filters} onChange={setFilters} />
 
-      {view === "list" && (
-        <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Leads">
-          {TABS.map((t) => {
-            const on = tab === t.value
-            return (
-              <button
-                key={t.value}
-                type="button"
-                role="tab"
-                aria-selected={on}
-                onClick={() => setParam("tab", t.value === "open" ? null : t.value)}
-                className={cn("flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-medium transition-colors", on ? "border-primary bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:text-foreground")}
-              >
-                {t.alert && <span className={cn("size-1.5 rounded-full", on ? "bg-primary-foreground" : "bg-red-500")} />}
-                {t.label}
-                <span className="tabular-nums opacity-80">{t.count}</span>
-              </button>
-            )
-          })}
-        </div>
+      {/* Bulk actions on the ticked leads of the current tab */}
+      {view === "list" && picked.length > 0 && (
+        <BulkActions
+          picked={picked}
+          archivedTab={tab === "archived"}
+          access={access}
+          agents={agents}
+          me={me}
+          brand={brand}
+          userName={userName}
+          onClear={() => setSelected(new Set())}
+          onDone={(m) => {
+            setMessage(m)
+            if (m.tone === "success") setSelected(new Set())
+            router.refresh()
+          }}
+        />
       )}
+
       {message && <Notice tone={message.tone}>{message.text}</Notice>}
 
       {leads.length === 0 ? (
@@ -279,20 +450,65 @@ export function LeadsView({ leads, agents, projects, me, access }) {
             </Button>
           )}
         </div>
-      ) : view === "board" ? (
-        <Board leads={shown} onOpen={open} onMove={move} canEdit={access.edit} />
       ) : (
-        <DataTable
-          columns={columns}
-          rows={shown}
-          rowKey={(l) => l.code}
-          onRowClick={open}
-          minWidth="56rem"
-          empty={<p className="text-sm text-muted-foreground">{tab === "due" ? "Nothing due today. Nice." : "No leads match."}</p>}
-        />
+        // List or board; on wide screens the open lead docks beside the list (board opens it in a modal)
+        <div className={cn("min-h-0 flex-1", docked && "flex gap-4")}>
+          <div className="h-full min-w-0 flex-1">
+            {view === "board" ? (
+              <Board leads={shown} onOpen={open} onMove={move} canEdit={access.edit} activeCode={activeCode} staleLimit={access.staleDays} />
+            ) : (
+              <DataTable
+                columns={docked ? DOCKED_COLUMNS.map((key) => columns.find((c) => c.key === key)) : columns}
+                rows={shown}
+                rowKey={(l) => l.code}
+                onRowClick={open}
+                activeKey={activeCode}
+                selectedIds={docked ? undefined : selected}
+                onSelectionChange={docked ? undefined : setSelected}
+                minWidth={docked ? "30rem" : "56rem"}
+                empty={<p className="text-sm text-muted-foreground">{tab === "due" ? "Nothing due today. Nice." : "No leads match."}</p>}
+              />
+            )}
+          </div>
+          {docked && (
+            <div className="h-full w-[min(44rem,50%)] shrink-0">
+              <LeadDialog key={openCode} docked code={openCode} agents={agents} projects={projects} access={access} me={me} onClose={() => setParam("lead", null)} onOpenLead={(c) => setParam("lead", urlCode(c))} />
+            </div>
+          )}
+        </div>
       )}
 
-      {openCode && <LeadDialog code={openCode} agents={agents} projects={projects} access={access} me={me} onClose={() => setParam("lead", null)} />}
+      {moving && (
+        <LogDialog
+          code={moving.code}
+          name={moving.name}
+          statusTo={moving.status}
+          onClose={() => setMoving(null)}
+          onSaved={() => {
+            setMoving(null)
+            setMessage({ tone: "success", text: `${moving.name}: saved, and the status is updated.` })
+            router.refresh()
+          }}
+        />
+      )}
+      {changing && <StatusChangeDialog name={changing.name} status={changing.status} needUpdate={false} onClose={() => setChanging(null)} onConfirm={(v) => move(changing.code, changing.status, v)} />}
+      {openCode && !docked && (
+        <LeadDialog
+          key={openCode}
+          modal={view === "board"}
+          code={openCode}
+          agents={agents}
+          projects={projects}
+          access={access}
+          me={me}
+          initialDeal={closing && urlCode(closing.code) === openCode ? closing.mode : null}
+          onClose={() => {
+            setClosing(null)
+            setParam("lead", null)
+          }}
+          onOpenLead={(c) => setParam("lead", urlCode(c))}
+        />
+      )}
       {params.get("new") === "1" && (
         <LeadForm
           agents={agents}

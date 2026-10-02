@@ -14,16 +14,7 @@ import { Input } from "@/components/ui/input"
 import { NumberInput } from "@/components/ui/number-input"
 import { Select } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import {
-  completeSetup,
-  removeBankAccount,
-  removeLogo,
-  saveBankAccount,
-  saveCashOpening,
-  saveCompanyProfile,
-  savePreferences,
-  uploadLogo,
-} from "../server/setup-actions"
+import { completeSetup, removeBankAccount, removeLogo, saveBankAccount, saveCashOpening, saveCompanyProfile, savePreferences, uploadLogo } from "../server/setup-actions"
 
 const STEPS = [
   { key: "profile", title: "Company profile", text: "Name, address and tax details for documents", icon: "building-2-line", required: true },
@@ -94,9 +85,7 @@ export function ProfileStep({ settings, disabled, inSettings = false }) {
     company_website: settings.company_website ?? "",
   }))
   const { save, pending, errors, error, saved } = useSave(inSettings ? null : "logo")
-  const field = (k, label, props = {}) => (
-    <Input label={label} value={form[k]} onChange={(e) => setForm((f) => ({ ...f, [k]: e.target.value }))} error={errors[k]} disabled={disabled} {...props} />
-  )
+  const field = (k, label, props = {}) => <Input label={label} value={form[k]} onChange={(e) => setForm((f) => ({ ...f, [k]: e.target.value }))} error={errors[k]} disabled={disabled} {...props} />
   return (
     <form
       noValidate
@@ -236,7 +225,15 @@ function BankDialog({ account, onClose, onSaved }) {
         {field("accountNumber", "Account number", { required: true, placeholder: "0102-0104567821" })}
         <div className="sm:col-span-2">{field("iban", "IBAN", { placeholder: "PK36 MEZN 0001 0201 0456 7821", info: "Printed on invoices and receipts so buyers can transfer." })}</div>
         {field("branch", "Branch", { placeholder: "Main Boulevard Gulberg, Lahore" })}
-        <NumberInput label="Opening balance" prefix="Rs" min={0} value={form.openingBalance} onChange={(v) => set("openingBalance")(v ?? 0)} error={errors.openingBalance} info="Balance on the day you start using PropFlow." />
+        <NumberInput
+          label="Opening balance"
+          prefix="Rs"
+          min={0}
+          value={form.openingBalance}
+          onChange={(v) => set("openingBalance")(v ?? 0)}
+          error={errors.openingBalance}
+          info="Balance on the day you start using PropFlow."
+        />
       </div>
       <div className="rounded-lg border p-3">
         <Switch label="Default account for receipts" description="Buyer payments are received into this account unless someone picks another." checked={form.isDefault} onChange={set("isDefault")} />
@@ -298,7 +295,16 @@ function AccountsStep({ accounts, disabled }) {
         <p className="mb-3 text-sm text-muted-foreground">Cash in hand and petty cash are ready to use. Enter what you have today, if anything.</p>
         <div className="grid gap-4 sm:grid-cols-2">
           {cashAccounts.map((a) => (
-            <NumberInput key={a.code} label={`${a.name} (${a.code})`} prefix="Rs" min={0} value={cash[a.code] ?? 0} onChange={(v) => setCash((c) => ({ ...c, [a.code]: v ?? 0 }))} error={errors[a.code]} disabled={disabled} />
+            <NumberInput
+              key={a.code}
+              label={`${a.name} (${a.code})`}
+              prefix="Rs"
+              min={0}
+              value={cash[a.code] ?? 0}
+              onChange={(v) => setCash((c) => ({ ...c, [a.code]: v ?? 0 }))}
+              error={errors[a.code]}
+              disabled={disabled}
+            />
           ))}
         </div>
       </section>
@@ -372,11 +378,11 @@ export function SetupWizard({ step, setup, logoUrl, canSetUp, firstName, workspa
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-primary">Get started</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-            {setup.completedAt ? `${workspaceName} setup` : `Welcome, ${firstName}. Let's set up ${workspaceName}.`}
-          </h1>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{setup.completedAt ? `${workspaceName} setup` : `Welcome, ${firstName}. Let's set up ${workspaceName}.`}</h1>
           <p className="mt-1 text-muted-foreground">
-            {setup.requiredDone ? "Your company profile is done. Add the optional details now or later, then finish setup to open your apps." : "A few details before your team starts. Only the company profile is required."}
+            {setup.requiredDone
+              ? "Your company profile is done. Add the optional details now or later, then finish setup to open your apps."
+              : "A few details before your team starts. Only the company profile is required."}
           </p>
         </div>
         <div className="text-right text-sm text-muted-foreground">
@@ -404,12 +410,15 @@ export function SetupWizard({ step, setup, logoUrl, canSetUp, firstName, workspa
                   <Link
                     href={`/setup?step=${s.key}`}
                     aria-current={active ? "step" : undefined}
-                    className={cn("flex items-start gap-3 rounded-lg px-3 py-2.5 outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring", active && "bg-accent text-accent-foreground hover:bg-accent")}
+                    className={cn(
+                      "flex items-start gap-3 rounded-lg px-3 py-2.5 outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring",
+                      active && "bg-accent text-accent-foreground hover:bg-accent",
+                    )}
                   >
                     <span
                       className={cn(
                         "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold",
-                        done ? "border-emerald-600 bg-emerald-600 text-white" : active ? "border-primary text-primary" : "text-muted-foreground"
+                        done ? "border-emerald-600 bg-emerald-600 text-white" : active ? "border-primary text-primary" : "text-muted-foreground",
                       )}
                     >
                       {done ? <Icon name="check-line" /> : i + 1}

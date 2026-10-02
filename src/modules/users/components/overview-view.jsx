@@ -31,9 +31,7 @@ export function OverviewView({ members, invites, teams, seats, activity, options
   const suspended = members.filter((m) => m.status === "suspended")
   const online = members.filter((m) => m.lastActiveAt && now - new Date(m.lastActiveAt).getTime() < 15 * 60_000)
   const expired = invites.filter((i) => i.expired).length
-  const byRole = [...members.reduce((map, m) => map.set(m.role, (map.get(m.role) ?? 0) + 1), new Map()).entries()]
-    .map(([role, people]) => ({ role, people }))
-    .sort((a, b) => b.people - a.people)
+  const byRole = [...members.reduce((map, m) => map.set(m.role, (map.get(m.role) ?? 0) + 1), new Map()).entries()].map(([role, people]) => ({ role, people })).sort((a, b) => b.people - a.people)
   const seatPct = seats.limit ? Math.min(100, Math.round((seats.used / seats.limit) * 100)) : 0
 
   return (

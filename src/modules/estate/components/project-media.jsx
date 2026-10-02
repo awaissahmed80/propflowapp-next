@@ -245,9 +245,7 @@ export function ProjectDocuments({ project, canEdit }) {
           accept="application/pdf,image/jpeg,image/png,image/webp"
           uploadHint="PDFs or scans (JPG, PNG, WebP), up to 10 MB each."
           scopes={scopesFor(project)}
-          extra={
-            <LookupSelect list="project-document-type" label="File under" value={category} onChange={setCategory} />
-          }
+          extra={<LookupSelect list="project-document-type" label="File under" value={category} onChange={setCategory} />}
           upload={(data) => {
             data.set("collection", "documents")
             data.set("category", category)

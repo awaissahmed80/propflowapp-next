@@ -351,7 +351,8 @@ export const LOOKUP_LISTS = [
       },
       { key: "size", label: "Size", type: "number", min: 0.0001, max: 1000000, default: 1 },
     ],
-    description: "Units sizes are measured in. Land units (plots, houses, files) are counted in marla, so they follow each project's marla size: Size is how many marla one unit is. Floor-area units (apartments, shops, offices) are counted in sq ft: Size is how many sq ft one unit is.",
+    description:
+      "Units sizes are measured in. Land units (plots, houses, files) are counted in marla, so they follow each project's marla size: Size is how many marla one unit is. Floor-area units (apartments, shops, offices) are counted in sq ft: Size is how many sq ft one unit is.",
     values: [
       { value: "marla", label: "Marla", meta: { short: "Marla", measures: "land", size: 1 } },
       { value: "kanal", label: "Kanal", meta: { short: "Kanal", measures: "land", size: 20 } },
@@ -421,6 +422,59 @@ export const LOOKUP_LISTS = [
     ].map(([value, label]) => ({ value, label })),
   },
   {
+    key: "contact-type",
+    name: "Contact types",
+    app: "general",
+    kind: "custom",
+    colored: true,
+    icons: true,
+    description: "What a contact is to your business. One contact can be several at once (a lead who books becomes a customer too); each comes from the records they're linked to.",
+    values: [
+      { value: "lead", label: "Lead", color: "blue", icon: "user-star-line" },
+      { value: "customer", label: "Customer", color: "green", icon: "user-follow-line" },
+      { value: "owner", label: "Owner / seller", color: "violet", icon: "home-4-line" },
+      { value: "tenant", label: "Tenant", color: "teal", icon: "key-2-line" },
+      { value: "dealer", label: "Dealer", color: "amber", icon: "shake-hands-line" },
+      { value: "agent", label: "Agent", color: "sky", icon: "user-shared-line" },
+      { value: "employee", label: "Employee", color: "gray", icon: "id-card-line" },
+      { value: "vendor", label: "Vendor", color: "red", icon: "truck-line" },
+      { value: "contractor", label: "Contractor", color: "red", icon: "hammer-line" },
+    ],
+  },
+  {
+    key: "booking-stage",
+    name: "Booking pipeline",
+    app: "sales",
+    kind: "system",
+    colored: true,
+    description: "Steps a booking moves through, from token to completion. A token booking starts at Token; a full booking at Booking & KYC.",
+    values: [
+      { value: "token", label: "Token", color: "amber" },
+      { value: "booking-kyc", label: "Booking & KYC", color: "sky" },
+      { value: "active", label: "Active", color: "blue" },
+      { value: "handover", label: "Handover", color: "violet" },
+      { value: "completed", label: "Completed", color: "green" },
+    ],
+  },
+  {
+    key: "booking-status",
+    name: "Booking statuses",
+    app: "sales",
+    kind: "custom",
+    colored: true,
+    defaultable: true,
+    defaultValue: "current",
+    description: "The standing of a booking, apart from its pipeline stage: e.g. a booking can be Active but Overdue or On hold.",
+    values: [
+      { value: "current", label: "Current", color: "green" },
+      { value: "overdue", label: "Overdue", color: "amber" },
+      { value: "on-hold", label: "On hold", color: "gray" },
+      { value: "transferred", label: "Transferred", color: "violet" },
+      { value: "cancelled", label: "Cancelled", color: "red" },
+      { value: "refunded", label: "Refunded", color: "teal" },
+    ],
+  },
+  {
     key: "loss-reason",
     name: "Loss reasons",
     app: "crm",
@@ -440,16 +494,105 @@ export const LOOKUP_LISTS = [
     key: "activity-type",
     name: "Activity types",
     app: "crm",
-    kind: "system",
+    // Workspaces add their own (e.g. Video call) and switch off what they don't use. Call,
+    // WhatsApp and Site visit carry extra behaviour (header shortcuts, Site visit stage).
+    kind: "custom",
     icons: true,
-    description: "Kinds of follow-up logged against leads.",
+    colored: true,
+    // Score points: how much one of these (when they were reached) adds to a lead's engagement
+    fields: [{ key: "points", label: "Score points", type: "number", min: 0, max: 50 }],
+    description: "What can be logged or planned against a lead: calls, messages, visits. Add your own or switch off what you don't use. Score points count towards a lead's engagement.",
     values: [
-      { value: "call", label: "Call", icon: "phone-line" },
-      { value: "whatsapp", label: "WhatsApp", icon: "whatsapp-line" },
-      { value: "site-visit", label: "Site visit", icon: "map-pin-user-line" },
-      { value: "meeting", label: "Office meeting", icon: "team-line" },
-      { value: "email", label: "Email", icon: "mail-line" },
-      { value: "sms", label: "SMS", icon: "message-2-line" },
+      { value: "call", label: "Call", icon: "phone-line", color: "blue", meta: { points: 3 } },
+      { value: "whatsapp", label: "WhatsApp", icon: "whatsapp-line", color: "green", meta: { points: 2 } },
+      { value: "site-visit", label: "Site visit", icon: "map-pin-user-line", color: "amber", meta: { points: 10 } },
+      { value: "meeting", label: "Office meeting", icon: "team-line", color: "violet", meta: { points: 8 } },
+      { value: "email", label: "Email", icon: "mail-line", color: "sky", meta: { points: 1 } },
+      { value: "sms", label: "SMS", icon: "message-2-line", color: "teal", meta: { points: 1 } },
+    ],
+  },
+  {
+    key: "activity-outcome",
+    name: "Activity outcomes",
+    app: "crm",
+    kind: "custom",
+    icons: true,
+    colored: true,
+    fields: [
+      {
+        key: "moves",
+        label: "Moves the lead to",
+        type: "select",
+        options: [
+          { value: "", label: "Doesn't move it" },
+          { value: "contacted", label: "Contacted" },
+          { value: "interested", label: "Interested" },
+          { value: "site-visit", label: "Site visit scheduled" },
+          { value: "negotiation", label: "Negotiation" },
+        ],
+      },
+      {
+        key: "reached",
+        label: "Reached them?",
+        type: "select",
+        options: [
+          { value: "yes", label: "Yes, we spoke" },
+          { value: "no", label: "No (no answer, switched off…)" },
+        ],
+      },
+      {
+        key: "signal",
+        label: "Effect on lead score",
+        type: "select",
+        options: [
+          { value: "positive", label: "Positive" },
+          { value: "neutral", label: "Neutral" },
+          { value: "negative", label: "Negative" },
+        ],
+      },
+    ],
+    description: "How a call, message or visit went. Each can move the lead forward (never back), says whether you reached them, and can raise or lower the lead's score.",
+    values: [
+      { value: "interested", label: "Interested", icon: "thumb-up-line", color: "green", meta: { moves: "interested", reached: "yes", signal: "positive" } },
+      { value: "call-back", label: "Call back", icon: "time-line", color: "sky", meta: { moves: "contacted", reached: "yes", signal: "neutral" } },
+      { value: "no-answer", label: "No answer", icon: "phone-off-line", color: "amber", meta: { moves: "", reached: "no", signal: "neutral" } },
+      { value: "not-interested", label: "Not interested", icon: "thumb-down-line", color: "red", meta: { moves: "contacted", reached: "yes", signal: "negative" } },
+    ],
+  },
+  {
+    key: "follow-up",
+    name: "Follow-up options",
+    app: "crm",
+    kind: "custom",
+    icons: true,
+    colored: true,
+    defaultable: true,
+    defaultValue: "tomorrow",
+    fields: [{ key: "days", label: "Days later", type: "number", min: 0, max: 365 }],
+    description: "When to follow up after logging a call or visit. Each is that many days later, at 11 AM.",
+    values: [
+      { value: "tomorrow", label: "Tomorrow", icon: "calendar-event-line", color: "blue", meta: { days: 1 } },
+      { value: "3-days", label: "In 3 days", icon: "calendar-2-line", color: "sky", meta: { days: 3 } },
+      { value: "next-week", label: "Next week", icon: "calendar-line", color: "violet", meta: { days: 7 } },
+      { value: "two-weeks", label: "In 2 weeks", icon: "calendar-schedule-line", color: "teal", meta: { days: 14 } },
+      { value: "next-month", label: "Next month", icon: "calendar-todo-line", color: "amber", meta: { days: 30 } },
+    ],
+  },
+  {
+    key: "quick-reply",
+    name: "Quick replies",
+    app: "crm",
+    kind: "custom",
+    icons: true,
+    fields: [{ key: "text", label: "Text", type: "longtext", maxLength: 500 }],
+    description: "Ready-made notes and message text: tap one when logging a call or writing an email to add its text.",
+    values: [
+      { value: "brochure-sent", label: "Brochure sent", icon: "file-pdf-2-line", meta: { text: "Shared the brochure, price list and payment plan on WhatsApp." } },
+      { value: "wants-visit", label: "Wants a site visit", icon: "map-pin-user-line", meta: { text: "Interested in visiting the site. Will confirm a day and time." } },
+      { value: "checking-budget", label: "Checking budget", icon: "wallet-3-line", meta: { text: "Discussing the budget with family; will get back after going through the payment plan." } },
+      { value: "busy", label: "Busy, call later", icon: "time-line", meta: { text: "Was busy; asked us to call back later." } },
+      { value: "best-price", label: "Asked for best price", icon: "price-tag-3-line", meta: { text: "Asked for the best price and any discount on cash payment." } },
+      { value: "documents", label: "Asked about documents", icon: "file-shield-2-line", meta: { text: "Asked about NOC / approval and ownership documents." } },
     ],
   },
   // ---------- General ----------
@@ -473,7 +616,7 @@ export const lookupList = (key) => LOOKUP_LISTS.find((l) => l.key === key) ?? nu
 export const LOOKUP_COLORS = ["gray", "blue", "sky", "teal", "green", "amber", "red", "violet"]
 
 // Headings for lists grouped by app in the editor
-export const LOOKUP_APPS = { users: "Users & Teams", estate: "Estate Management", crm: "CRM", general: "General" }
+export const LOOKUP_APPS = { users: "Users & Teams", estate: "Estate Management", crm: "CRM", sales: "Sales", general: "General" }
 
 // "Senior Sales Executive" → senior-sales-executive
 export const slugify = (text) =>

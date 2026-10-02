@@ -42,10 +42,10 @@ export function InvoiceDialog({ workspace, workspaces = [], invoice, taxRate, on
           notes: invoice.notes ?? "",
           sendEmail: false,
         }
-      : { issueDate: pkDay(), dueDate: pkDay(14), periodStart: "", periodEnd: "", applyTax: taxRate > 0, notes: "", sendEmail: false }
+      : { issueDate: pkDay(), dueDate: pkDay(14), periodStart: "", periodEnd: "", applyTax: taxRate > 0, notes: "", sendEmail: false },
   )
   const [lines, setLines] = useState(() =>
-    invoice?.lines?.length ? invoice.lines.map((l) => ({ ...emptyLine(), description: l.description, quantity: Number(l.quantity), unitPrice: Number(l.unitPrice) })) : [emptyLine()]
+    invoice?.lines?.length ? invoice.lines.map((l) => ({ ...emptyLine(), description: l.description, quantity: Number(l.quantity), unitPrice: Number(l.unitPrice) })) : [emptyLine()],
   )
   const [billTo, setBillTo] = useState(null)
   // An edited invoice keeps its own tax rate
@@ -228,12 +228,7 @@ export function InvoiceDialog({ workspace, workspaces = [], invoice, taxRate, on
       </div>
       {editing && invoice.status !== "draft" && (
         <div className="rounded-lg border p-3">
-          <Switch
-            label="Email the updated invoice"
-            description={billTo?.email ? `Sends it again to ${billTo.email}.` : "Sends it again to the workspace."}
-            checked={form.sendEmail}
-            onChange={set("sendEmail")}
-          />
+          <Switch label="Email the updated invoice" description={billTo?.email ? `Sends it again to ${billTo.email}.` : "Sends it again to the workspace."} checked={form.sendEmail} onChange={set("sendEmail")} />
         </div>
       )}
     </Dialog>

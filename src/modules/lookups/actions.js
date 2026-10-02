@@ -42,12 +42,18 @@ const valuesSchema = z
         .optional()
         .refine((c) => !c || LOOKUP_COLORS.includes(c) || normalizeHex(c), "Pick a colour.")
         .transform((c) => (c && !LOOKUP_COLORS.includes(c) ? normalizeHex(c) : c)),
-      icon: z.string().trim().max(40).regex(/^[a-z0-9-]*$/, "Icon names use lowercase letters, digits and dashes, e.g. home-4-line.").nullable().optional(),
+      icon: z
+        .string()
+        .trim()
+        .max(40)
+        .regex(/^[a-z0-9-]*$/, "Icon names use lowercase letters, digits and dashes, e.g. home-4-line.")
+        .nullable()
+        .optional(),
       meta: z.record(z.string(), z.unknown()).nullable().optional(),
       active: z.boolean().default(true),
       // The value forms preselect (lists that allow one)
       preselected: z.boolean().optional().default(false),
-    })
+    }),
   )
   .max(300)
 
@@ -107,10 +113,19 @@ export async function saveLookupList(key, input) {
         sortOrder: (i + 1) * 10,
       }
       const current = byValue.get(v.value)
-      if (current) await trx("lookups").where({ id: current.id }).update({ ...row, updatedAt: now, updatedBy: user.id })
+      if (current)
+        await trx("lookups")
+          .where({ id: current.id })
+          .update({ ...row, updatedAt: now, updatedBy: user.id })
       else await trx("lookups").insert({ ...row, listKey: key, value: v.value, isDefault: false, createdBy: user.id })
     }
-    if (removed.length) await trx("lookups").whereIn("id", removed.map((r) => r.id)).update({ deletedAt: now, deletedBy: user.id })
+    if (removed.length)
+      await trx("lookups")
+        .whereIn(
+          "id",
+          removed.map((r) => r.id),
+        )
+        .update({ deletedAt: now, deletedBy: user.id })
   })
   await logActivity(db, { type: "lists", action: "lookups.saved", actorUserId: user.id, summary: `updated the ${list.name.toLowerCase()} list`, details: { list: key, added: added.length, removed: removed.length } })
   return { ok: true }
@@ -127,11 +142,17 @@ export async function resetLookupList(key) {
     for (const [i, d] of list.values.entries()) {
       const row = { label: d.label, color: d.color ?? null, icon: d.icon ?? null, meta: d.meta ? JSON.stringify(d.meta) : null, isActive: true, isPreselected: d.value === list.defaultValue, sortOrder: (i + 1) * 10 }
       const current = existing.find((r) => r.value === d.value)
-      if (current) await trx("lookups").where({ id: current.id }).update({ ...row, isDefault: true, updatedAt: now, updatedBy: user.id })
+      if (current)
+        await trx("lookups")
+          .where({ id: current.id })
+          .update({ ...row, isDefault: true, updatedAt: now, updatedBy: user.id })
       else await trx("lookups").insert({ ...row, listKey: key, value: d.value, isDefault: true, createdBy: user.id })
     }
     const extra = existing.filter((r) => !list.values.some((d) => d.value === r.value))
-    for (const [i, r] of extra.entries()) await trx("lookups").where({ id: r.id }).update({ isActive: false, isPreselected: false, sortOrder: (list.values.length + i + 1) * 10, updatedAt: now, updatedBy: user.id })
+    for (const [i, r] of extra.entries())
+      await trx("lookups")
+        .where({ id: r.id })
+        .update({ isActive: false, isPreselected: false, sortOrder: (list.values.length + i + 1) * 10, updatedAt: now, updatedBy: user.id })
   })
   await logActivity(db, { type: "lists", action: "lookups.reset", actorUserId: user.id, summary: `reset the ${list.name.toLowerCase()} list to the defaults` })
   return { ok: true }
@@ -145,7 +166,9 @@ export async function addLookupValue(key, rawLabel, { app } = {}) {
   const { list, db, user, error } = await listEditor(key, app, ["edit", "create"])
   if (error) return { error }
   if (list.kind !== "custom") return { error: `${list.name} can't be added to; pick from the list.` }
-  const label = String(rawLabel ?? "").trim().replace(/\s+/g, " ")
+  const label = String(rawLabel ?? "")
+    .trim()
+    .replace(/\s+/g, " ")
   if (label.length < 1 || label.length > 120) return { error: "Keep it under 120 characters." }
 
   const rows = await db("lookups").where({ listKey: key }).select("id", "value", "label", "isActive", "deletedAt", "sortOrder")

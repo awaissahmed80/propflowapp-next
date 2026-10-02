@@ -48,7 +48,7 @@ export function PeopleView({ members, invites, roles, lists, seats, options, all
         lastActiveAt: null,
       })),
     ],
-    [members, invites]
+    [members, invites],
   )
 
   const groups = useMemo(() => {

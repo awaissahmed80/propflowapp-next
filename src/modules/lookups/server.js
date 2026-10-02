@@ -22,9 +22,18 @@ const sameMeta = (meta) => JSON.stringify(Object.fromEntries(Object.entries(meta
 // each came with PropFlow, and whether the list differs from the defaults
 export async function getLookupLists(db, apps) {
   const lists = LOOKUP_LISTS.filter((l) => !apps || apps.includes(l.app))
-  const rows = await live(db, "lookups").whereIn("listKey", lists.map((l) => l.key)).orderBy("sortOrder").orderBy("id").select("listKey", "value", "label", "color", "icon", "meta", "isDefault", "isActive", "isPreselected")
+  const rows = await live(db, "lookups")
+    .whereIn(
+      "listKey",
+      lists.map((l) => l.key),
+    )
+    .orderBy("sortOrder")
+    .orderBy("id")
+    .select("listKey", "value", "label", "color", "icon", "meta", "isDefault", "isActive", "isPreselected")
   return lists.map((l) => {
-    const values = rows.filter((r) => r.listKey === l.key).map((r) => ({ value: r.value, label: r.label, color: r.color, icon: r.icon, meta: r.meta ?? {}, isDefault: r.isDefault, active: r.isActive, preselected: r.isPreselected }))
+    const values = rows
+      .filter((r) => r.listKey === l.key)
+      .map((r) => ({ value: r.value, label: r.label, color: r.color, icon: r.icon, meta: r.meta ?? {}, isDefault: r.isDefault, active: r.isActive, preselected: r.isPreselected }))
     const defaults = l.values.map((v) => [v.value, v.label, v.color ?? null, v.icon ?? null, sameMeta(v.meta), true, v.value === l.defaultValue])
     // Switched-off values the workspace added don't count as a change
     const current = values.filter((v) => v.isDefault || v.active).map((v) => [v.value, v.label, v.color ?? null, v.icon ?? null, sameMeta(v.meta), v.active, Boolean(l.defaultable && v.preselected)])

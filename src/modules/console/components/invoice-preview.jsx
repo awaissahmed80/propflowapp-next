@@ -44,7 +44,7 @@ export function InvoicePreviewDialog({ code, canEdit, onEdit, onClose }) {
         if (r.error) setError(r.error)
         else setData(r)
       }),
-    [code]
+    [code],
   )
   useEffect(() => reload(), [reload])
 
@@ -59,10 +59,17 @@ export function InvoicePreviewDialog({ code, canEdit, onEdit, onClose }) {
   const more = inv
     ? [
         ...(["issued", "overdue"].includes(inv.status)
-          ? [{ label: "Resend email", icon: "mail-send-line", onClick: () => startTransition(async () => {
-              const r = await resendInvoice(inv.id)
-              setNotice(r.error ? { tone: "error", text: r.error } : { tone: "success", text: `${inv.code} emailed again.` })
-            }) }]
+          ? [
+              {
+                label: "Resend email",
+                icon: "mail-send-line",
+                onClick: () =>
+                  startTransition(async () => {
+                    const r = await resendInvoice(inv.id)
+                    setNotice(r.error ? { tone: "error", text: r.error } : { tone: "success", text: `${inv.code} emailed again.` })
+                  }),
+              },
+            ]
           : []),
         ...(!["paid", "void"].includes(inv.status) ? [{ label: "Void invoice…", icon: "forbid-line", variant: "destructive", onClick: () => setDialog("void") }] : []),
       ]
@@ -88,9 +95,7 @@ export function InvoicePreviewDialog({ code, canEdit, onEdit, onClose }) {
             {canEdit && editable && <IconButton icon="edit-line" aria-label="Edit invoice" onClick={() => onEdit(inv)} />}
             <IconButton icon="file-download-line" aria-label="Download PDF" onClick={() => download(`/api/console/invoices/${urlCode(code)}/pdf`, `${code}.pdf`)} />
             <IconButton icon="printer-line" aria-label="Print" onClick={() => printPage(`/billing/invoices/${urlCode(code)}?print=1`)} />
-            {canEdit && more.length > 0 && (
-              <DropdownMenu align="end" items={more} trigger={<IconButton icon="more-2-line" aria-label="More actions" tooltip={false} disabled={pending} />} />
-            )}
+            {canEdit && more.length > 0 && <DropdownMenu align="end" items={more} trigger={<IconButton icon="more-2-line" aria-label="More actions" tooltip={false} disabled={pending} />} />}
           </>
         )
       }

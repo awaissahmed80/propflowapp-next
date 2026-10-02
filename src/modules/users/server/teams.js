@@ -31,9 +31,16 @@ export async function saveTeam(input, id) {
   if (!parsed.success) return { fieldErrors: Object.fromEntries(parsed.error.issues.map((i) => [i.path[0], i.message])) }
   const data = parsed.data
 
-  const existing = id ? await live(ctx.db, "teams").where({ id: Number(id) }).first("id", "name") : null
+  const existing = id
+    ? await live(ctx.db, "teams")
+        .where({ id: Number(id) })
+        .first("id", "name")
+    : null
   if (id && !existing) return { error: "That team was deleted." }
-  const clash = await live(ctx.db, "teams").where({ name: data.name }).whereNot({ id: existing?.id ?? 0 }).first("id")
+  const clash = await live(ctx.db, "teams")
+    .where({ name: data.name })
+    .whereNot({ id: existing?.id ?? 0 })
+    .first("id")
   if (clash) return { fieldErrors: { name: "Another team already has this name." } }
 
   // Lead and members must be active people in the workspace
@@ -53,7 +60,10 @@ export async function saveTeam(input, id) {
   }
   let teamId = existing?.id
   if (existing) {
-    await ctx.db("teams").where({ id: teamId }).update({ ...row, updatedAt: new Date(), updatedBy: ctx.user.id })
+    await ctx
+      .db("teams")
+      .where({ id: teamId })
+      .update({ ...row, updatedAt: new Date(), updatedBy: ctx.user.id })
   } else {
     ;[teamId] = await ctx.db("teams").insert({ ...row, createdBy: ctx.user.id })
   }
@@ -83,7 +93,9 @@ export async function saveTeam(input, id) {
 export async function deleteTeam(id) {
   const { ctx, error } = await usersAction("delete")
   if (error) return { error }
-  const team = await live(ctx.db, "teams").where({ id: Number(id) }).first("id", "name")
+  const team = await live(ctx.db, "teams")
+    .where({ id: Number(id) })
+    .first("id", "name")
   if (!team) return { error: "That team was already deleted." }
   const now = new Date()
   await ctx.db("teams").where({ id: team.id }).update({ deletedAt: now, deletedBy: ctx.user.id })

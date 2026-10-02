@@ -35,7 +35,7 @@ function usePinnedApps(key) {
       return () => pinListeners.delete(cb)
     },
     () => readPins(key),
-    () => null
+    () => null,
   )
   const pinned = useMemo(() => (raw ? JSON.parse(raw) : null), [raw])
   const toggle = useCallback(
@@ -49,7 +49,7 @@ function usePinnedApps(key) {
       }
       pinListeners.forEach((cb) => cb())
     },
-    [key, pinned]
+    [key, pinned],
   )
   return [pinned, toggle]
 }
@@ -59,12 +59,7 @@ function PlanChip({ tenant }) {
   if (!tenant.plan) return null
   const trial = tenant.trialDaysLeft != null
   return (
-    <span
-      className={cn(
-        "rounded-full border px-2 py-0.5 text-xs font-medium",
-        trial ? "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-200" : "bg-background text-foreground"
-      )}
-    >
+    <span className={cn("rounded-full border px-2 py-0.5 text-xs font-medium", trial ? "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-200" : "bg-background text-foreground")}>
       {trial ? `${tenant.plan} trial · ${tenant.trialDaysLeft} day${tenant.trialDaysLeft === 1 ? "" : "s"} left` : `${tenant.plan} plan`}
     </span>
   )
@@ -115,7 +110,14 @@ export function Launcher({ user, role, tenant, apps: allApps, desk = null, greet
   }, [])
 
   // Until they pin something, suggest their first three apps
-  const defaultPins = useMemo(() => apps.filter((a) => a.code !== "dashboards").slice(0, 3).map((a) => a.code), [apps])
+  const defaultPins = useMemo(
+    () =>
+      apps
+        .filter((a) => a.code !== "dashboards")
+        .slice(0, 3)
+        .map((a) => a.code),
+    [apps],
+  )
   const pinnedCodes = savedPins ?? defaultPins
   const pinnedApps = apps.filter((a) => pinnedCodes.includes(a.code))
 

@@ -22,11 +22,7 @@ export function BillingView({ invoices, now, newInvoice }) {
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
-      <PageHeader
-        title="Billing"
-        description="Subscription invoices and payments across every workspace"
-        actions={newInvoice && <NewInvoiceButton workspaces={newInvoice.workspaces} taxRate={newInvoice.taxRate} />}
-      />
+      <PageHeader title="Billing" description="Subscription invoices and payments across every workspace" actions={newInvoice && <NewInvoiceButton workspaces={newInvoice.workspaces} taxRate={newInvoice.taxRate} />} />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <StatTile icon="money-rupee-circle-line" tone="green" label="Collected · 30 days" value={formatPkr(sum(paid30))} hint={`${paid30.length} payments`} />
         <StatTile icon="time-line" tone="amber" label="Transfers to verify" value={awaiting.length} hint={formatPkr(sum(awaiting))} />

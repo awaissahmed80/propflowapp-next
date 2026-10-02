@@ -29,7 +29,7 @@ export function ActivityView({ rows }) {
         options: [...new Map(rows.filter((a) => a.actor).map((a) => [a.actorUserId, a.actor.name])).entries()].map(([value, label]) => ({ value, label })),
       },
     ],
-    [rows]
+    [rows],
   )
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase()

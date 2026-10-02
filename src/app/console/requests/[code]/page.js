@@ -12,6 +12,8 @@ import { fromUrlCode, urlCode } from "@/lib/url"
 
 const CATEGORY = byValue(REQUEST_CATEGORIES)
 const PRIORITY = byValue(PRIORITIES)
+// Screenshots on a message (sent with Contact support): [{ ref, name, … }]
+const attachmentsOf = (m) => (typeof m.attachments === "string" ? JSON.parse(m.attachments) : m.attachments) ?? []
 
 export async function generateMetadata({ params }) {
   const code = fromUrlCode((await params).code)
@@ -59,6 +61,23 @@ export default async function RequestDetailPage({ params }) {
                   {m.isInternal ? " · internal note" : ""} · {timeAgo(m.createdAt)}
                 </p>
                 <p className="whitespace-pre-line">{m.body}</p>
+                {attachmentsOf(m).length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {attachmentsOf(m).map((f) => (
+                      <a
+                        key={f.ref}
+                        href={`/api/console/requests/${urlCode(r.code)}/files/${f.ref}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={f.name}
+                        className="block size-24 overflow-hidden rounded-lg border bg-muted hover:ring-2 hover:ring-primary/40"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element -- a private file served by our own route */}
+                        <img src={`/api/console/requests/${urlCode(r.code)}/files/${f.ref}`} alt={f.name} loading="lazy" className="size-full object-cover" />
+                      </a>
+                    ))}
+                  </div>
+                )}
               </li>
             ))}
             {!r.messages.length && <li className="rounded-xl border bg-background p-4 text-sm text-muted-foreground">No details.</li>}

@@ -61,7 +61,14 @@ export function PriceCalculator({ list, units, marlaSqft, brand, printable }) {
   const unit = picked
     ? { type: picked.type, category: picked.category, sizeValue: picked.sizeValue, sizeUnit: picked.sizeUnit, features, floor: picked.floor }
     : rate
-      ? { type: rate.type, category: rate.category, sizeValue: rate.sizeValue ?? size.value, sizeUnit: rate.sizeUnit ?? (m.unitsFor(rate.type).includes(size.unit) ? size.unit : m.unitsFor(rate.type)[0]), features, floor }
+      ? {
+          type: rate.type,
+          category: rate.category,
+          sizeValue: rate.sizeValue ?? size.value,
+          sizeUnit: rate.sizeUnit ?? (m.unitsFor(rate.type).includes(size.unit) ? size.unit : m.unitsFor(rate.type)[0]),
+          features,
+          floor,
+        }
       : null
   const featurePremium = (f) => Number(featureList.map[f]?.meta?.premium ?? 0)
   const q = unit && unit.sizeValue > 0 ? quote(list, unit, planKey, start || today(), { marlaSqft, featurePremium, m }) : null

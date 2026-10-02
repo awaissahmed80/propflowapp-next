@@ -184,6 +184,7 @@ function Select({
   placeholder = "Select…",
   label,
   error,
+  required = false,
   size = "default",
   className,
   triggerClassName,
@@ -199,6 +200,7 @@ function Select({
       {label && (
         <Label id={`${id}-label`} className="mb-0.5 text-base text-muted-foreground">
           {label}
+          {required && <span className="text-sm text-destructive">*</span>}
         </Label>
       )}
       <BaseSelect

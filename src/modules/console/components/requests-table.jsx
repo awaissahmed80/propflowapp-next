@@ -23,10 +23,7 @@ export function RequestsTable({ list }) {
     { key: "priority", label: "Urgency", icon: "alarm-warning-line", options: PRIORITIES },
   ]
   const visible = list.filter(
-    (r) =>
-      (!filters.status.length || filters.status.includes(r.status)) &&
-      (!filters.category.length || filters.category.includes(r.category)) &&
-      (!filters.priority.length || filters.priority.includes(r.priority))
+    (r) => (!filters.status.length || filters.status.includes(r.status)) && (!filters.category.length || filters.category.includes(r.category)) && (!filters.priority.length || filters.priority.includes(r.priority)),
   )
   const columns = [
     {
@@ -64,7 +61,11 @@ export function RequestsTable({ list }) {
   ]
   return (
     <div className="flex h-[calc(100svh-3.5rem)] flex-col gap-4 p-4 sm:p-6 lg:p-8">
-      <PageHeader title="Workspace Requests" description="Problems, feature requests and questions sent from the portal" toolbar={list.length ? <FilterMenu groups={groups} value={filters} onChange={setFilters} /> : null} />
+      <PageHeader
+        title="Workspace Requests"
+        description="Problems, feature requests and questions sent from the portal"
+        toolbar={list.length ? <FilterMenu groups={groups} value={filters} onChange={setFilters} /> : null}
+      />
       {list.length ? (
         <>
           <ActiveFilters groups={groups} value={filters} onChange={setFilters} />

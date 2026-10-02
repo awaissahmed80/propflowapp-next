@@ -63,11 +63,7 @@ function UserMenu({ user, roleLabel }) {
         },
       ]}
       trigger={
-        <button
-          type="button"
-          aria-label="Account menu"
-          className="flex items-center gap-2 rounded-lg p-0.5 pr-2 outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
-        >
+        <button type="button" aria-label="Account menu" className="flex items-center gap-2 rounded-lg p-0.5 pr-2 outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring">
           <Avatar name={user.name} source={user.avatarUrl} size="sm" />
           <span className="hidden text-left sm:block">
             <span className="block text-sm leading-tight font-medium">{user.name}</span>
@@ -96,16 +92,18 @@ export function ConsoleShell({ user, roleLabel, areas, counts, maintenance, canC
       <Sidebar
         groups={groups}
         header={
-          <Link href="/" aria-label="Console home" className="flex h-10 items-center gap-2 rounded-md px-1.5 outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+          <Link
+            href="/"
+            aria-label="Console home"
+            className="flex h-10 items-center gap-2 rounded-md px-1.5 outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+          >
             <span className="group-data-[collapsible=icon]:hidden">
               <Logo className="h-8 max-w-none" />
             </span>
             <span className="hidden group-data-[collapsible=icon]:block">
               <BrandIcon className="size-9" />
             </span>
-            <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-primary uppercase group-data-[collapsible=icon]:hidden">
-              Console
-            </span>
+            <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-primary uppercase group-data-[collapsible=icon]:hidden">Console</span>
           </Link>
         }
       />

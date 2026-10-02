@@ -139,9 +139,7 @@ function DealerLoginDialog({ dealer, seats, onClose, onInvited }) {
 function DealerCard({ dealer, lists, allowed, now, onEdit, onInvite, onToggle, onRemove }) {
   const menu = [
     ...(allowed.edit ? [{ label: "Edit dealer", icon: "edit-line", onClick: onEdit }] : []),
-    ...(allowed.edit
-      ? [dealer.isActive ? { label: "Deactivate", icon: "forbid-line", onClick: onToggle } : { label: "Activate", icon: "checkbox-circle-line", onClick: onToggle }]
-      : []),
+    ...(allowed.edit ? [dealer.isActive ? { label: "Deactivate", icon: "forbid-line", onClick: onToggle } : { label: "Activate", icon: "checkbox-circle-line", onClick: onToggle }] : []),
     ...(allowed.remove ? [{ type: "separator" }, { label: "Remove dealer", icon: "delete-bin-6-line", variant: "destructive", onClick: onRemove }] : []),
   ]
   const contact = [dealer.contactName, dealer.phone && formatPkPhone(dealer.phone), dealer.email].filter(Boolean)
@@ -348,7 +346,7 @@ export function DealersView({ dealers, seats, lists, allowed }) {
                     ? act(() => removeDealer(confirm.dealer.code), `${confirm.dealer.name} removed.`)
                     : act(
                         () => setDealerActive(confirm.dealer.code, false),
-                        (r) => `${confirm.dealer.name} deactivated${r?.suspended ? `; ${r.suspended} login${r.suspended === 1 ? "" : "s"} suspended` : ""}.`
+                        (r) => `${confirm.dealer.name} deactivated${r?.suspended ? `; ${r.suspended} login${r.suspended === 1 ? "" : "s"} suspended` : ""}.`,
                       )
                 }
               >

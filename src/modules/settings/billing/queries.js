@@ -21,7 +21,12 @@ export async function getBilling(ctx) {
     db("tenantApps").where({ tenantId }).select("appId", "offFeatures"),
     db("planApps").select("planId", "appId"),
     live(db, "invoices").where({ tenantId }).whereNot({ status: "draft" }).orderBy("issuedAt", "desc").select("id", "code", "total", "currency", "status", "issuedAt", "dueAt", "paidAt", "periodStart", "periodEnd"),
-    db("invoicePayments as p").join("invoices as i", "i.id", "p.invoiceId").where("i.tenantId", tenantId).whereNull("p.deletedAt").orderBy("p.id", "desc").select("p.invoiceId", "p.method", "p.reference", "p.status", "p.paidAt"),
+    db("invoicePayments as p")
+      .join("invoices as i", "i.id", "p.invoiceId")
+      .where("i.tenantId", tenantId)
+      .whereNull("p.deletedAt")
+      .orderBy("p.id", "desc")
+      .select("p.invoiceId", "p.method", "p.reference", "p.status", "p.paidAt"),
     live(ctx.db, "projects").count("id as n").first(),
     live(db, "subscriptions").where({ tenantId, status: "active" }).orderBy("id", "desc").first("price", "billingCycle", "extraUsers"),
   ])
@@ -31,7 +36,17 @@ export async function getBilling(ctx) {
   const enabled = new Set(tenantApps.map((a) => a.appId))
   const inPlan = (planId) => new Set(planApps.filter((x) => x.planId === planId).map((x) => x.appId))
   const mine = inPlan(tenant.planId)
-  const shapePlan = (p) => ({ code: p.code, name: p.name, description: p.description, priceMonthly: Number(p.priceMonthly), currency: p.currency, maxProjects: p.maxProjects, maxUsers: p.maxUsers, maxDealers: p.maxDealers, apps: apps.filter((a) => inPlan(p.id).has(a.id) && !a.alwaysOn && !["settings", "users"].includes(a.code)).map((a) => a.name) })
+  const shapePlan = (p) => ({
+    code: p.code,
+    name: p.name,
+    description: p.description,
+    priceMonthly: Number(p.priceMonthly),
+    currency: p.currency,
+    maxProjects: p.maxProjects,
+    maxUsers: p.maxUsers,
+    maxDealers: p.maxDealers,
+    apps: apps.filter((a) => inPlan(p.id).has(a.id) && !a.alwaysOn && !["settings", "users"].includes(a.code)).map((a) => a.name),
+  })
   return {
     tenant: {
       status: tenant.status,
@@ -42,10 +57,16 @@ export async function getBilling(ctx) {
       trialDays: tenant.trialEndsAt ? Math.max(1, Math.round((new Date(tenant.trialEndsAt).getTime() - new Date(tenant.createdAt).getTime()) / DAY)) : null,
     },
     plan: plan ? shapePlan(plan) : null,
-    price: sub ? { amount: Number(sub.price), cycle: sub.billingCycle } : plan ? { amount: tenant.billingCycle === "yearly" ? Number(plan.priceMonthly) * Number(yearlyMonths) : Number(plan.priceMonthly), cycle: tenant.billingCycle } : null,
+    price: sub
+      ? { amount: Number(sub.price), cycle: sub.billingCycle }
+      : plan
+        ? { amount: tenant.billingCycle === "yearly" ? Number(plan.priceMonthly) * Number(yearlyMonths) : Number(plan.priceMonthly), cycle: tenant.billingCycle }
+        : null,
     yearlyMonths: Number(yearlyMonths),
     plans: plans.filter((p) => p.isPublic && (p.isActive ?? true)).map(shapePlan),
-    apps: apps.filter((a) => enabled.has(a.id) && a.code !== "settings").map((a) => ({ code: a.code, name: a.name, icon: a.icon, color: a.color, extra: !a.alwaysOn && !mine.has(a.id), without: withoutText(a.code, tenantApps.find((t) => t.appId === a.id)?.offFeatures) })),
+    apps: apps
+      .filter((a) => enabled.has(a.id) && a.code !== "settings")
+      .map((a) => ({ code: a.code, name: a.name, icon: a.icon, color: a.color, extra: !a.alwaysOn && !mine.has(a.id), without: withoutText(a.code, tenantApps.find((t) => t.appId === a.id)?.offFeatures) })),
     usage: { users: { used: seats.used, limit: seats.limit }, dealers: seats.dealers, projects: { used: Number(projects?.n ?? 0), limit: plan?.maxProjects ?? null } },
     invoices: invoices.map((i) => {
       const payment = payments.find((p) => p.invoiceId === i.id) ?? null

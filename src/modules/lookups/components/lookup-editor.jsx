@@ -13,6 +13,7 @@ import { Dialog } from "@/components/ui/dialog"
 import { DropdownMenu } from "@/components/ui/dropdown-menu"
 import { Icon } from "@/components/ui/icon"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { NumberInput } from "@/components/ui/number-input"
 import { Select } from "@/components/ui/select"
 import { ScrollView } from "@/components/ui/scroll-view"
@@ -42,6 +43,7 @@ function MetaField({ field, value, onChange }) {
   if (field.type === "select") return <Select aria-label={field.label} size="sm" triggerClassName="w-44" value={value ?? field.options[0].value} onChange={onChange} options={field.options} />
   if (field.type === "number")
     return <NumberInput aria-label={field.label} size="sm" className="w-24" min={field.min} max={field.max} suffix={field.label.endsWith("%") ? "%" : undefined} value={value ?? null} onChange={(n) => onChange(n ?? 0)} />
+  if (field.type === "longtext") return <Textarea aria-label={field.label} rows={2} className="min-w-80 text-sm" maxLength={field.maxLength} value={value ?? ""} onChange={(e) => onChange(e.target.value)} />
   return <Input aria-label={field.label} size="sm" className="w-32" maxLength={field.maxLength} value={value ?? ""} onChange={(e) => onChange(e.target.value)} />
 }
 
@@ -149,90 +151,22 @@ function ListEditor({ list, onDirtyChange, message, setMessage }) {
         </div>
       )}
 
-      <ScrollView className="min-h-0 flex-1">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 z-10 bg-muted text-xs text-muted-foreground">
-            <tr>
-              <th className="w-20 px-3 py-2 text-left font-medium">Order</th>
-              {list.colored && <th className="w-40 px-2 py-2 text-left font-medium">Colour</th>}
-              <th className="min-w-56 px-2 py-2 text-left font-medium">Label</th>
-              {list.icons && <th className="px-2 py-2 text-left font-medium">Icon</th>}
-              {list.fields.map((f) => (
-                <th key={f.key} className="px-2 py-2 text-left font-medium">
-                  {f.label}
-                </th>
-              ))}
-              <th className="hidden px-2 py-2 text-left font-medium lg:table-cell">Preview</th>
-              {list.defaultable && (
-                <th className="w-20 px-2 py-2 text-center font-medium" title="Preselected in forms">
-                  Default
-                </th>
-              )}
-              <th className="w-20 px-2 py-2 text-center font-medium">Active</th>
-              <th className="w-12" />
-            </tr>
-          </thead>
-          <tbody className="divide-y">
+      {list.fields.some((f) => f.type === "longtext") ? (
+        <>
+          {/* Lists with long text (Quick replies): one card per value, the text full width under it */}
+          <ScrollView className="min-h-0 flex-1" viewportClassName="space-y-3 p-4 sm:p-5">
             {values.map((v, i) => (
-              <tr key={v.value} className={cn(!v.active && "bg-muted/40 text-muted-foreground")}>
-                <td className="px-3 py-1.5">
+              <article key={v.value} className={cn("rounded-xl border bg-background shadow-xs transition-opacity", !v.active && "opacity-60")}>
+                <div className="flex flex-wrap items-center gap-2 px-3 pt-3">
                   <div className="flex">
                     <Button variant="ghost" size="smicon" leftIcon="arrow-up-s-line" aria-label="Move up" disabled={i === 0} onClick={() => move(i, -1)} />
                     <Button variant="ghost" size="smicon" leftIcon="arrow-down-s-line" aria-label="Move down" disabled={i === values.length - 1} onClick={() => move(i, 1)} />
                   </div>
-                </td>
-                {list.colored && (
-                  <td className="px-2 py-1.5">
-                    <ColorPicker aria-label={`Colour for ${v.label}`} size="sm" className="w-36" value={toHex(v.color) ?? "#64748b"} onChange={(color) => patch(i, { color })} />
-                  </td>
-                )}
-                <td className="min-w-56 px-2 py-1.5">
-                  <Input aria-label="Label" size="sm" value={v.label} onChange={(e) => patch(i, { label: e.target.value })} />
-                  {!v.isDefault && <span className="mt-0.5 block text-[10px] text-muted-foreground">Added by your workspace</span>}
-                </td>
-                {list.icons && (
-                  <td className="px-2 py-1.5">
-                    <IconPicker aria-label={`Icon for ${v.label}`} size="sm" className="w-52" value={v.icon ?? ""} onChange={(icon) => patch(i, { icon: icon ?? null })} />
-                  </td>
-                )}
-                {list.fields.map((f) => (
-                  <td key={f.key} className="px-2 py-1.5">
-                    <MetaField field={f} value={v.meta?.[f.key]} onChange={(val) => patch(i, { meta: { ...v.meta, [f.key]: val } })} />
-                  </td>
-                ))}
-                <td className="hidden px-2 py-1.5 lg:table-cell">
-                  <Preview list={list} v={v} />
-                </td>
-                {list.defaultable && (
-                  <td className="px-2 py-1.5 text-center">
-                    <input
-                      type="radio"
-                      name={`default-${list.key}`}
-                      aria-label={`Make ${v.label} the default`}
-                      title="Preselected in forms"
-                      className="size-4 cursor-pointer accent-primary disabled:cursor-not-allowed"
-                      checked={Boolean(v.preselected)}
-                      disabled={!v.active}
-                      onChange={() => setValues((vs) => vs.map((x, k) => ({ ...x, preselected: k === i })))}
-                      onClick={() => v.preselected && patch(i, { preselected: false })}
-                    />
-                  </td>
-                )}
-                <td className="px-2 py-1.5 text-center">
-                  <Checkbox
-                    aria-label={`${v.label} active`}
-                    className="justify-center"
-                    checked={v.active}
-                    disabled={system}
-                    onChange={(on) =>
-                      patch(i, {
-                        active: on,
-                        ...(on ? {} : { preselected: false }),
-                      })
-                    }
-                  />
-                </td>
-                <td className="px-2 py-1.5">
+                  {list.icons && <IconPicker aria-label={`Icon for ${v.label}`} size="sm" className="w-44" value={v.icon ?? ""} onChange={(icon) => patch(i, { icon: icon ?? null })} />}
+                  <div className="min-w-48 flex-1">
+                    <Input aria-label="Name" size="sm" placeholder="Short name, e.g. Brochure sent" value={v.label} onChange={(e) => patch(i, { label: e.target.value })} />
+                  </div>
+                  <Checkbox label="Active" checked={v.active} disabled={system} onChange={(on) => patch(i, { active: on, ...(on ? {} : { preselected: false }) })} />
                   {!v.isDefault && (
                     <Button
                       variant="ghost"
@@ -245,12 +179,147 @@ function ListEditor({ list, onDirtyChange, message, setMessage }) {
                       }}
                     />
                   )}
-                </td>
-              </tr>
+                </div>
+                {list.fields.map((f) =>
+                  f.type === "longtext" ? (
+                    <div key={f.key} className="px-3 pt-2 pb-3">
+                      <Textarea
+                        aria-label={`${f.label} for ${v.label}`}
+                        rows={2}
+                        maxLength={f.maxLength}
+                        placeholder="The full text added when someone taps it"
+                        className="text-sm"
+                        value={v.meta?.[f.key] ?? ""}
+                        onChange={(e) => patch(i, { meta: { ...v.meta, [f.key]: e.target.value } })}
+                      />
+                      <div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                        {/* How it shows in the log form and email */}
+                        <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[13px]">
+                          {v.icon && <Icon name={v.icon} className="text-sm" />}
+                          {v.label || "—"}
+                        </span>
+                        <span className="tabular-nums">
+                          {(v.meta?.[f.key] ?? "").length}/{f.maxLength}
+                        </span>
+                      </div>
+                        </div>
+                  ) : (
+                    <div key={f.key} className="flex items-center gap-2 px-3 pb-3 text-sm">
+                      <span className="text-muted-foreground">{f.label}</span>
+                      <MetaField field={f} value={v.meta?.[f.key]} onChange={(val) => patch(i, { meta: { ...v.meta, [f.key]: val } })} />
+                    </div>
+                  ),
+                )}
+              </article>
             ))}
-          </tbody>
-        </table>
-      </ScrollView>
+          </ScrollView>
+        </>
+      ) : (
+        <>
+          <ScrollView className="min-h-0 flex-1">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 z-10 bg-muted text-xs text-muted-foreground">
+                <tr>
+                  <th className="w-20 px-3 py-2 text-left font-medium">Order</th>
+                  {list.colored && <th className="w-40 px-2 py-2 text-left font-medium">Colour</th>}
+                  <th className="min-w-56 px-2 py-2 text-left font-medium">Label</th>
+                  {list.icons && <th className="px-2 py-2 text-left font-medium">Icon</th>}
+                  {list.fields.map((f) => (
+                    <th key={f.key} className="px-2 py-2 text-left font-medium">
+                      {f.label}
+                    </th>
+                  ))}
+                  <th className="hidden px-2 py-2 text-left font-medium lg:table-cell">Preview</th>
+                  {list.defaultable && (
+                    <th className="w-20 px-2 py-2 text-center font-medium" title="Preselected in forms">
+                      Default
+                    </th>
+                  )}
+                  <th className="w-20 px-2 py-2 text-center font-medium">Active</th>
+                  <th className="w-12" />
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {values.map((v, i) => (
+                  <tr key={v.value} className={cn(!v.active && "bg-muted/40 text-muted-foreground")}>
+                    <td className="px-3 py-1.5">
+                      <div className="flex">
+                        <Button variant="ghost" size="smicon" leftIcon="arrow-up-s-line" aria-label="Move up" disabled={i === 0} onClick={() => move(i, -1)} />
+                        <Button variant="ghost" size="smicon" leftIcon="arrow-down-s-line" aria-label="Move down" disabled={i === values.length - 1} onClick={() => move(i, 1)} />
+                      </div>
+                    </td>
+                    {list.colored && (
+                      <td className="px-2 py-1.5">
+                        <ColorPicker aria-label={`Colour for ${v.label}`} size="sm" className="w-36" value={toHex(v.color) ?? "#64748b"} onChange={(color) => patch(i, { color })} />
+                      </td>
+                    )}
+                    <td className="min-w-56 px-2 py-1.5">
+                      <Input aria-label="Label" size="sm" value={v.label} onChange={(e) => patch(i, { label: e.target.value })} />
+                      {!v.isDefault && <span className="mt-0.5 block text-[10px] text-muted-foreground">Added by your workspace</span>}
+                    </td>
+                    {list.icons && (
+                      <td className="px-2 py-1.5">
+                        <IconPicker aria-label={`Icon for ${v.label}`} size="sm" className="w-52" value={v.icon ?? ""} onChange={(icon) => patch(i, { icon: icon ?? null })} />
+                      </td>
+                    )}
+                    {list.fields.map((f) => (
+                      <td key={f.key} className="px-2 py-1.5">
+                        <MetaField field={f} value={v.meta?.[f.key]} onChange={(val) => patch(i, { meta: { ...v.meta, [f.key]: val } })} />
+                      </td>
+                    ))}
+                    <td className="hidden px-2 py-1.5 lg:table-cell">
+                      <Preview list={list} v={v} />
+                    </td>
+                    {list.defaultable && (
+                      <td className="px-2 py-1.5 text-center">
+                        <input
+                          type="radio"
+                          name={`default-${list.key}`}
+                          aria-label={`Make ${v.label} the default`}
+                          title="Preselected in forms"
+                          className="size-4 cursor-pointer accent-primary disabled:cursor-not-allowed"
+                          checked={Boolean(v.preselected)}
+                          disabled={!v.active}
+                          onChange={() => setValues((vs) => vs.map((x, k) => ({ ...x, preselected: k === i })))}
+                          onClick={() => v.preselected && patch(i, { preselected: false })}
+                        />
+                      </td>
+                    )}
+                    <td className="px-2 py-1.5 text-center">
+                      <Checkbox
+                        aria-label={`${v.label} active`}
+                        className="justify-center"
+                        checked={v.active}
+                        disabled={system}
+                        onChange={(on) =>
+                          patch(i, {
+                            active: on,
+                            ...(on ? {} : { preselected: false }),
+                          })
+                        }
+                      />
+                    </td>
+                    <td className="px-2 py-1.5">
+                      {!v.isDefault && (
+                        <Button
+                          variant="ghost"
+                          size="smicon"
+                          leftIcon="delete-bin-6-line"
+                          aria-label={`Delete ${v.label}`}
+                          onClick={() => {
+                            setValues((vs) => vs.filter((_, k) => k !== i))
+                            setMessage(null)
+                          }}
+                        />
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ScrollView>
+        </>
+      )}
 
       {!system && (
         <div className="flex flex-wrap items-center gap-2 border-t px-5 py-3">

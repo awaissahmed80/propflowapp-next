@@ -11,7 +11,10 @@ import { estateAction } from "./context"
 // A project's photos (one is its cover / featured image) and documents (layout plan, NOC,
 // brochure…), stored as assets of the project. One file per call; the browser loops.
 
-const project = (ctx, code) => live(ctx.db, "projects").where({ code: String(code ?? "").toUpperCase() }).first("id", "code", "name")
+const project = (ctx, code) =>
+  live(ctx.db, "projects")
+    .where({ code: String(code ?? "").toUpperCase() })
+    .first("id", "code", "name")
 
 // An asset of a project in this workspace (estate's own)
 async function projectAsset(ctx, code) {
@@ -44,7 +47,14 @@ export async function uploadProjectFile(projectCode, formData) {
     userId: ctx.user.id,
   })
   if (result.error) return { error: collection === "images" && result.error.includes("isn't a file type") ? `${formData.get("file")?.name}: use a JPG, PNG or WebP photo.` : result.error }
-  await logActivity(ctx.db, { type: "estate", action: `project.${collection}_added`, actorUserId: ctx.user.id, summary: collection === "images" ? `added a photo to ${p.name}` : `added "${result.asset.title}" to ${p.name}`, subjectType: "project", subjectId: p.id })
+  await logActivity(ctx.db, {
+    type: "estate",
+    action: `project.${collection}_added`,
+    actorUserId: ctx.user.id,
+    summary: collection === "images" ? `added a photo to ${p.name}` : `added "${result.asset.title}" to ${p.name}`,
+    subjectType: "project",
+    subjectId: p.id,
+  })
   return { ok: true }
 }
 
@@ -83,7 +93,14 @@ export async function removeProjectFile(code) {
   if (!asset) return { error: "That file was already removed." }
   await removeAsset(ctx.db, asset, ctx.user.id)
   const p = await live(ctx.db, "projects").where({ id: asset.ownerId }).first("name")
-  await logActivity(ctx.db, { type: "estate", action: `project.${asset.collection}_removed`, actorUserId: ctx.user.id, summary: asset.collection === "images" ? `removed a photo from ${p?.name ?? "a project"}` : `removed "${asset.title}" from ${p?.name ?? "a project"}`, subjectType: "project", subjectId: asset.ownerId })
+  await logActivity(ctx.db, {
+    type: "estate",
+    action: `project.${asset.collection}_removed`,
+    actorUserId: ctx.user.id,
+    summary: asset.collection === "images" ? `removed a photo from ${p?.name ?? "a project"}` : `removed "${asset.title}" from ${p?.name ?? "a project"}`,
+    subjectType: "project",
+    subjectId: asset.ownerId,
+  })
   return { ok: true }
 }
 
@@ -106,6 +123,14 @@ export async function attachProjectFiles(projectCode, codes, { collection, categ
     cat = isLookupValue(list, category) ? category : null
   }
   const added = await attachAssets(ctx.db, sources, { app: "estate", ownerType: "project", ownerId: p.id, collection: kind, category: cat, userId: ctx.user.id })
-  if (added) await logActivity(ctx.db, { type: "estate", action: `project.${kind}_added`, actorUserId: ctx.user.id, summary: `added ${added} ${kind === "images" ? (added === 1 ? "photo" : "photos") : added === 1 ? "document" : "documents"} to ${p.name} from the library`, subjectType: "project", subjectId: p.id })
+  if (added)
+    await logActivity(ctx.db, {
+      type: "estate",
+      action: `project.${kind}_added`,
+      actorUserId: ctx.user.id,
+      summary: `added ${added} ${kind === "images" ? (added === 1 ? "photo" : "photos") : added === 1 ? "document" : "documents"} to ${p.name} from the library`,
+      subjectType: "project",
+      subjectId: p.id,
+    })
   return { ok: true, added }
 }

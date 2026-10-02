@@ -42,25 +42,14 @@ function SortHeader({ column, sort, onSort }) {
   const align = alignOf(column)
   const right = align === "right"
   return (
-    <th
-      scope="col"
-      aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}
-      className={cn("px-3 py-2.5 font-medium", ALIGN[align], column.headerClassName)}
-    >
+    <th scope="col" aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : "none"} className={cn("px-3 py-2.5 font-medium", ALIGN[align], column.headerClassName)}>
       <button
         type="button"
         onClick={() => onSort(column.key)}
-        className={cn(
-          "inline-flex cursor-pointer items-center gap-1 rounded outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
-          active && "text-foreground",
-          right && "flex-row-reverse"
-        )}
+        className={cn("inline-flex cursor-pointer items-center gap-1 rounded outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring", active && "text-foreground", right && "flex-row-reverse")}
       >
         {column.header}
-        <Icon
-          name={active ? (sort.dir === "asc" ? "arrow-up-line" : "arrow-down-line") : "arrow-up-down-line"}
-          className={cn("text-sm", !active && "opacity-40")}
-        />
+        <Icon name={active ? (sort.dir === "asc" ? "arrow-up-line" : "arrow-down-line") : "arrow-up-down-line"} className={cn("text-sm", !active && "opacity-40")} />
       </button>
     </th>
   )
@@ -81,6 +70,7 @@ export function DataTable({
   empty,
   selectedIds,
   onSelectionChange,
+  activeKey, // the row shown in a side panel, highlighted
 }) {
   const selectable = Boolean(onSelectionChange)
   const [sort, setSort] = useState(defaultSort ?? null)
@@ -103,8 +93,7 @@ export function DataTable({
   const current = Math.min(page, pages)
   const visible = sorted.slice((current - 1) * pageSize, current * pageSize)
 
-  const onSort = (key) =>
-    setSort((s) => (s?.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }))
+  const onSort = (key) => setSort((s) => (s?.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }))
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border bg-background shadow-xs">
@@ -122,18 +111,10 @@ export function DataTable({
                 column.sortValue ? (
                   <SortHeader key={column.key} column={column} sort={sort} onSort={onSort} />
                 ) : (
-                  <th
-                    key={column.key}
-                    scope="col"
-                    className={cn(
-                      "px-3 py-2.5 font-medium",
-                      ALIGN[alignOf(column)],
-                      column.headerClassName
-                    )}
-                  >
+                  <th key={column.key} scope="col" className={cn("px-3 py-2.5 font-medium", ALIGN[alignOf(column)], column.headerClassName)}>
                     {column.header}
                   </th>
-                )
+                ),
               )}
             </tr>
           </thead>
@@ -156,9 +137,10 @@ export function DataTable({
                   key={rowKey(row)}
                   onClick={onRowClick ? (e) => !isInteractiveClick(e) && onRowClick(row) : undefined}
                   aria-selected={selectable ? selectedIds.has(rowKey(row)) : undefined}
+                  aria-current={activeKey != null && rowKey(row) === activeKey ? "true" : undefined}
                   className={cn(
-                    "group transition-colors duration-150 hover:bg-muted/50 aria-selected:bg-primary/5",
-                    onRowClick && "cursor-pointer"
+                    "group transition-colors duration-150 hover:bg-muted/50 aria-selected:bg-primary/5 aria-[current=true]:bg-primary/10 aria-[current=true]:hover:bg-primary/10",
+                    onRowClick && "cursor-pointer",
                   )}
                 >
                   {selectable && (
@@ -176,15 +158,7 @@ export function DataTable({
                     </td>
                   )}
                   {columns.map((column, i) => (
-                    <td
-                      key={column.key}
-                      className={cn(
-                        "px-3 py-2.5",
-                        ALIGN[alignOf(column)],
-                        i === 0 && "transition-shadow duration-150 group-hover:shadow-[inset_2px_0_0_var(--primary)]",
-                        column.className
-                      )}
-                    >
+                    <td key={column.key} className={cn("px-3 py-2.5", ALIGN[alignOf(column)], i === 0 && "transition-shadow duration-150 group-hover:shadow-[inset_2px_0_0_var(--primary)]", column.className)}>
                       {column.cell(row)}
                     </td>
                   ))}

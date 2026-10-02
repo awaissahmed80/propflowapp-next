@@ -5,15 +5,16 @@ import { toHex } from "@/lib/color"
 import { useList } from "@/modules/lookups/context"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { DropdownMenu } from "@/components/ui/dropdown-menu"
 import { Icon } from "@/components/ui/icon"
 import { Tooltip } from "@/components/ui/tooltip"
 
 // Small pieces shared by the leads list, board and lead window
 
-export function LeadStatusBadge({ status }) {
+export function LeadStatusBadge({ status, className }) {
   const s = useList("lead-status").map[status]
   return (
-    <Badge color={toHex(s?.color) ?? "gray"} dot>
+    <Badge color={toHex(s?.color) ?? "gray"} dot className={className}>
       {s?.label ?? status}
     </Badge>
   )
@@ -50,7 +51,10 @@ export function TempPicker({ value, onChange, disabled, label }) {
                   aria-label={o.label}
                   disabled={disabled}
                   onClick={() => !on && onChange(o.value)}
-                  className={cn("flex size-8 items-center justify-center rounded text-lg transition enabled:cursor-pointer disabled:opacity-60", on ? "text-white" : "opacity-55 enabled:hover:bg-muted enabled:hover:opacity-100")}
+                  className={cn(
+                    "flex size-8 items-center justify-center rounded text-lg transition enabled:cursor-pointer disabled:opacity-60",
+                    on ? "text-white" : "opacity-55 enabled:hover:bg-muted enabled:hover:opacity-100",
+                  )}
                   style={on ? { backgroundColor: color } : { color }}
                 >
                   <Icon name={list.map[o.value]?.icon ?? "temp-cold-line"} />
@@ -100,3 +104,55 @@ export function dueText(at, now = Date.now()) {
 export const telHref = (phone) => `tel:${phone}`
 export const whatsappHref = (phone, name, company) =>
   `https://wa.me/${String(phone).replace(/\D/g, "")}?text=${encodeURIComponent(`Assalam o Alaikum ${String(name).split(" ")[0]}, this is regarding your property enquiry${company ? ` with ${company}` : ""}.`)}`
+
+// The lead's status as a badge that opens a menu of every status (the lead header). Picking
+// "Lost" is passed on so the caller can ask why. Without edit rights it's just the badge.
+export function StatusMenu({ status, onPick, disabled = false, badgeClassName }) {
+  const list = useList("lead-status")
+  if (disabled) return <LeadStatusBadge status={status} className={badgeClassName} />
+  return (
+    <DropdownMenu
+      align="start"
+      items={list.options.map((o) => ({
+        label: o.value === "lost" ? `${o.label}…` : o.label,
+        icon: <span className="size-2 rounded-full" style={{ backgroundColor: toHex(list.map[o.value]?.color) ?? "#94a3b8" }} />,
+        selected: o.value === status,
+        onClick: () => o.value !== status && onPick(o.value),
+      }))}
+      trigger={
+        <button type="button" aria-label="Change status" className="group inline-flex cursor-pointer items-center gap-0.5 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <LeadStatusBadge status={status} className={badgeClassName} />
+          <Icon name="arrow-down-s-line" className="text-base text-muted-foreground transition-colors group-hover:text-foreground" />
+        </button>
+      }
+    />
+  )
+}
+
+// The lead's temperature icon as a menu: very cold → very hot (the lead header)
+export function TempMenu({ value, onChange, disabled = false, className }) {
+  const list = useList("lead-priority")
+  if (disabled) return <TempIcon priority={value} className={className} />
+  const p = list.map[value]
+  return (
+    <DropdownMenu
+      align="start"
+      items={list.options.map((o) => ({
+        label: o.label,
+        icon: <Icon name={list.map[o.value]?.icon ?? "temp-cold-line"} style={{ color: toHex(list.map[o.value]?.color) ?? "#94a3b8" }} />,
+        selected: o.value === value,
+        onClick: () => o.value !== value && onChange(o.value),
+      }))}
+      trigger={
+        <button
+          type="button"
+          aria-label={`Temperature: ${p?.label ?? value}. Change`}
+          title={p?.label ?? value}
+          className="inline-flex cursor-pointer items-center rounded-md p-0.5 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Icon name={p?.icon ?? "temp-cold-line"} className={cn("shrink-0 text-base", className)} style={{ color: toHex(p?.color) ?? "#94a3b8" }} />
+        </button>
+      }
+    />
+  )
+}

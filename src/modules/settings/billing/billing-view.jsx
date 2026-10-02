@@ -117,7 +117,10 @@ function ChangePlanDialog({ data, onClose, onDone }) {
               role="radio"
               aria-checked={on}
               onClick={() => setPlanCode(p.code)}
-              className={cn("cursor-pointer rounded-xl border p-3 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring", on ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:border-primary/40")}
+              className={cn(
+                "cursor-pointer rounded-xl border p-3 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                on ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:border-primary/40",
+              )}
             >
               <span className="flex items-center justify-between gap-2 text-sm font-medium">
                 {p.name}
@@ -254,7 +257,9 @@ export function BillingView({ data, workspaceName, canEdit }) {
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
           <Icon name="error-warning-line" className="text-lg text-amber-600 dark:text-amber-400" />
           <span className="flex-1">
-            {due.length === 1 ? `Invoice ${due[0].code} for ${formatPkr(due[0].total)} is due${due[0].dueAt ? ` by ${formatDate(due[0].dueAt)}` : ""}.` : `${due.length} invoices are due, ${formatPkr(due.reduce((s, i) => s + i.total, 0))} in all.`}
+            {due.length === 1
+              ? `Invoice ${due[0].code} for ${formatPkr(due[0].total)} is due${due[0].dueAt ? ` by ${formatDate(due[0].dueAt)}` : ""}.`
+              : `${due.length} invoices are due, ${formatPkr(due.reduce((s, i) => s + i.total, 0))} in all.`}
           </span>
           <Button size="sm" leftIcon="bank-line" onClick={() => setDialog({ kind: "pay", invoice: due[0] })}>
             Pay {due[0].code}

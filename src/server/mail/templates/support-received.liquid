@@ -1,0 +1,18 @@
+---
+subject: "We've got your request ({{ code }})"
+preheader: "Thanks, {{ name | first_name }}. One of our representatives will be in touch."
+---
+{%- comment -%} Sent after "Contact support" on the sign-in pages. Data: name, code, workspace, topic {%- endcomment -%}
+{% layout "email" %}
+{% block content %}
+<h1 style="margin:0 0 20px;{{ style.h1 }}">We're on it, {{ name | first_name }}</h1>
+<p style="margin:0 0 16px;{{ style.p }}">Thanks for getting in touch about <strong>{{ workspace }}</strong>. Your request is with our support team, and one of our representatives will email you or call you on your registered number.</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 24px;background:#f5f7fd;border-radius:12px;">
+<tr><td style="padding:18px 22px;">
+  <p style="margin:0 0 4px;{{ style.eyebrow }}">Your request</p>
+  <p style="margin:0;{{ style.item }}">{{ topic }} · <strong style="color:{{ color.ink }};">{{ code }}</strong></p>
+</td></tr>
+</table>
+<p style="margin:0 0 16px;{{ style.p }}">Anything to add, like a screenshot or the exact error you see? Just reply to this email and mention {{ code }}.</p>
+{% render "security", title: "Didn't send this?", body: "Someone may have used your email by mistake. You can ignore this message, or reply and let us know." %}
+{% endblock %}

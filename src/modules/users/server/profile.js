@@ -7,7 +7,10 @@ import { nextCode } from "@/server/db/numbering"
 export async function saveProfile(db, userId, patch, actorId) {
   const row = await live(db, "members").where({ userId }).first("id")
   if (row) {
-    if (Object.keys(patch).length) await db("members").where({ id: row.id }).update({ ...patch, updatedAt: new Date(), updatedBy: actorId })
+    if (Object.keys(patch).length)
+      await db("members")
+        .where({ id: row.id })
+        .update({ ...patch, updatedAt: new Date(), updatedBy: actorId })
     return
   }
   await db.transaction(async (trx) => {

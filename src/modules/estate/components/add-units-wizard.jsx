@@ -41,7 +41,9 @@ function Stepper({ step }) {
         <li key={s} className="flex flex-col gap-1.5">
           <span className={cn("h-1 rounded-full", i === step ? "bg-primary" : i < step ? "bg-primary/40" : "bg-muted")} />
           <span className={cn("flex items-center gap-1.5 text-xs font-medium", i === step ? "text-foreground" : "text-muted-foreground")}>
-            <span className={cn("flex size-5 items-center justify-center rounded-full text-[10px]", i === step ? "bg-primary text-primary-foreground" : i < step ? "bg-primary/15 text-primary" : "bg-muted")}>{i < step ? <Icon name="check-line" /> : i + 1}</span>
+            <span className={cn("flex size-5 items-center justify-center rounded-full text-[10px]", i === step ? "bg-primary text-primary-foreground" : i < step ? "bg-primary/15 text-primary" : "bg-muted")}>
+              {i < step ? <Icon name="check-line" /> : i + 1}
+            </span>
             {s}
           </span>
         </li>
@@ -123,7 +125,14 @@ export function AddUnitsWizard({ tree, initialProject, initialBlock, onClose, on
     }))
   }
 
-  const numbers = form.numbering === "single" ? (form.number ? [form.number] : []) : Number.isInteger(form.from) && Number.isInteger(form.to) && form.to >= form.from ? Array.from({ length: Math.min(form.to - form.from + 1, 1000) }, (_, i) => `${form.prefix}${form.from + i}`) : []
+  const numbers =
+    form.numbering === "single"
+      ? form.number
+        ? [form.number]
+        : []
+      : Number.isInteger(form.from) && Number.isInteger(form.to) && form.to >= form.from
+        ? Array.from({ length: Math.min(form.to - form.from + 1, 1000) }, (_, i) => `${form.prefix}${form.from + i}`)
+        : []
   const sizeValue = form.sizeValue
   // Units this type is sized in (Lists & Labels › Area units)
   const allowedUnits = m.unitsFor(type)
@@ -300,8 +309,20 @@ export function AddUnitsWizard({ tree, initialProject, initialBlock, onClose, on
           {step === 0 && (
             <div className="grid gap-4 sm:grid-cols-3">
               <Select label="Project" value={form.project} onChange={pickProject} options={tree.map((p) => ({ value: p.code, label: p.name }))} error={errors.project} />
-              <Select label="Phase" value={form.phaseId} onChange={(v) => pickPhase(project?.phases.find((p) => String(p.id) === v))} options={(project?.phases ?? []).map((p) => ({ value: String(p.id), label: p.name }))} error={errors.phaseId} />
-              <Select label={unballoted ? "File pool" : "Block"} value={form.blockId} onChange={set("blockId")} options={(phase?.blocks ?? []).map((b) => ({ value: String(b.id), label: `${b.name} · ${b.category}` }))} error={errors.blockId} />
+              <Select
+                label="Phase"
+                value={form.phaseId}
+                onChange={(v) => pickPhase(project?.phases.find((p) => String(p.id) === v))}
+                options={(project?.phases ?? []).map((p) => ({ value: String(p.id), label: p.name }))}
+                error={errors.phaseId}
+              />
+              <Select
+                label={unballoted ? "File pool" : "Block"}
+                value={form.blockId}
+                onChange={set("blockId")}
+                options={(phase?.blocks ?? []).map((b) => ({ value: String(b.id), label: `${b.name} · ${b.category}` }))}
+                error={errors.blockId}
+              />
               {unballoted && <p className="text-sm text-muted-foreground sm:col-span-3">This phase is unballoted: you&apos;re adding open files, numbered {form.prefix}1001 and up. Plot numbers come at balloting.</p>}
             </div>
           )}
@@ -319,7 +340,7 @@ export function AddUnitsWizard({ tree, initialProject, initialBlock, onClose, on
                       onClick={() => set("type")(o.value)}
                       className={cn(
                         "flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                        type === o.value ? "border-primary bg-primary/5 font-medium ring-1 ring-primary" : "border-input text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                        type === o.value ? "border-primary bg-primary/5 font-medium ring-1 ring-primary" : "border-input text-muted-foreground hover:border-primary/40 hover:text-foreground",
                       )}
                     >
                       <Icon name={types.map[o.value]?.icon ?? "layout-grid-line"} className="text-base" />
@@ -346,7 +367,13 @@ export function AddUnitsWizard({ tree, initialProject, initialBlock, onClose, on
                     <NumberInput label="To" min={0} value={form.to} onChange={set("to")} error={errors.to} />
                   </div>
                 ) : (
-                  <Input label="Unit number" placeholder={isFile ? `${project?.code}-F-1001` : sqft ? "e.g. 101 or C-1" : "e.g. 12"} value={form.number} onChange={(e) => set("number")(e.target.value)} error={errors.number} />
+                  <Input
+                    label="Unit number"
+                    placeholder={isFile ? `${project?.code}-F-1001` : sqft ? "e.g. 101 or C-1" : "e.g. 12"}
+                    value={form.number}
+                    onChange={(e) => set("number")(e.target.value)}
+                    error={errors.number}
+                  />
                 )}
               </div>
 
@@ -445,7 +472,13 @@ export function AddUnitsWizard({ tree, initialProject, initialBlock, onClose, on
                       <thead className="sticky top-0 z-10 bg-muted text-xs text-muted-foreground">
                         <tr>
                           <th className="w-10 px-2 py-2">
-                            <input type="checkbox" aria-label="Select all" className="size-4 accent-primary" checked={picked.size === rows.length && rows.length > 0} onChange={(e) => setPicked(e.target.checked ? new Set(rows.map((r) => r.number)) : new Set())} />
+                            <input
+                              type="checkbox"
+                              aria-label="Select all"
+                              className="size-4 accent-primary"
+                              checked={picked.size === rows.length && rows.length > 0}
+                              onChange={(e) => setPicked(e.target.checked ? new Set(rows.map((r) => r.number)) : new Set())}
+                            />
                           </th>
                           <th className="px-2 py-2 text-left font-medium">Unit</th>
                           <th className="px-2 py-2 text-left font-medium">Size</th>
@@ -476,7 +509,14 @@ export function AddUnitsWizard({ tree, initialProject, initialBlock, onClose, on
                             <td className="px-2 py-1.5">
                               <div className="flex items-center gap-1">
                                 <NumberInput aria-label={`Size of ${r.number}`} size="sm" className="w-20" min={0} value={r.sizeValue} onChange={(v) => override([r.number], () => ({ sizeValue: v }))} />
-                                <AreaUnitSelect aria-label={`Unit of ${r.number}`} size="sm" triggerClassName="w-24" units={allowedUnits} value={r.sizeUnit} onChange={(u) => override([r.number], () => ({ sizeUnit: u }))} />
+                                <AreaUnitSelect
+                                  aria-label={`Unit of ${r.number}`}
+                                  size="sm"
+                                  triggerClassName="w-24"
+                                  units={allowedUnits}
+                                  value={r.sizeUnit}
+                                  onChange={(u) => override([r.number], () => ({ sizeUnit: u }))}
+                                />
                               </div>
                             </td>
                             {!isFile && (

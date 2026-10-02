@@ -85,6 +85,11 @@ export const EMAIL_SAMPLES = {
       trial_days: 15,
     },
   },
+  "support-received": {
+    title: "Support request received (to the person)",
+    when: "Someone uses Contact support on the sign-in pages and their email belongs to the workspace",
+    data: { name: "Bilal Ahmed", code: "REQ-26-0004", workspace: "Skyline Developers", topic: "I can't sign in" },
+  },
   "enquiry-alert": {
     title: "New enquiry (to sales)",
     when: "A website enquiry arrives and SALES_NOTIFY_EMAIL is set",

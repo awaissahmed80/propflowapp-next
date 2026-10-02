@@ -18,12 +18,7 @@ const SETUP_ITEMS = [
 function Row({ icon, title, text, done, href, onClick }) {
   const body = (
     <>
-      <span
-        className={cn(
-          "flex size-8 shrink-0 items-center justify-center rounded-lg text-base",
-          done ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-primary/10 text-primary"
-        )}
-      >
+      <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg text-base", done ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-primary/10 text-primary")}>
         <Icon name={done ? "check-line" : icon} />
       </span>
       <span className="min-w-0 flex-1">
@@ -77,11 +72,8 @@ export function GettingStarted({ steps, team, onStartTour }) {
 
       <div className="space-y-0.5">
         {/* Setup steps until they're all done; after that the workspace settings take over */}
-        {!allDone &&
-          setup.map((item) => <Row key={item.step} {...item} href={item.done ? undefined : `/setup?step=${item.step}`} />)}
-        {allDone && (
-          <Row icon="settings-3-line" title="Workspace setup" text="Company profile, logo, accounts and preferences are all set" done={false} href="/setup" />
-        )}
+        {!allDone && setup.map((item) => <Row key={item.step} {...item} href={item.done ? undefined : `/setup?step=${item.step}`} />)}
+        {allDone && <Row icon="settings-3-line" title="Workspace setup" text="Company profile, logo, accounts and preferences are all set" done={false} href="/setup" />}
         {team && (
           <Row
             icon="team-line"

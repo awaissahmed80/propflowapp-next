@@ -28,7 +28,12 @@ import { attachUpdatePhotos, deleteEvent, deleteUpdate, saveEvent, saveProgress,
 const average = (rows) => (rows.length ? Math.round(rows.reduce((s, r) => s + r.percent, 0) / rows.length) : null)
 
 // Date / date-time in Pakistan time for the pickers
-const pktParts = (d) => Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Karachi", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(d)).map((p) => [p.type, p.value]))
+const pktParts = (d) =>
+  Object.fromEntries(
+    new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Karachi", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+      .formatToParts(new Date(d))
+      .map((p) => [p.type, p.value]),
+  )
 const toPktDate = (d) => {
   const p = pktParts(d)
   return `${p.year}-${p.month}-${p.day}`
@@ -81,7 +86,12 @@ function ProgressDialog({ project, onClose }) {
     setValues(Object.fromEntries(rowsFor(s).map((r) => [r.work, r.percent])))
   }
   // Every active work, plus any tracked one switched off since
-  const list = [...works.options, ...rowsFor(scope).filter((r) => !works.options.some((o) => o.value === r.work)).map((r) => ({ value: r.work, label: works.label(r.work) }))]
+  const list = [
+    ...works.options,
+    ...rowsFor(scope)
+      .filter((r) => !works.options.some((o) => o.value === r.work))
+      .map((r) => ({ value: r.work, label: works.label(r.work) })),
+  ]
   const save = () =>
     run(
       () =>
@@ -91,7 +101,7 @@ function ProgressDialog({ project, onClose }) {
           note,
           postUpdate: post,
         }),
-      onClose
+      onClose,
     )
   return (
     <Dialog
@@ -135,7 +145,16 @@ function ProgressDialog({ project, onClose }) {
                 onChange={(e) => setValues((x) => ({ ...x, [o.value]: Number(e.target.value) }))}
                 className={cn("hidden w-full accent-primary sm:block", v == null && "opacity-40")}
               />
-              <NumberInput aria-label={`${o.label} %`} size="sm" min={0} max={100} suffix="%" placeholder="—" value={v ?? null} onChange={(n) => setValues((x) => ({ ...x, [o.value]: n == null ? null : Math.min(100, Math.max(0, Math.round(n))) }))} />
+              <NumberInput
+                aria-label={`${o.label} %`}
+                size="sm"
+                min={0}
+                max={100}
+                suffix="%"
+                placeholder="—"
+                value={v ?? null}
+                onChange={(n) => setValues((x) => ({ ...x, [o.value]: n == null ? null : Math.min(100, Math.max(0, Math.round(n))) }))}
+              />
             </li>
           )
         })}
@@ -149,7 +168,9 @@ function ProgressDialog({ project, onClose }) {
 export function ProjectProgress({ project, canEdit }) {
   const works = useList("development-work")
   const [editing, setEditing] = useState(false)
-  const scopes = [{ id: null, name: "Whole project" }, ...project.phases.map((p) => ({ id: p.id, name: p.name }))].map((s) => ({ ...s, rows: project.progress.filter((r) => (r.phaseId ?? null) === s.id) })).filter((s) => s.rows.length)
+  const scopes = [{ id: null, name: "Whole project" }, ...project.phases.map((p) => ({ id: p.id, name: p.name }))]
+    .map((s) => ({ ...s, rows: project.progress.filter((r) => (r.phaseId ?? null) === s.id) }))
+    .filter((s) => s.rows.length)
   const overall = average(project.progress.filter((r) => r.phaseId == null)) ?? average(project.progress)
   const lastUpdated = project.progress.reduce((m, r) => (r.updatedAt && (!m || new Date(r.updatedAt) > new Date(m)) ? r.updatedAt : m), null)
 
@@ -199,7 +220,9 @@ export function ProjectProgress({ project, canEdit }) {
           ))}
         </div>
       ) : (
-        <p className="rounded-xl border border-dashed bg-background p-10 text-center text-sm text-muted-foreground">No progress recorded yet.{canEdit ? " Update progress to track roads, electricity, sewerage and more." : ""}</p>
+        <p className="rounded-xl border border-dashed bg-background p-10 text-center text-sm text-muted-foreground">
+          No progress recorded yet.{canEdit ? " Update progress to track roads, electricity, sewerage and more." : ""}
+        </p>
       )}
       {editing && <ProgressDialog project={project} onClose={() => setEditing(false)} />}
     </div>
@@ -299,7 +322,13 @@ function UpdateItem({ u, project, canEdit, pending, onEdit, onPhotos, onDelete }
       {u.photos.length > 0 && (
         <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
           {u.photos.map((ph, i) => (
-            <button key={ph.code} type="button" onClick={() => setViewing(i)} aria-label={`View ${ph.title}`} className="cursor-zoom-in overflow-hidden rounded-lg border outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <button
+              key={ph.code}
+              type="button"
+              onClick={() => setViewing(i)}
+              aria-label={`View ${ph.title}`}
+              className="cursor-zoom-in overflow-hidden rounded-lg border outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
               {/* eslint-disable-next-line @next/next/no-img-element -- served by the workspace file route */}
               <img src={ph.url} alt={ph.title} loading="lazy" className="aspect-square w-full object-cover" />
             </button>
@@ -392,11 +421,7 @@ function EventCard({ event, canEdit, onEdit, onDelete, pending }) {
       {canEdit && (
         <DropdownMenu
           align="end"
-          items={[
-            { label: "Edit", icon: "edit-line", onClick: onEdit },
-            { type: "separator" },
-            { label: "Delete", icon: "delete-bin-6-line", variant: "destructive", onClick: onDelete },
-          ]}
+          items={[{ label: "Edit", icon: "edit-line", onClick: onEdit }, { type: "separator" }, { label: "Delete", icon: "delete-bin-6-line", variant: "destructive", onClick: onDelete }]}
           trigger={<Button variant="ghost" size="smicon" leftIcon="more-2-line" aria-label={`${event.title} actions`} disabled={pending} />}
         />
       )}
@@ -445,9 +470,7 @@ export function ProjectTimeline({ project, canEdit }) {
           <h3 className="flex items-center gap-1.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
             <Icon name="calendar-event-line" /> Upcoming events
           </h3>
-          <ul className="space-y-3">
-            {upcoming.map(eventCard)}
-          </ul>
+          <ul className="space-y-3">{upcoming.map(eventCard)}</ul>
         </section>
       )}
 
@@ -467,7 +490,15 @@ export function ProjectTimeline({ project, canEdit }) {
                     </span>
                   )}
                   {kind === "update" ? (
-                    <UpdateItem u={item} project={project} canEdit={canEdit} pending={pending} onEdit={() => setEditingUpdate(item)} onPhotos={() => setPhotosFor(item)} onDelete={() => run(() => deleteUpdate(item.code))} />
+                    <UpdateItem
+                      u={item}
+                      project={project}
+                      canEdit={canEdit}
+                      pending={pending}
+                      onEdit={() => setEditingUpdate(item)}
+                      onPhotos={() => setPhotosFor(item)}
+                      onDelete={() => run(() => deleteUpdate(item.code))}
+                    />
                   ) : (
                     <ul>{eventCard(item)}</ul>
                   )}

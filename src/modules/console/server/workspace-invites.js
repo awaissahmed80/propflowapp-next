@@ -70,7 +70,10 @@ const inviteSchema = z
     price: z.number().min(0).max(10_000_000).nullable(),
     note: z.string().trim().max(255).optional(),
     // A custom package instead of the plan's apps: { apps: [codes], off: { app: [keys] } }
-    package: z.object({ apps: z.array(z.string()).min(1, "Pick at least one app.").max(50), off: z.record(z.string(), z.array(z.string())).default({}) }).nullable().optional(),
+    package: z
+      .object({ apps: z.array(z.string()).min(1, "Pick at least one app.").max(50), off: z.record(z.string(), z.array(z.string())).default({}) })
+      .nullable()
+      .optional(),
   })
   .refine((v) => v.startAs !== "trial" || v.trialDays != null, { path: ["trialDays"], message: "How many trial days?" })
 

@@ -39,10 +39,7 @@ export function Notice({ tone = "success", icon, children, action }) {
   return (
     <div
       role={error ? "alert" : "status"}
-      className={cn(
-        "flex items-center gap-2 rounded-lg px-3 py-2 text-sm",
-        error ? "border border-destructive/30 bg-destructive/10 text-destructive" : "bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
-      )}
+      className={cn("flex items-center gap-2 rounded-lg px-3 py-2 text-sm", error ? "border border-destructive/30 bg-destructive/10 text-destructive" : "bg-emerald-500/10 text-emerald-800 dark:text-emerald-300")}
     >
       <Icon name={icon ?? (error ? "error-warning-line" : "checkbox-circle-line")} />
       <span className="flex-1">{children}</span>

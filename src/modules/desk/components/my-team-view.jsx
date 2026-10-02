@@ -79,7 +79,12 @@ export function MyTeamView({ teams, currentUserId, lists, canManage }) {
                   </span>
                   <span className="text-xs text-muted-foreground">{lastActive(m.lastActiveAt, now)}</span>
                   {m.phone && (
-                    <a href={`tel:${m.phone}`} aria-label={`Call ${m.name}`} title={formatPkPhone(m.phone)} className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground">
+                    <a
+                      href={`tel:${m.phone}`}
+                      aria-label={`Call ${m.name}`}
+                      title={formatPkPhone(m.phone)}
+                      className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                    >
                       <Icon name="phone-line" />
                     </a>
                   )}

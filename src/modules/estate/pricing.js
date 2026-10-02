@@ -56,9 +56,7 @@ export function priceUnder(list, unit, { marlaSqft = 225, featurePremium = () =>
   const marla = m.sizeInMarla(Number(unit.sizeValue), unit.sizeUnit)
   const basePrice = round1000((marla ?? m.areaSqft(Number(unit.sizeValue), unit.sizeUnit, marlaSqft)) * baseRate)
   const premiums =
-    unit.type === "file"
-      ? []
-      : (unit.features ?? []).map((f) => ({ feature: f, percent: Number(list.premiums.find((p) => p.feature === f)?.percent ?? featurePremium(f) ?? 0) })).filter((p) => p.percent > 0)
+    unit.type === "file" ? [] : (unit.features ?? []).map((f) => ({ feature: f, percent: Number(list.premiums.find((p) => p.feature === f)?.percent ?? featurePremium(f) ?? 0) })).filter((p) => p.percent > 0)
   const price = round1000(basePrice * (1 + premiums.reduce((s, p) => s + p.percent, 0) / 100))
   return { baseRate, basePrice, premiums, price, floorRise }
 }
