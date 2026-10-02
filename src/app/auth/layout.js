@@ -2,6 +2,8 @@ import { AuthSlider } from "@/components/auth-slider"
 import { Logo } from "@/components/logo"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { siteUrl } from "@/lib/sites"
+import { LegalLink } from "@/modules/web/components/legal"
+import { ContactSupportLink } from "@/modules/web/components/contact-support"
 
 // Shared shell for sign-in, forgot password, sign-up and workspace selection
 export default function AuthLayout({ children }) {
@@ -26,15 +28,13 @@ export default function AuthLayout({ children }) {
         <footer className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
           <span>© {new Date().getFullYear()} PropFlow</span>
           <nav className="flex gap-4">
-            <a href={siteUrl("web", "/privacy")} className="hover:text-foreground">
+            <LegalLink doc="privacy" className="font-normal text-inherit hover:text-foreground hover:no-underline">
               Privacy
-            </a>
-            <a href={siteUrl("web", "/terms")} className="hover:text-foreground">
+            </LegalLink>
+            <LegalLink doc="terms" className="font-normal text-inherit hover:text-foreground hover:no-underline">
               Terms
-            </a>
-            <a href={siteUrl("web", "/help")} className="hover:text-foreground">
-              Help
-            </a>
+            </LegalLink>
+            <ContactSupportLink className="hover:text-foreground">Contact support</ContactSupportLink>
           </nav>
         </footer>
       </div>

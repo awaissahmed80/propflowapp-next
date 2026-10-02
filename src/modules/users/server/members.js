@@ -61,8 +61,7 @@ const inviteSchema = z.object({
   dealerId: optionalId,
 })
 
-const emailInvite = (ctx, { to, name, role, link }) =>
-  sendEmail("member-invite", { to, data: { name, inviter: ctx.user.name, workspace: ctx.tenant.name, role, link, days: INVITE_DAYS } })
+const emailInvite = (ctx, { to, name, role, link }) => sendEmail("member-invite", { to, data: { name, inviter: ctx.user.name, workspace: ctx.tenant.name, role, link, days: INVITE_DAYS } })
 
 // A fresh link for an invitation row (the old one stops working); returns the link
 async function issueLink(id) {
@@ -105,7 +104,12 @@ export async function inviteMember(input) {
   const seats = await seatUsage(ctx, { members, invites: others })
   if (dealer) {
     if (seats.dealers.limit != null && seats.dealers.used >= seats.dealers.limit)
-      return { error: seats.dealers.limit === 0 ? `The ${seats.plan} plan doesn't include dealer logins. Upgrade to add them.` : `All ${seats.dealers.limit} dealer logins on the ${seats.plan} plan are in use. Upgrade, or remove one, to add more.` }
+      return {
+        error:
+          seats.dealers.limit === 0
+            ? `The ${seats.plan} plan doesn't include dealer logins. Upgrade to add them.`
+            : `All ${seats.dealers.limit} dealer logins on the ${seats.plan} plan are in use. Upgrade, or remove one, to add more.`,
+      }
   } else if (seats.limit && seats.used >= seats.limit) return { error: `All ${seats.limit} seats on the ${seats.plan} plan are in use. Upgrade, or remove someone, to invite more people.` }
 
   const db = authDb()
@@ -124,12 +128,24 @@ export async function inviteMember(input) {
   })
   const link = await issueLink(id)
   const mail = await emailInvite(ctx, { to: email, name, role: assign.role.name, link })
-  await logActivity(ctx.db, { type: "invite", action: "invite.sent", actorUserId: ctx.user.id, summary: dealer ? `invited ${name} as a login for ${dealer.name}` : `invited ${name} as ${assign.role.name}`, subjectType: "invitation", subjectId: id, details: { email, roleId, emailed: mail.ok } })
+  await logActivity(ctx.db, {
+    type: "invite",
+    action: "invite.sent",
+    actorUserId: ctx.user.id,
+    summary: dealer ? `invited ${name} as a login for ${dealer.name}` : `invited ${name} as ${assign.role.name}`,
+    subjectType: "invitation",
+    subjectId: id,
+    details: { email, roleId, emailed: mail.ok },
+  })
   return { ok: true, link, emailed: mail.ok, emailError: mail.ok ? null : mail.error }
 }
 
 async function pendingInvite(ctx, id) {
-  return live(authDb(), "invitations").where({ id: Number(id), kind: "tenant", tenantId: ctx.tenant.id }).whereNull("acceptedAt").whereNull("revokedAt").first("id", "email", "name", "roleId")
+  return live(authDb(), "invitations")
+    .where({ id: Number(id), kind: "tenant", tenantId: ctx.tenant.id })
+    .whereNull("acceptedAt")
+    .whereNull("revokedAt")
+    .first("id", "email", "name", "roleId")
 }
 
 // send: false makes a fresh link to copy and share, without emailing it
@@ -141,7 +157,14 @@ export async function resendInvitation(id, { send = true } = {}) {
   const role = await live(ctx.db, "roles").where({ id: invite.roleId }).first("name")
   const link = await issueLink(invite.id)
   if (!send) {
-    await logActivity(ctx.db, { type: "invite", action: "invite.link_copied", actorUserId: ctx.user.id, summary: `made a new invitation link for ${invite.name ?? invite.email}`, subjectType: "invitation", subjectId: invite.id })
+    await logActivity(ctx.db, {
+      type: "invite",
+      action: "invite.link_copied",
+      actorUserId: ctx.user.id,
+      summary: `made a new invitation link for ${invite.name ?? invite.email}`,
+      subjectType: "invitation",
+      subjectId: invite.id,
+    })
     return { ok: true, link, copyOnly: true }
   }
   const mail = await emailInvite(ctx, { to: invite.email, name: invite.name, role: role?.name ?? "a member", link })
@@ -214,7 +237,11 @@ export async function updateMember(userId, input) {
     if (next.teamId !== m.teamId) {
       changes.push(["team", "member.team_changed", team ? `moved ${m.name} to ${team.name}` : `took ${m.name} out of ${m.team?.name ?? "their team"}`])
       // Someone who leaves a team stops leading it
-      await ctx.db("teams").where({ leadUserId: m.id }).whereNot({ id: next.teamId ?? 0 }).update({ leadUserId: null, updatedAt: new Date(), updatedBy: ctx.user.id })
+      await ctx
+        .db("teams")
+        .where({ leadUserId: m.id })
+        .whereNot({ id: next.teamId ?? 0 })
+        .update({ leadUserId: null, updatedAt: new Date(), updatedBy: ctx.user.id })
     }
     if (next.designation !== m.designation || next.department !== m.department) changes.push(["role", "member.profile_changed", `updated ${m.name}'s designation and department`])
   }
@@ -244,12 +271,18 @@ export async function setMemberStatus(userId, status) {
   }
   await authDb()("memberships").where({ id: m.membershipId }).update({ status, updatedAt: new Date(), updatedBy: ctx.user.id })
   if (status === "suspended") await endSessions(ctx, m.id)
-  await logActivity(ctx.db, { type: "security", action: `member.${status === "suspended" ? "suspended" : "reactivated"}`, actorUserId: ctx.user.id, summary: `${status === "suspended" ? "suspended" : "reactivated"} ${m.name}`, subjectType: "user", subjectId: m.id })
+  await logActivity(ctx.db, {
+    type: "security",
+    action: `member.${status === "suspended" ? "suspended" : "reactivated"}`,
+    actorUserId: ctx.user.id,
+    summary: `${status === "suspended" ? "suspended" : "reactivated"} ${m.name}`,
+    subjectType: "user",
+    subjectId: m.id,
+  })
   return { ok: true }
 }
 
-const endSessions = (ctx, userId) =>
-  authDb()("sessions").where({ userId, tenantId: ctx.tenant.id, kind: "tenant" }).whereNull("revokedAt").update({ revokedAt: new Date() })
+const endSessions = (ctx, userId) => authDb()("sessions").where({ userId, tenantId: ctx.tenant.id, kind: "tenant" }).whereNull("revokedAt").update({ revokedAt: new Date() })
 
 // Takes them out of the workspace. Their records keep their name; they can be invited again.
 export async function removeMember(userId) {
@@ -285,6 +318,13 @@ export async function updateMemberPhone(userId, input) {
   if (raw && !phone) return { error: "Enter a Pakistani mobile number, e.g. 0300 1234567." }
   if ((m.phone ?? null) === phone) return { ok: true }
   await authDb()("users").where({ id: m.id }).update({ phone, phoneVerifiedAt: null, updatedAt: new Date(), updatedBy: ctx.user.id })
-  await logActivity(ctx.db, { type: "security", action: "member.phone_changed", actorUserId: ctx.user.id, summary: isSelf ? "changed their mobile number" : `changed ${m.name}'s mobile number`, subjectType: "user", subjectId: m.id })
+  await logActivity(ctx.db, {
+    type: "security",
+    action: "member.phone_changed",
+    actorUserId: ctx.user.id,
+    summary: isSelf ? "changed their mobile number" : `changed ${m.name}'s mobile number`,
+    subjectType: "user",
+    subjectId: m.id,
+  })
   return { ok: true }
 }

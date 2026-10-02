@@ -36,7 +36,11 @@ export function AppShell({ portal, appCode, nav: allNav, defaultOpen = true, chi
           groups={nav}
           header={
             <div className="space-y-2">
-              <Link href="/" aria-label="All apps" className="flex h-10 items-center rounded-md px-1.5 outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+              <Link
+                href="/"
+                aria-label="All apps"
+                className="flex h-10 items-center rounded-md px-1.5 outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+              >
                 {/* Full logo, or just the mark on the collapsed rail */}
                 <span className="group-data-[collapsible=icon]:hidden">
                   <Logo className="h-8 max-w-none" />

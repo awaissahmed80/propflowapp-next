@@ -36,5 +36,8 @@ export const PAYMENT_GATEWAYS = [
 export const EMPTY_BANK = { bankName: "", accountTitle: "", accountNumber: "", iban: "", branch: "", instructions: "" }
 
 // Pakistani IBAN: PK, 2 check digits, 4-letter bank code, 16 digits (24 characters)
-export const normalizeIban = (s) => String(s ?? "").replace(/\s+/g, "").toUpperCase()
+export const normalizeIban = (s) =>
+  String(s ?? "")
+    .replace(/\s+/g, "")
+    .toUpperCase()
 export const IBAN_PATTERN = /^PK\d{2}[A-Z]{4}\d{16}$/

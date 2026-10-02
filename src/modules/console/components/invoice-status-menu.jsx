@@ -33,7 +33,9 @@ export function InvoiceStatusMenu({ invoice, canManage, onChanged }) {
     ...(s === "overdue" ? [{ label: "Mark as unpaid", icon: "time-line", onClick: () => run(() => setInvoiceStatus(invoice.id, "issued"), `${invoice.code} marked unpaid.`) }] : []),
     ...(s === "issued" ? [{ label: "Mark as overdue", icon: "alarm-warning-line", onClick: () => run(() => setInvoiceStatus(invoice.id, "overdue"), `${invoice.code} marked overdue.`) }] : []),
     ...(["issued", "overdue"].includes(s) ? [{ label: "Mark as paid…", icon: "checkbox-circle-line", onClick: () => setDialog("pay") }] : []),
-    ...(s === "paid" ? [{ label: "Mark as unpaid (reverse payment)", icon: "arrow-go-back-line", onClick: () => run(() => setInvoiceStatus(invoice.id, "issued"), `${invoice.code} marked unpaid; its payment was reversed.`) }] : []),
+    ...(s === "paid"
+      ? [{ label: "Mark as unpaid (reverse payment)", icon: "arrow-go-back-line", onClick: () => run(() => setInvoiceStatus(invoice.id, "issued"), `${invoice.code} marked unpaid; its payment was reversed.`) }]
+      : []),
     ...(s !== "paid" ? [{ type: "separator" }, { label: "Void…", icon: "forbid-line", variant: "destructive", onClick: () => setDialog("void") }] : []),
   ]
 
@@ -92,9 +94,7 @@ export function InvoiceStatusControl({ invoice, canManage }) {
           router.refresh()
         }}
       />
-      {notice && (
-        <span className={cn("text-xs font-normal", notice.tone === "error" ? "text-destructive" : "text-emerald-700 dark:text-emerald-400")}>{notice.text}</span>
-      )}
+      {notice && <span className={cn("text-xs font-normal", notice.tone === "error" ? "text-destructive" : "text-emerald-700 dark:text-emerald-400")}>{notice.text}</span>}
     </span>
   )
 }

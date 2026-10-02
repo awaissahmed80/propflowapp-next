@@ -12,13 +12,20 @@ import { estateAction } from "./context"
 // Project progress (% per development work), updates (timeline posts with photos) and events.
 
 const newCode = () => crypto.randomBytes(16).toString("hex").slice(0, 20)
-const findProject = (ctx, code) => live(ctx.db, "projects").where({ code: String(code ?? "").toUpperCase() }).first("id", "code", "name")
+const findProject = (ctx, code) =>
+  live(ctx.db, "projects")
+    .where({ code: String(code ?? "").toUpperCase() })
+    .first("id", "code", "name")
 const fieldErrors = (error) => Object.fromEntries(error.issues.map((i) => [i.path.join("."), i.message]))
 
 // A phase of this project (by id, from the page), or null for the whole project
 async function phaseOf(ctx, project, phaseId) {
   if (!phaseId) return null
-  return (await live(ctx.db, "projectPhases").where({ id: Number(phaseId), projectId: project.id }).first("id", "name")) ?? false
+  return (
+    (await live(ctx.db, "projectPhases")
+      .where({ id: Number(phaseId), projectId: project.id })
+      .first("id", "name")) ?? false
+  )
 }
 
 // ---------- progress ----------
@@ -26,7 +33,10 @@ async function phaseOf(ctx, project, phaseId) {
 const progressSchema = z.object({
   phaseId: z.preprocess((v) => (v === "" || v == null ? null : Number(v)), z.number().int().positive().nullable()),
   // work → percent (null: not tracked)
-  items: z.record(z.string(), z.preprocess((v) => (v === "" || v == null ? null : Number(v)), z.number().int().min(0).max(100).nullable())),
+  items: z.record(
+    z.string(),
+    z.preprocess((v) => (v === "" || v == null ? null : Number(v)), z.number().int().min(0).max(100).nullable()),
+  ),
   note: z.string().trim().max(2000).optional().default(""),
   postUpdate: z.boolean().default(true),
 })
@@ -44,7 +54,9 @@ export async function saveProgress(projectCode, input) {
   if (phase === false) return { error: "That phase was removed." }
   const works = (await getLookups(ctx.db, ["development-work"]))["development-work"]
 
-  const current = await live(ctx.db, "projectProgress").where({ projectId: project.id, phaseId: phase?.id ?? null }).select("id", "work", "percent")
+  const current = await live(ctx.db, "projectProgress")
+    .where({ projectId: project.id, phaseId: phase?.id ?? null })
+    .select("id", "work", "percent")
   const changes = []
   const now = new Date()
   await ctx.db.transaction(async (trx) => {
@@ -77,10 +89,21 @@ export async function saveProgress(projectCode, input) {
             .map((c) => `${label(c.work)} ${c.to}%`)
             .join(", ")}${changes.length > 3 ? "…" : ""}`
         : `${phase ? `${phase.name} ` : ""}progress update`
-      await trx("projectUpdates").insert({ code: newCode(), projectId: project.id, phaseId: phase?.id ?? null, type: "construction", title: title || "Progress update", body: note || null, changes: JSON.stringify(changes), postedAt: now, createdBy: ctx.user.id })
+      await trx("projectUpdates").insert({
+        code: newCode(),
+        projectId: project.id,
+        phaseId: phase?.id ?? null,
+        type: "construction",
+        title: title || "Progress update",
+        body: note || null,
+        changes: JSON.stringify(changes),
+        postedAt: now,
+        createdBy: ctx.user.id,
+      })
     }
   })
-  if (changes.length) await logActivity(ctx.db, { type: "estate", action: "project.progress", actorUserId: ctx.user.id, summary: `updated development progress of ${project.name}`, subjectType: "project", subjectId: project.id })
+  if (changes.length)
+    await logActivity(ctx.db, { type: "estate", action: "project.progress", actorUserId: ctx.user.id, summary: `updated development progress of ${project.name}`, subjectType: "project", subjectId: project.id })
   return { ok: true, changed: changes.length }
 }
 
@@ -111,7 +134,11 @@ export async function saveUpdate(projectCode, input, code) {
   if (phase === false) return { fieldErrors: { phaseId: "That phase was removed." } }
   const row = { type: v.type, title: v.title, body: v.body || null, phaseId: phase?.id ?? null, postedAt: v.postedAt > new Date() ? new Date() : v.postedAt }
   let saved = code
-  if (existing) await ctx.db("projectUpdates").where({ id: existing.id }).update({ ...row, updatedAt: new Date(), updatedBy: ctx.user.id })
+  if (existing)
+    await ctx
+      .db("projectUpdates")
+      .where({ id: existing.id })
+      .update({ ...row, updatedAt: new Date(), updatedBy: ctx.user.id })
   else {
     saved = newCode()
     await ctx.db("projectUpdates").insert({ ...row, code: saved, projectId: project.id, createdBy: ctx.user.id })
@@ -120,7 +147,10 @@ export async function saveUpdate(projectCode, input, code) {
   return { ok: true, code: saved }
 }
 
-const findUpdate = (ctx, code) => live(ctx.db, "projectUpdates").where({ code: String(code ?? "") }).first("id", "projectId", "title")
+const findUpdate = (ctx, code) =>
+  live(ctx.db, "projectUpdates")
+    .where({ code: String(code ?? "") })
+    .first("id", "projectId", "title")
 
 export async function deleteUpdate(code) {
   const { ctx, error } = await estateAction("edit")
@@ -185,7 +215,11 @@ export async function saveEvent(projectCode, input, code) {
   if (code && !existing) return { error: "That event was removed." }
   if (v.type !== existing?.type && !isLookupValue(types, v.type)) return { fieldErrors: { type: "Pick a type from the list." } }
   const row = { type: v.type, title: v.title, startsAt, endsAt, venue: v.venue || null, description: v.description || null, status: v.status }
-  if (existing) await ctx.db("projectEvents").where({ id: existing.id }).update({ ...row, updatedAt: new Date(), updatedBy: ctx.user.id })
+  if (existing)
+    await ctx
+      .db("projectEvents")
+      .where({ id: existing.id })
+      .update({ ...row, updatedAt: new Date(), updatedBy: ctx.user.id })
   else {
     await ctx.db("projectEvents").insert({ ...row, code: newCode(), projectId: project.id, createdBy: ctx.user.id })
     await logActivity(ctx.db, { type: "estate", action: "project.event_added", actorUserId: ctx.user.id, summary: `scheduled "${v.title}" for ${project.name}`, subjectType: "project", subjectId: project.id })
@@ -196,7 +230,9 @@ export async function saveEvent(projectCode, input, code) {
 export async function deleteEvent(code) {
   const { ctx, error } = await estateAction("edit")
   if (error) return { error }
-  const e = await live(ctx.db, "projectEvents").where({ code: String(code ?? "") }).first("id")
+  const e = await live(ctx.db, "projectEvents")
+    .where({ code: String(code ?? "") })
+    .first("id")
   if (!e) return { error: "That event was already removed." }
   await ctx.db("projectEvents").where({ id: e.id }).update({ deletedAt: new Date(), deletedBy: ctx.user.id })
   return { ok: true }

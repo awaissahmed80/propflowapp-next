@@ -78,9 +78,7 @@ export function PriceListDocument({ list, brand }) {
       {(list.premiums.length > 0 || list.floorRisePct > 0) && (
         <>
           <H>Premium locations</H>
-          <p className="text-sm">
-            {[...list.premiums.map((p) => `${features.label(p.feature)} +${p.percent}%`), ...(list.floorRisePct > 0 ? [`Floor rise +${list.floorRisePct}% per floor`] : [])].join(" · ")}
-          </p>
+          <p className="text-sm">{[...list.premiums.map((p) => `${features.label(p.feature)} +${p.percent}%`), ...(list.floorRisePct > 0 ? [`Floor rise +${list.floorRisePct}% per floor`] : [])].join(" · ")}</p>
           <p className="mt-1 text-xs text-gray-500">Premiums are charged on the base price.</p>
         </>
       )}

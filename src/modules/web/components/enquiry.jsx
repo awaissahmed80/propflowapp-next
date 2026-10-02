@@ -121,10 +121,7 @@ function EnquiryDialog({ kind, plan, source, trialDays, onClose }) {
       const result = await submitEnquiry({ ...form, kind, plan: plan ?? null, source: source ?? "Website" })
       if (result.fieldErrors) setErrors(result.fieldErrors)
       else if (result.error) setError(result.error)
-      else {
-        track("generate_lead", { lead_type: kind, cta_location: source ?? "Website" })
-        setSent(result)
-      }
+      else setSent(result) // generate_lead is sent by the server once the request is saved
     })
   }
 

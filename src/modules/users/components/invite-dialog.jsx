@@ -75,8 +75,28 @@ function InviteDialog({ options, workspaceName, onClose, onInvited }) {
         <Input label="Work email" required type="email" placeholder="name@company.pk" value={form.email} onChange={(e) => set("email")(e.target.value)} error={errors.email} />
         <Select label="Role" value={form.roleId} onChange={set("roleId")} options={roles.map((r) => ({ value: String(r.id), label: r.name }))} error={errors.roleId} />
         <Select label="Team" value={form.teamId} onChange={set("teamId")} options={[{ value: "", label: "No team" }, ...teams.map((t) => ({ value: String(t.id), label: t.name }))]} error={errors.teamId} />
-        <LookupSelect list="designation" values={lists.designation} canAdd={options.canAddLists} app="users" label="Designation" empty="Not set" value={form.designation} onChange={set("designation")} error={errors.designation} />
-        <LookupSelect list="department" values={lists.department} canAdd={options.canAddLists} app="users" label="Department" empty="Not set" value={form.department} onChange={set("department")} error={errors.department} />
+        <LookupSelect
+          list="designation"
+          values={lists.designation}
+          canAdd={options.canAddLists}
+          app="users"
+          label="Designation"
+          empty="Not set"
+          value={form.designation}
+          onChange={set("designation")}
+          error={errors.designation}
+        />
+        <LookupSelect
+          list="department"
+          values={lists.department}
+          canAdd={options.canAddLists}
+          app="users"
+          label="Department"
+          empty="Not set"
+          value={form.department}
+          onChange={set("department")}
+          error={errors.department}
+        />
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground sm:col-span-2">
           <Icon name="group-line" />
           {seatsText(seats)}

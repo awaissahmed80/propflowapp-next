@@ -31,7 +31,7 @@ export function WorkspacesTable({ rows, plans, initialStatus, invites, invite })
       (t) =>
         (!filters.status.length || filters.status.includes(t.status)) &&
         (!filters.plan.length || filters.plan.includes(String(t.planId))) &&
-        (!q || [t.name, t.slug, t.city, t.owner?.name, t.owner?.email, t.code].some((v) => v?.toLowerCase().includes(q)))
+        (!q || [t.name, t.slug, t.city, t.owner?.name, t.owner?.email, t.code].some((v) => v?.toLowerCase().includes(q))),
     )
   }, [rows, filters, search])
 

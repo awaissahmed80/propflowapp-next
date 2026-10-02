@@ -70,7 +70,7 @@ export function LeadForm({ lead, agents, projects, access, me, onClose, onSaved,
   const priorities = useList("lead-priority")
   const sources = useList("lead-source")
   const editing = Boolean(lead)
-  const [form, setForm] = useState(() => (lead ? fromLead(lead) : { ...blank(priorities.defaultValue ?? "moderate"), source: sources.defaultValue ?? "", assignedTo: String(me) }))
+  const [form, setForm] = useState(() => (lead ? fromLead(lead) : { ...blank(priorities.defaultValue ?? "moderate"), source: sources.defaultValue ?? "", assignedTo: access.autoAssign ? "" : String(me) }))
   const [more, setMore] = useState(editing)
   const [errors, setErrors] = useState({})
   const [error, setError] = useState("")
@@ -159,9 +159,8 @@ export function LeadForm({ lead, agents, projects, access, me, onClose, onSaved,
               <li key={l.code ?? i} className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">{l.name}</span>
                 <LeadStatusBadge status={l.status} />
-                <span className="text-xs text-muted-foreground">
-                  {[l.project, timeAgo(l.createdAt)].filter(Boolean).join(" · ")}
-                </span>
+                {l.archived && <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">Archived</span>}
+                <span className="text-xs text-muted-foreground">{[l.project, timeAgo(l.createdAt)].filter(Boolean).join(" · ")}</span>
                 {l.code ? (
                   <button type="button" className="ml-auto cursor-pointer text-xs font-medium text-primary hover:underline" onClick={() => onOpenExisting?.(l.code)}>
                     Open
@@ -176,10 +175,24 @@ export function LeadForm({ lead, agents, projects, access, me, onClose, onSaved,
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Select label="Interested in" value={form.projectCode} onChange={set("projectCode")} options={[{ value: "", label: "Not sure yet" }, ...projects.map((p) => ({ value: p.code, label: p.name }))]} error={errors.projectCode} />
+        <Select
+          label="Interested in"
+          value={form.projectCode}
+          onChange={set("projectCode")}
+          options={[{ value: "", label: "Not sure yet" }, ...projects.map((p) => ({ value: p.code, label: p.name }))]}
+          error={errors.projectCode}
+        />
         <LookupSelect list="lead-source" label="Source" value={form.source} onChange={set("source")} error={errors.source} />
         {!editing && access.reassign && (
-          <PersonPicker label="Assign to" people={agents} me={me} value={form.assignedTo ? Number(form.assignedTo) : null} onChange={(id) => set("assignedTo")(id ? String(id) : "")} error={errors.assignedTo} />
+          <PersonPicker
+            label="Assign to"
+            people={agents}
+            me={me}
+            noneLabel={!lead && access.autoAssign ? "Auto-assign (round-robin)" : "Unassigned"}
+            value={form.assignedTo ? Number(form.assignedTo) : null}
+            onChange={(id) => set("assignedTo")(id ? String(id) : "")}
+            error={errors.assignedTo}
+          />
         )}
         <TempPicker label="Temperature" value={form.priority} onChange={set("priority")} />
       </div>

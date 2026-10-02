@@ -18,15 +18,7 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { ToggleGroup } from "@/components/ui/toggle-group"
 import { CATEGORY_ORDER } from "@/modules/portal/access"
-import {
-  changeWorkspacePlan,
-  extendWorkspace,
-  reactivateWorkspace,
-  retryWorkspaceSetup,
-  setWorkspaceApps,
-  suspendWorkspace,
-  updateWorkspaceDetails,
-} from "../server/workspace-actions"
+import { changeWorkspacePlan, extendWorkspace, reactivateWorkspace, retryWorkspaceSetup, setWorkspaceApps, suspendWorkspace, updateWorkspaceDetails } from "../server/workspace-actions"
 import { Notice } from "./parts"
 
 // Runs an action; on success closes the dialog, shows a note and reloads the page's data
@@ -88,50 +80,49 @@ function AppsDialog({ t, apps, planApps, onClose, onDone }) {
     >
       {error && <Notice tone="error">{error}</Notice>}
       <div className="space-y-4">
-          {groups.map(([category, list]) => (
-            <div key={category}>
-              <p className="mb-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{category}</p>
-              <ul className="space-y-1">
-                {list.map((a) => {
-                  const inPlan = planApps.includes(a.code)
-                  return (
-                    <li key={a.code}>
-                      <label className={cn("flex items-center gap-3 rounded-lg px-2 py-1.5", a.alwaysOn ? "cursor-not-allowed" : "cursor-pointer hover:bg-muted/60")}>
-                        <AppIcon icon={a.icon} color={a.color} size="sm" className="shrink-0" />
-                        <span className="min-w-0 flex-1">
-                          <span className="flex items-center gap-2 text-sm font-medium">
-                            {a.name}
-                            {!inPlan && !a.alwaysOn && on.includes(a.code) && <Badge color="violet">Extra</Badge>}
-                          </span>
-                          <span className="block truncate text-xs text-muted-foreground">
-                            {a.alwaysOn ? (
-                              <>
-                                <Icon name="lock-line" className="mr-0.5 align-[-2px]" />
-                                Included with every workspace
-                              </>
-                            ) : inPlan ? (
-                              `In the ${t.planName} plan`
-                            ) : (
-                              "Not in the plan"
-                            )}
-                          </span>
+        {groups.map(([category, list]) => (
+          <div key={category}>
+            <p className="mb-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{category}</p>
+            <ul className="space-y-1">
+              {list.map((a) => {
+                const inPlan = planApps.includes(a.code)
+                return (
+                  <li key={a.code}>
+                    <label className={cn("flex items-center gap-3 rounded-lg px-2 py-1.5", a.alwaysOn ? "cursor-not-allowed" : "cursor-pointer hover:bg-muted/60")}>
+                      <AppIcon icon={a.icon} color={a.color} size="sm" className="shrink-0" />
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-2 text-sm font-medium">
+                          {a.name}
+                          {!inPlan && !a.alwaysOn && on.includes(a.code) && <Badge color="violet">Extra</Badge>}
                         </span>
-                        <Switch
-                          aria-label={a.name}
-                          checked={a.alwaysOn || on.includes(a.code)}
-                          disabled={a.alwaysOn}
-                          onChange={(v) => setOn((list) => (v ? [...list, a.code] : list.filter((c) => c !== a.code)))}
-                        />
-                      </label>
-                      {!a.alwaysOn && on.includes(a.code) && <AppFeatures app={a.code} off={off[a.code] ?? []} onChange={(keys) => setOff((o) => ({ ...o, [a.code]: keys }))} className="mt-1 mb-1 ml-12" />}
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          ))}
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {a.alwaysOn ? (
+                            <>
+                              <Icon name="lock-line" className="mr-0.5 align-[-2px]" />
+                              Included with every workspace
+                            </>
+                          ) : inPlan ? (
+                            `In the ${t.planName} plan`
+                          ) : (
+                            "Not in the plan"
+                          )}
+                        </span>
+                      </span>
+                      <Switch aria-label={a.name} checked={a.alwaysOn || on.includes(a.code)} disabled={a.alwaysOn} onChange={(v) => setOn((list) => (v ? [...list, a.code] : list.filter((c) => c !== a.code)))} />
+                    </label>
+                    {!a.alwaysOn && on.includes(a.code) && <AppFeatures app={a.code} off={off[a.code] ?? []} onChange={(keys) => setOff((o) => ({ ...o, [a.code]: keys }))} className="mt-1 mb-1 ml-12" />}
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        ))}
       </div>
-      {extras > 0 && <p className="text-xs text-muted-foreground">{extras} extra app{extras === 1 ? "" : "s"} beyond the plan. Charge for them separately if agreed.</p>}
+      {extras > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {extras} extra app{extras === 1 ? "" : "s"} beyond the plan. Charge for them separately if agreed.
+        </p>
+      )}
     </Dialog>
   )
 }
@@ -143,13 +134,7 @@ function DetailsDialog({ t, onClose, onDone }) {
   const { run, pending, error, fieldErrors } = useRun(onDone)
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: k === "slug" ? e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") : e.target.value }))
   return (
-    <Dialog
-      open
-      onOpenChange={(o) => !o && onClose()}
-      className="sm:max-w-xl"
-      title="Edit workspace details"
-      footer={<Footer onClose={onClose} pending={pending} label="Save details" form="ws-details" />}
-    >
+    <Dialog open onOpenChange={(o) => !o && onClose()} className="sm:max-w-xl" title="Edit workspace details" footer={<Footer onClose={onClose} pending={pending} label="Save details" form="ws-details" />}>
       <form
         id="ws-details"
         noValidate
@@ -161,7 +146,14 @@ function DetailsDialog({ t, onClose, onDone }) {
       >
         {error && <Notice tone="error">{error}</Notice>}
         <Input label="Company name" value={form.name} onChange={set("name")} error={fieldErrors.name} />
-        <Input label="Short name" info="Used in the workspace's links. Changing it breaks links people saved." value={form.slug} onChange={set("slug")} error={fieldErrors.slug} startElement={<Icon name="links-line" />} />
+        <Input
+          label="Short name"
+          info="Used in the workspace's links. Changing it breaks links people saved."
+          value={form.slug}
+          onChange={set("slug")}
+          error={fieldErrors.slug}
+          startElement={<Icon name="links-line" />}
+        />
         <div className="grid gap-4 sm:grid-cols-2">
           <Input label="City" value={form.city} onChange={set("city")} error={fieldErrors.city} />
           <Input label="Phone" type="tel" value={form.phone} onChange={set("phone")} error={fieldErrors.phone} />
@@ -228,12 +220,7 @@ function PlanDialog({ t, plans, yearlyMonths, onClose, onDone }) {
           {formatAmount(price)} per {cycle === "yearly" ? `year (${yearlyMonths} months charged)` : "month"}
         </p>
         <div className="rounded-lg border p-3">
-          <Switch
-            label="Reset apps to this plan"
-            description="Switch off any app that isn't in the new plan. Leave off to keep extra apps."
-            checked={resetApps}
-            onChange={setResetApps}
-          />
+          <Switch label="Reset apps to this plan" description="Switch off any app that isn't in the new plan. Leave off to keep extra apps." checked={resetApps} onChange={setResetApps} />
         </div>
       </div>
     </Dialog>

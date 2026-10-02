@@ -45,9 +45,7 @@ export function EmailPreview({ name, email, canSend, myEmail }) {
 
       <div className="overflow-hidden rounded-xl border bg-background shadow-xs">
         <div className="border-b px-4 py-3">
-          <p className="text-xs text-muted-foreground">
-            {name}.liquid · from PropFlow
-          </p>
+          <p className="text-xs text-muted-foreground">{name}.liquid · from PropFlow</p>
           <p className="mt-0.5 truncate font-medium">{email.subject}</p>
           {email.preheader && <p className="truncate text-sm text-muted-foreground">{email.preheader}</p>}
         </div>

@@ -70,7 +70,17 @@ export async function sendTransferProof(invoiceCode, formData) {
         paidAt,
         createdBy: ctx.session.user.id,
       })
-      await logAudit({ actorUserId: ctx.session.user.id, action: "invoice.transfer_reported", subjectType: "invoice", subjectId: inv.id, tenantId: ctx.tenant.id, details: { summary: `${inv.code} · ${rs(inv.total)} bank transfer reported by the workspace (ref ${v.reference})` } }, trx)
+      await logAudit(
+        {
+          actorUserId: ctx.session.user.id,
+          action: "invoice.transfer_reported",
+          subjectType: "invoice",
+          subjectId: inv.id,
+          tenantId: ctx.tenant.id,
+          details: { summary: `${inv.code} · ${rs(inv.total)} bank transfer reported by the workspace (ref ${v.reference})` },
+        },
+        trx,
+      )
     })
   } catch (err) {
     await deleteFile(proofKey).catch(() => {})
@@ -86,7 +96,9 @@ export async function requestPlanChange({ planCode, cycle, note = "" } = {}) {
   if (error) return { error }
   const db = platformDb()
   const [plan, tenant] = await Promise.all([
-    live(db, "plans").where({ code: String(planCode ?? ""), isPublic: true }).first("id", "name"),
+    live(db, "plans")
+      .where({ code: String(planCode ?? ""), isPublic: true })
+      .first("id", "name"),
     db("tenants").where({ id: ctx.tenant.id }).first("planId", "billingCycle"),
   ])
   if (!plan) return { error: "Pick a plan." }
@@ -99,7 +111,12 @@ export async function requestPlanChange({ planCode, cycle, note = "" } = {}) {
   await db.transaction(async (trx) => {
     code = await nextCode(trx, "support_request")
     const [id] = await trx("supportRequests").insert({ code, tenantId: ctx.tenant.id, raisedBy: ctx.session.user.id, subject, category: "billing", priority: "normal", status: "open", createdBy: ctx.session.user.id })
-    await trx("supportMessages").insert({ requestId: id, authorId: ctx.session.user.id, authorSide: "tenant", body: `Please move ${ctx.tenant.name} to the ${plan.name} plan, billed ${cycle}.${String(note).trim() ? `\n\n${String(note).trim().slice(0, 2000)}` : ""}` })
+    await trx("supportMessages").insert({
+      requestId: id,
+      authorId: ctx.session.user.id,
+      authorSide: "tenant",
+      body: `Please move ${ctx.tenant.name} to the ${plan.name} plan, billed ${cycle}.${String(note).trim() ? `\n\n${String(note).trim().slice(0, 2000)}` : ""}`,
+    })
   })
   await logActivity(ctx.db, { type: "settings", action: "billing.plan_change_requested", actorUserId: ctx.session.user.id, summary: `asked to change plan to ${plan.name} (${cycle}), ${code}` })
   return { ok: true, code }

@@ -32,10 +32,24 @@ const STEPS = [
 ]
 
 // Which step a field belongs to
-const STEP_OF = (field) =>
-  field.startsWith("phases") ? 2 : ["launchDate", "possessionDate", "description", "amenities"].includes(field) ? 3 : ["name", "code", "type", "status", "color"].includes(field) ? 0 : 1
+const STEP_OF = (field) => (field.startsWith("phases") ? 2 : ["launchDate", "possessionDate", "description", "amenities"].includes(field) ? 3 : ["name", "code", "type", "status", "color"].includes(field) ? 0 : 1)
 
-const AMENITY_IDEAS = ["Gated community", "24/7 security", "Mosque", "Park", "School", "Hospital", "Commercial area", "Underground electricity", "Sui gas", "Water filtration", "Community centre", "Gym", "Wide roads", "Graveyard"]
+const AMENITY_IDEAS = [
+  "Gated community",
+  "24/7 security",
+  "Mosque",
+  "Park",
+  "School",
+  "Hospital",
+  "Commercial area",
+  "Underground electricity",
+  "Sui gas",
+  "Water filtration",
+  "Community centre",
+  "Gym",
+  "Wide roads",
+  "Graveyard",
+]
 
 const toDate = (d) => (d ? new Date(d).toISOString().slice(0, 10) : "")
 let seq = 0
@@ -45,9 +59,19 @@ const newPhase = (n, d) => ({ key: key(), id: null, name: `Phase ${n}`, stage: d
 
 // Suggested code from the name: "Skyline Enclave" → SE, "Gulberg" → GUL
 const suggestCode = (name) => {
-  const words = name.toUpperCase().replace(/[^A-Z0-9 ]/g, "").split(/\s+/).filter(Boolean)
+  const words = name
+    .toUpperCase()
+    .replace(/[^A-Z0-9 ]/g, "")
+    .split(/\s+/)
+    .filter(Boolean)
   if (!words.length) return ""
-  const code = words.length === 1 ? words[0].slice(0, 3) : words.map((w) => w[0]).join("").slice(0, 4)
+  const code =
+    words.length === 1
+      ? words[0].slice(0, 3)
+      : words
+          .map((w) => w[0])
+          .join("")
+          .slice(0, 4)
   return code.length >= 2 ? code : words[0].slice(0, 3)
 }
 
@@ -103,7 +127,7 @@ function Stepper({ step, maxStep, onGo }) {
                 <span
                   className={cn(
                     "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px]",
-                    state === "current" ? "bg-primary text-primary-foreground" : state === "done" ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                    state === "current" ? "bg-primary text-primary-foreground" : state === "done" ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
                   )}
                 >
                   {state === "done" && i !== step ? <Icon name="check-line" /> : i + 1}
@@ -133,7 +157,7 @@ function ChoiceCards({ options, map, value, onChange, columns = "sm:grid-cols-3"
             onClick={() => onChange(o.value)}
             className={cn(
               "flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              on ? "border-primary bg-primary/5 font-medium text-foreground ring-1 ring-primary" : "border-input text-muted-foreground hover:border-primary/40 hover:text-foreground"
+              on ? "border-primary bg-primary/5 font-medium text-foreground ring-1 ring-primary" : "border-input text-muted-foreground hover:border-primary/40 hover:text-foreground",
             )}
           >
             {map[o.value]?.icon && <Icon name={map[o.value].icon} className={cn("text-lg", on ? "text-primary" : "")} />}
@@ -234,7 +258,7 @@ export function ProjectWizard({ project, onClose }) {
           description: "",
           amenities: [],
           phases: [newPhase(1, defaults)],
-        }
+        },
   )
   const [step, setStep] = useState(0)
   const [maxStep, setMaxStep] = useState(project ? STEPS.length - 1 : 0)
@@ -419,7 +443,15 @@ export function ProjectWizard({ project, onClose }) {
             <ChoiceCards options={approvals.options} map={approvals.map} value={form.approval} onChange={set("approval")} />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <LookupSelect list="authority" label="Approving authority" empty="None" value={form.authority} onChange={set("authority")} formatLabel={(o) => (o.value === o.label ? o.label : `${o.value} · ${o.label}`)} error={err("authority")} />
+            <LookupSelect
+              list="authority"
+              label="Approving authority"
+              empty="None"
+              value={form.authority}
+              onChange={set("authority")}
+              formatLabel={(o) => (o.value === o.label ? o.label : `${o.value} · ${o.label}`)}
+              error={err("authority")}
+            />
             <Input label="NOC / LOP number" required={form.approval === "approved"} value={form.nocNumber} onChange={(e) => set("nocNumber")(e.target.value)} error={err("nocNumber")} placeholder="LDA/HS/2019/0442" />
           </div>
         </div>
@@ -462,12 +494,7 @@ export function ProjectWizard({ project, onClose }) {
                         <div className="min-w-0 flex-1">
                           <Input aria-label="Block name" size="sm" value={b.name} onChange={(e) => setBlock(i, j, { name: e.target.value })} error={err(`phases.${i}.blocks.${j}.name`)} />
                         </div>
-                        <ToggleGroup
-                          className="h-control-sm text-xs"
-                          value={b.category}
-                          onChange={(v) => setBlock(i, j, { category: v })}
-                          options={categories.options}
-                        />
+                        <ToggleGroup className="h-control-sm text-xs" value={b.category} onChange={(v) => setBlock(i, j, { category: v })} options={categories.options} />
                         <Button
                           variant="ghost"
                           size="smicon"
@@ -486,7 +513,14 @@ export function ProjectWizard({ project, onClose }) {
                       variant="ghost"
                       leftIcon="add-line"
                       className="text-primary"
-                      onClick={() => setPhase(i, { blocks: [...ph.blocks, newBlock(unballoted ? `File pool ${ph.blocks.length + 1}` : `Block ${String.fromCharCode(65 + (ph.blocks.length % 26))}`, ph.blocks.at(-1)?.category ?? defaults.category)] })}
+                      onClick={() =>
+                        setPhase(i, {
+                          blocks: [
+                            ...ph.blocks,
+                            newBlock(unballoted ? `File pool ${ph.blocks.length + 1}` : `Block ${String.fromCharCode(65 + (ph.blocks.length % 26))}`, ph.blocks.at(-1)?.category ?? defaults.category),
+                          ],
+                        })
+                      }
                     >
                       {unballoted ? "Add file pool" : "Add block"}
                     </Button>
@@ -504,7 +538,12 @@ export function ProjectWizard({ project, onClose }) {
               </section>
             )
           })}
-          <Button variant="outline" leftIcon="add-line" className="w-full border-dashed" onClick={() => setForm((f) => ({ ...f, phases: [...f.phases, newPhase(f.phases.length + 1, { ...defaults, status: f.status })] }))}>
+          <Button
+            variant="outline"
+            leftIcon="add-line"
+            className="w-full border-dashed"
+            onClick={() => setForm((f) => ({ ...f, phases: [...f.phases, newPhase(f.phases.length + 1, { ...defaults, status: f.status })] }))}
+          >
             Add phase
           </Button>
         </div>
@@ -524,10 +563,18 @@ export function ProjectWizard({ project, onClose }) {
               {form.name || "Untitled"} <span className="font-mono text-xs text-muted-foreground">{form.code}</span>
             </p>
             <p className="text-muted-foreground">
-              {[types.label(form.type), form.city, form.totalArea ? `${form.totalArea} ${form.areaUnit === "kanal" ? "Kanal" : "Marla"}` : null, form.authority && form.approval === "approved" ? `${form.authority} approved` : approvals.label(form.approval)].filter(Boolean).join(" · ")}
+              {[
+                types.label(form.type),
+                form.city,
+                form.totalArea ? `${form.totalArea} ${form.areaUnit === "kanal" ? "Kanal" : "Marla"}` : null,
+                form.authority && form.approval === "approved" ? `${form.authority} approved` : approvals.label(form.approval),
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             </p>
             <p className="text-muted-foreground">
-              {form.phases.length} {form.phases.length === 1 ? "phase" : "phases"} · {(() => {
+              {form.phases.length} {form.phases.length === 1 ? "phase" : "phases"} ·{" "}
+              {(() => {
                 const n = form.phases.reduce((t, p) => t + p.blocks.length, 0)
                 return `${n} ${n === 1 ? "block" : "blocks"}`
               })()}

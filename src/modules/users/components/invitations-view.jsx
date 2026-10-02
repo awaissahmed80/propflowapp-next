@@ -90,7 +90,14 @@ export function InvitationsView({ invites, lists, options, allowed, workspaceNam
                 <Button size="sm" variant="outline" leftIcon="mail-send-line" disabled={pending} onClick={() => act(() => resendInvitation(i.id), null, i)}>
                   Resend
                 </Button>
-                <Button size="sm" variant="ghost" leftIcon="link" disabled={pending} title="Makes a new link to copy and share (e.g. on WhatsApp), without emailing it" onClick={() => act(() => resendInvitation(i.id, { send: false }), null, i)}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  leftIcon="link"
+                  disabled={pending}
+                  title="Makes a new link to copy and share (e.g. on WhatsApp), without emailing it"
+                  onClick={() => act(() => resendInvitation(i.id, { send: false }), null, i)}
+                >
                   Copy link
                 </Button>
                 <Button size="sm" variant="ghost" leftIcon="close-line" className="text-destructive" disabled={pending} onClick={() => act(() => revokeInvitation(i.id), `Invitation to ${i.name} cancelled.`, i)}>
@@ -105,11 +112,7 @@ export function InvitationsView({ invites, lists, options, allowed, workspaceNam
 
   return (
     <div className="flex h-[calc(100svh-3.5rem)] flex-col gap-4 p-4 sm:p-6 lg:p-8">
-      <PageHeader
-        title="Invitations"
-        description={`${invites.length} pending · invitations expire after 7 days`}
-        actions={allowed.invite && <InviteButton options={options} workspaceName={workspaceName} />}
-      />
+      <PageHeader title="Invitations" description={`${invites.length} pending · invitations expire after 7 days`} actions={allowed.invite && <InviteButton options={options} workspaceName={workspaceName} />} />
       {message && <Notice tone={message.tone}>{message.text}</Notice>}
       <div className="min-h-0 flex-1">
         <DataTable

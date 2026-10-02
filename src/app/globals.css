@@ -21,8 +21,10 @@
   --accent-foreground: #1528a0;
   --destructive: oklch(0.6368 0.2078 25.3313);
   --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.9276 0.0058 264.5313);
-  --input: oklch(0.9276 0.0058 264.5313);
+  --border: oklch(0.925 0.006 264.5);
+  --border-outer: oklch(0.925 0.006 264.5); /* a panel's own edge */
+  --border-nested: oklch(0.945 0.005 264.5); /* lines inside a panel */
+  --input: oklch(0.905 0.007 264.5); /* form fields: a step stronger than borders */
   --ring: #1528a0;
   --chart-1: oklch(0.5486 0.1729 253.84);
   --chart-2: #1528a0;
@@ -35,7 +37,7 @@
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.95 0.025 267.04); /* active/hover nav: navy tint */
   --sidebar-accent-foreground: #1528a0;
-  --sidebar-border: oklch(0.9276 0.0058 264.5313);
+  --sidebar-border: oklch(0.925 0.006 264.5);
   --sidebar-ring: #1528a0;
   --brand-bright: oklch(0.74 0.13 253.84); /* logo blue lifted for dark panels */
   --font-sans: var(--font-inter), Inter, sans-serif;
@@ -77,37 +79,39 @@
 }
 
 .dark {
-  --background: oklch(0.2046 0 0);
-  --foreground: oklch(0.9219 0 0);
-  --card: oklch(0.2686 0 0);
-  --card-foreground: oklch(0.9219 0 0);
-  --popover: oklch(0.2686 0 0);
-  --popover-foreground: oklch(0.9219 0 0);
+  --background: oklch(0.2046 0.01 260); /* blue-grey */
+  --foreground: oklch(0.9219 0.004 255);
+  --card: oklch(0.2686 0.011 258);
+  --card-foreground: oklch(0.9219 0.004 255);
+  --popover: oklch(0.2686 0.011 258);
+  --popover-foreground: oklch(0.9219 0.004 255);
   --primary: #0270d2; /* logo blue */
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.2686 0 0);
-  --secondary-foreground: oklch(0.9219 0 0);
-  --muted: oklch(0.2393 0 0);
-  --muted-foreground: oklch(0.7155 0 0);
+  --secondary: oklch(0.2686 0.011 258);
+  --secondary-foreground: oklch(0.9219 0.004 255);
+  --muted: oklch(0.2393 0.01 259);
+  --muted-foreground: oklch(0.7155 0.01 257);
   --accent: oklch(0.34 0.095 253.84); /* deep tint of logo blue */
   --accent-foreground: oklch(0.89 0.055 253.84);
   --destructive: oklch(0.6368 0.2078 25.3313);
   --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.3715 0 0);
-  --input: oklch(0.3715 0 0);
+  --border: oklch(0.32 0.011 257); /* softer than the input outline */
+  --border-outer: oklch(0.32 0.011 257);
+  --border-nested: oklch(0.29 0.01 258);
+  --input: oklch(0.3715 0.012 256);
   --ring: #0270d2;
   --chart-1: oklch(0.68 0.15 253.84);
   --chart-2: #0270d2;
   --chart-3: oklch(0.5461 0.2152 262.8809);
   --chart-4: oklch(0.4882 0.2172 264.3763);
   --chart-5: oklch(0.4244 0.1809 265.6377);
-  --sidebar: oklch(0.2046 0 0);
-  --sidebar-foreground: oklch(0.9219 0 0);
+  --sidebar: oklch(0.2046 0.01 260);
+  --sidebar-foreground: oklch(0.9219 0.004 255);
   --sidebar-primary: #0270d2;
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.34 0.095 253.84); /* active/hover nav: deep logo blue */
   --sidebar-accent-foreground: oklch(0.89 0.055 253.84);
-  --sidebar-border: oklch(0.3715 0 0);
+  --sidebar-border: oklch(0.32 0.011 257);
   --sidebar-ring: #0270d2;
   --font-sans: var(--font-inter), Inter, sans-serif;
   --font-serif: Source Serif 4, serif;
@@ -214,6 +218,15 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Panels (cards, tables, the lead panel, dialogs, popovers, menus, sheets) keep the normal
+     border on their own edge; every line inside them, including cards inside cards, is a step
+     softer. Base layer, so a coloured border class (border-primary…) still wins. */
+  :where(.rounded-xl.border, .rounded-2xl.border, [data-slot="dialog-content"], [data-slot="popover-content"], [data-slot="sheet-content"], [data-slot="dropdown-menu-content"], [data-slot="select-content"]):not(
+      :where(.rounded-xl.border, .rounded-2xl.border, [data-slot="dialog-content"], [data-slot="popover-content"], [data-slot="sheet-content"], [data-slot="dropdown-menu-content"], [data-slot="select-content"]) *
+    ) {
+    --border: var(--border-nested);
+    border-color: var(--border-outer);
+  }
 }
 
 /* Auth slider: progress bar fill; its animationend advances the slide */
@@ -260,6 +273,27 @@
     box-shadow: 0 0 0 6px color-mix(in oklab, var(--primary) 0%, transparent);
   }
 }
+/* The lead panel's "Log a call…" bar: a soft sheen glides across, then rests (main CTA) */
+@keyframes cta-sheen {
+  0%,
+  65% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(260%);
+  }
+}
+/* …and a calm breathing ring around its icon */
+@keyframes cta-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 18%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 5px color-mix(in oklab, var(--primary) 0%, transparent);
+  }
+}
+
 @keyframes feature-in {
   from {
     opacity: 0;

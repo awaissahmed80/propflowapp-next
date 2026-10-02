@@ -55,9 +55,7 @@ async function decorate(tenants) {
   const ids = tenants.map((t) => t.id)
   const [subs, members, owners] = await Promise.all([
     ids.length ? live(db, "subscriptions").whereIn("tenantId", ids).where({ status: "active" }) : [],
-    ids.length
-      ? authDb()("memberships").whereIn("tenantId", ids).whereNull("deletedAt").where({ status: "active" }).groupBy("tenantId").select("tenantId").count({ users: "*" })
-      : [],
+    ids.length ? authDb()("memberships").whereIn("tenantId", ids).whereNull("deletedAt").where({ status: "active" }).groupBy("tenantId").select("tenantId").count({ users: "*" }) : [],
     usersByIds(tenants.map((t) => t.ownerUserId)),
   ])
   return tenants.map((t) => {
@@ -100,7 +98,7 @@ const tenantColumns = (q) =>
       "p.id as planId",
       "p.name as planName",
       "p.maxUsers",
-      "p.maxProjects"
+      "p.maxProjects",
     )
 
 export async function listWorkspaces() {
@@ -135,12 +133,30 @@ export async function listInvoices({ tenantId } = {}) {
   const db = platformDb()
   let q = live(db, "invoices")
     .join("tenants as t", "t.id", "invoices.tenantId")
-    .select("invoices.id", "invoices.code", "invoices.tenantId", "t.code as tenantCode", "t.name as tenantName", "invoices.total", "invoices.currency", "invoices.status", "invoices.issuedAt", "invoices.dueAt", "invoices.paidAt")
+    .select(
+      "invoices.id",
+      "invoices.code",
+      "invoices.tenantId",
+      "t.code as tenantCode",
+      "t.name as tenantName",
+      "invoices.total",
+      "invoices.currency",
+      "invoices.status",
+      "invoices.issuedAt",
+      "invoices.dueAt",
+      "invoices.paidAt",
+    )
     .orderBy("invoices.issuedAt", "desc")
   if (tenantId) q = q.where("invoices.tenantId", tenantId)
   const invoices = await q
   const payments = invoices.length
-    ? await live(db, "invoicePayments").whereIn("invoiceId", invoices.map((i) => i.id)).orderBy("id", "desc").select("invoiceId", "method", "reference", "status", "paidAt")
+    ? await live(db, "invoicePayments")
+        .whereIn(
+          "invoiceId",
+          invoices.map((i) => i.id),
+        )
+        .orderBy("id", "desc")
+        .select("invoiceId", "method", "reference", "status", "paidAt")
     : []
   return invoices.map((inv) => {
     const payment = payments.find((p) => p.invoiceId === inv.id) ?? null
@@ -295,7 +311,24 @@ export async function listWorkspaceInvites() {
     .whereNull("wi.acceptedAt")
     .where((q) => q.whereNull("wi.revokedAt").orWhere("wi.revokedAt", ">", new Date(Date.now() - 30 * DAY)))
     .orderBy("wi.id", "desc")
-    .select("wi.id", "wi.revokedAt", "wi.email", "wi.contactName", "wi.phone", "wi.companyName", "wi.billingCycle", "wi.startAs", "wi.trialDays", "wi.price", "wi.note", "wi.invitedBy", "wi.expiresAt", "wi.createdAt", "p.name as planName", "p.priceMonthly")
+    .select(
+      "wi.id",
+      "wi.revokedAt",
+      "wi.email",
+      "wi.contactName",
+      "wi.phone",
+      "wi.companyName",
+      "wi.billingCycle",
+      "wi.startAs",
+      "wi.trialDays",
+      "wi.price",
+      "wi.note",
+      "wi.invitedBy",
+      "wi.expiresAt",
+      "wi.createdAt",
+      "p.name as planName",
+      "p.priceMonthly",
+    )
   const people = await usersByIds(rows.map((r) => r.invitedBy))
   return rows.map((r) => ({ ...r, invitedByName: people.get(r.invitedBy)?.name ?? "—", expired: r.expiresAt < new Date() }))
 }
@@ -327,9 +360,7 @@ const isoDay = (d) => new Date(new Date(d).getTime() + 5 * 3_600_000).toISOStrin
 // the next period (from the current period's end, or the trial's), and any extra apps
 export async function invoiceSuggestion(tenantId) {
   const db = platformDb()
-  const t = await live(db, "tenants")
-    .where({ id: tenantId })
-    .first("id", "code", "name", "city", "address", "phone", "email", "ntn", "ownerUserId", "planId", "billingCycle", "trialEndsAt", "currentPeriodEndsAt")
+  const t = await live(db, "tenants").where({ id: tenantId }).first("id", "code", "name", "city", "address", "phone", "email", "ntn", "ownerUserId", "planId", "billingCycle", "trialEndsAt", "currentPeriodEndsAt")
   if (!t) return null
   const owner = t.ownerUserId ? (await usersByIds([t.ownerUserId])).get(t.ownerUserId) : null
   const [plan, sub, yearlyMonths, extras] = await Promise.all([

@@ -5,6 +5,7 @@ import { platformDb } from "@/server/db/connections"
 import { nextCode } from "@/server/db/numbering"
 import { requestInfo } from "@/server/auth/session"
 import { sendEmail } from "@/server/mail/send"
+import { sendServerEvent } from "@/server/analytics/measurement"
 import { siteUrl } from "@/lib/sites"
 import { need } from "../quote"
 import { LEGAL_VERSION } from "../legal"
@@ -114,7 +115,15 @@ export async function submitEnquiry(input) {
   // Emails are a courtesy: the enquiry is saved even if they fail
   // Creating a workspace: the thank-you also lists what they picked and the trial length
   const extra = v.kind === "quote" ? { company: v.company, needs: v.interests.map((x) => need(x).label), trial_days: await trialDays(db) } : {}
-  const tasks = [sendEmail("enquiry-received", { to: v.email, data: { name: v.name, code, kind: v.kind, ...extra } })]
+  const tasks = [
+    sendEmail("enquiry-received", { to: v.email, data: { name: v.name, code, kind: v.kind, ...extra } }),
+    // Counted from here, not the browser, so ad blockers don't hide leads (no personal data)
+    sendServerEvent("generate_lead", {
+      lead_type: v.kind === "quote" ? "get_started" : v.kind,
+      cta_location: v.source || "Website",
+      ...(v.kind === "quote" && { business_type: v.businessType, needs_count: v.interests.length }),
+    }),
+  ]
   if (process.env.SALES_NOTIFY_EMAIL) {
     tasks.push(
       sendEmail("enquiry-alert", {

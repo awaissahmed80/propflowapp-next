@@ -11,7 +11,7 @@ const nextConfig = {
   allowedDevOrigins: [rootDomain, `*.${rootDomain}`],
   // Load these with Node's own require instead of bundling: Knex refers to every database
   // driver it supports, and mysql2 uses Node-only features
-  serverExternalPackages: ["knex", "mysql2", "liquidjs", "@react-pdf/renderer"],
+  serverExternalPackages: ["knex", "mysql2", "liquidjs", "@react-pdf/renderer", "nodemailer"],
   experimental: {
     // Uploads through server actions (e.g. proof of payment, up to 10 MB plus form overhead)
     serverActions: { bodySizeLimit: "11mb" },

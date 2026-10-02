@@ -9,17 +9,46 @@ import { activeListsByProject } from "./price-list-queries"
 
 // Reads for Estate Management. Money comes back as numbers (decimalNumbers), dates as Date.
 
-export const ESTATE_LISTS = ["project-type", "project-status", "approval-status", "authority", "phase-stage", "block-category", "unit-type", "unit-status", "feature", "hold-reason", "marla-size", "area-unit", "city", "project-document-type", "development-work", "update-type", "event-type"]
+export const ESTATE_LISTS = [
+  "project-type",
+  "project-status",
+  "approval-status",
+  "authority",
+  "phase-stage",
+  "block-category",
+  "unit-type",
+  "unit-status",
+  "feature",
+  "hold-reason",
+  "marla-size",
+  "area-unit",
+  "city",
+  "project-document-type",
+  "development-work",
+  "update-type",
+  "event-type",
+]
 export const estateLists = (ctx) => getLookups(ctx.db, ESTATE_LISTS)
 
 // Holds end on their own: units whose hold has run out go back on sale. Runs before reads.
 export async function releaseExpiredHolds(ctx) {
   const expired = await live(ctx.db, "units").where({ status: "on-hold" }).where("holdExpiresAt", "<=", new Date()).select("id", "code")
   if (!expired.length) return
-  await ctx.db("units")
-    .whereIn("id", expired.map((u) => u.id))
+  await ctx
+    .db("units")
+    .whereIn(
+      "id",
+      expired.map((u) => u.id),
+    )
     .update({ status: "available", holdBy: null, holdReason: null, holdExpiresAt: null, updatedAt: new Date() })
-  await logActivity(ctx.db, { type: "estate", action: "unit.hold_expired", summary: `released ${expired.length} expired ${expired.length === 1 ? "hold" : "holds"} (${expired.slice(0, 5).map((u) => u.code).join(", ")}${expired.length > 5 ? "…" : ""})` })
+  await logActivity(ctx.db, {
+    type: "estate",
+    action: "unit.hold_expired",
+    summary: `released ${expired.length} expired ${expired.length === 1 ? "hold" : "holds"} (${expired
+      .slice(0, 5)
+      .map((u) => u.code)
+      .join(", ")}${expired.length > 5 ? "…" : ""})`,
+  })
 }
 
 const UNIT_FIELDS = ["id", "code", "projectId", "phaseId", "blockId", "number", "type", "category", "sizeValue", "sizeUnit", "areaSqft", "price", "basePrice", "status", "dealerId"]
@@ -33,7 +62,11 @@ export async function listProjects(ctx) {
     live(ctx.db, "projectBlocks").select("id", "projectId"),
     live(ctx.db, "units").select(UNIT_FIELDS),
   ])
-  const covers = await coversFor(ctx.db, "project", projects.map((p) => p.id))
+  const covers = await coversFor(
+    ctx.db,
+    "project",
+    projects.map((p) => p.id),
+  )
   return projects.map((p) => {
     const mine = units.filter((u) => u.projectId === p.id)
     return {
@@ -52,7 +85,9 @@ export async function listProjects(ctx) {
 // mix (units grouped by type and size). null when it isn't in this workspace.
 export async function getProject(ctx, code) {
   await releaseExpiredHolds(ctx)
-  const project = await live(ctx.db, "projects").where({ code: String(code ?? "").toUpperCase() }).first()
+  const project = await live(ctx.db, "projects")
+    .where({ code: String(code ?? "").toUpperCase() })
+    .first()
   if (!project) return null
   const [phases, blocks, units, assets] = await Promise.all([
     live(ctx.db, "projectPhases").where({ projectId: project.id }).orderBy("sortOrder").orderBy("id"),
@@ -176,7 +211,9 @@ export async function projectTree(ctx) {
     name: p.name,
     color: p.color,
     marlaSqft: Number(p.marlaSqft),
-    phases: phases.filter((ph) => ph.projectId === p.id).map((ph) => ({ id: ph.id, name: ph.name, stage: ph.stage, blocks: blocks.filter((b) => b.phaseId === ph.id).map((b) => ({ id: b.id, name: b.name, category: b.category })) })),
+    phases: phases
+      .filter((ph) => ph.projectId === p.id)
+      .map((ph) => ({ id: ph.id, name: ph.name, stage: ph.stage, blocks: blocks.filter((b) => b.phaseId === ph.id).map((b) => ({ id: b.id, name: b.name, category: b.category })) })),
   }))
 }
 

@@ -22,7 +22,5 @@ export const latestFor = (db, subjectType, subjectId) => live(db, "approvals").w
 
 // Close a request: approved | rejected | withdrawn
 export function closeApproval(db, id, { status, userId, note = null }) {
-  return db("approvals")
-    .where({ id, status: "pending" })
-    .update({ status, decidedBy: userId, decidedAt: new Date(), decisionNote: note, updatedAt: new Date(), updatedBy: userId })
+  return db("approvals").where({ id, status: "pending" }).update({ status, decidedBy: userId, decidedAt: new Date(), decisionNote: note, updatedAt: new Date(), updatedBy: userId })
 }

@@ -10,7 +10,13 @@ import { estateAction } from "./context"
 // Create and edit projects with their phases and blocks. Blocks (and phases) that already hold
 // inventory can't be removed.
 
-const date = z.preprocess((v) => (v === "" || v == null ? null : v), z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date.").nullable())
+const date = z.preprocess(
+  (v) => (v === "" || v == null ? null : v),
+  z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date.")
+    .nullable(),
+)
 const text = (max) => z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? null : v), z.string().trim().max(max).nullable().optional())
 const optionalId = z.preprocess((v) => (v === "" || v == null ? null : Number(v)), z.number().int().positive().nullable())
 
@@ -96,10 +102,17 @@ export async function saveProject(input, currentCode) {
     })
   })
 
-  const current = currentCode ? await live(ctx.db, "projects").where({ code: String(currentCode).toUpperCase() }).first("id", "code", "authority") : null
+  const current = currentCode
+    ? await live(ctx.db, "projects")
+        .where({ code: String(currentCode).toUpperCase() })
+        .first("id", "code", "authority")
+    : null
   if (currentCode && !current) return { error: "That project was removed." }
   Object.assign(errors, await checkLists(ctx, { ...v, currentAuthority: current?.authority }))
-  const clash = await live(ctx.db, "projects").where({ code: v.code }).whereNot({ id: current?.id ?? 0 }).first("id")
+  const clash = await live(ctx.db, "projects")
+    .where({ code: v.code })
+    .whereNot({ id: current?.id ?? 0 })
+    .first("id")
   if (clash) errors.code = `Project code ${v.code} is already used in this workspace.`
   // The code is in every unit's code and file number, so it's fixed once there's inventory
   if (current && v.code !== current.code && (await live(ctx.db, "units").where({ projectId: current.id }).first("id"))) errors.code = "The code can't change once the project has inventory."
@@ -148,26 +161,53 @@ export async function saveProject(input, currentCode) {
   const userId = ctx.user.id
   await ctx.db.transaction(async (trx) => {
     let projectId = current?.id
-    if (current) await trx("projects").where({ id: projectId }).update({ ...row, updatedAt: now, updatedBy: userId })
+    if (current)
+      await trx("projects")
+        .where({ id: projectId })
+        .update({ ...row, updatedAt: now, updatedBy: userId })
     else [projectId] = await trx("projects").insert({ ...row, createdBy: userId })
 
     const keptPhases = new Set()
     for (const [i, ph] of v.phases.entries()) {
       const phRow = { name: ph.name, stage: ph.stage, status: ph.status, launchDate: ph.launchDate, possessionDate: ph.possessionDate, sortOrder: (i + 1) * 10 }
       let phaseId = ph.id && oldPhases.some((x) => x.id === ph.id) ? ph.id : null
-      if (phaseId) await trx("projectPhases").where({ id: phaseId }).update({ ...phRow, updatedAt: now, updatedBy: userId })
+      if (phaseId)
+        await trx("projectPhases")
+          .where({ id: phaseId })
+          .update({ ...phRow, updatedAt: now, updatedBy: userId })
       else [phaseId] = await trx("projectPhases").insert({ ...phRow, projectId, createdBy: userId })
       keptPhases.add(phaseId)
       for (const [j, b] of ph.blocks.entries()) {
         const bRow = { name: b.name, category: b.category, phaseId, sortOrder: (j + 1) * 10 }
-        if (b.id) await trx("projectBlocks").where({ id: b.id }).update({ ...bRow, updatedAt: now, updatedBy: userId })
+        if (b.id)
+          await trx("projectBlocks")
+            .where({ id: b.id })
+            .update({ ...bRow, updatedAt: now, updatedBy: userId })
         else await trx("projectBlocks").insert({ ...bRow, projectId, createdBy: userId })
       }
     }
-    if (removedBlocks.length) await trx("projectBlocks").whereIn("id", removedBlocks.map((b) => b.id)).update({ deletedAt: now, deletedBy: userId })
+    if (removedBlocks.length)
+      await trx("projectBlocks")
+        .whereIn(
+          "id",
+          removedBlocks.map((b) => b.id),
+        )
+        .update({ deletedAt: now, deletedBy: userId })
     const removedPhases = oldPhases.filter((p) => !keptPhases.has(p.id))
-    if (removedPhases.length) await trx("projectPhases").whereIn("id", removedPhases.map((p) => p.id)).update({ deletedAt: now, deletedBy: userId })
+    if (removedPhases.length)
+      await trx("projectPhases")
+        .whereIn(
+          "id",
+          removedPhases.map((p) => p.id),
+        )
+        .update({ deletedAt: now, deletedBy: userId })
   })
-  await logActivity(ctx.db, { type: "estate", action: current ? "project.updated" : "project.created", actorUserId: userId, summary: current ? `updated project ${v.name}` : `created project ${v.name} (${v.code})`, subjectType: "project" })
+  await logActivity(ctx.db, {
+    type: "estate",
+    action: current ? "project.updated" : "project.created",
+    actorUserId: userId,
+    summary: current ? `updated project ${v.name}` : `created project ${v.name} (${v.code})`,
+    subjectType: "project",
+  })
   return { ok: true, code: v.code }
 }

@@ -130,13 +130,8 @@ export async function listInvitations(ctx) {
 // invitations, leaving out dealer logins. Dealer seats (the plan's "Dealers" limit): dealer
 // logins who aren't suspended plus live dealer invitations.
 export async function seatUsage(ctx, { members, invites } = {}) {
-  const [plan, people, waiting] = await Promise.all([
-    platformDb()("plans").where({ id: ctx.tenant.planId }).first("name", "maxUsers", "maxDealers"),
-    members ?? listMembers(ctx),
-    invites ?? listInvitations(ctx),
-  ])
-  const count = (dealer) =>
-    people.filter((m) => m.status !== "suspended" && Boolean(m.dealerId) === dealer).length + waiting.filter((i) => !i.expired && Boolean(i.dealerId) === dealer).length
+  const [plan, people, waiting] = await Promise.all([platformDb()("plans").where({ id: ctx.tenant.planId }).first("name", "maxUsers", "maxDealers"), members ?? listMembers(ctx), invites ?? listInvitations(ctx)])
+  const count = (dealer) => people.filter((m) => m.status !== "suspended" && Boolean(m.dealerId) === dealer).length + waiting.filter((i) => !i.expired && Boolean(i.dealerId) === dealer).length
   return {
     plan: plan?.name ?? null,
     used: count(false),

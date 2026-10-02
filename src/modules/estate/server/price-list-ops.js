@@ -41,7 +41,9 @@ export async function applyList(trx, userId, listRow) {
   for (const u of units) {
     const next = priceUnder(list, { ...u, sizeValue: Number(u.sizeValue), features: u.features ?? [] }, opts)
     if (!next || (next.price === Number(u.price) && next.baseRate === Number(u.baseRate))) continue
-    await trx("units").where({ id: u.id }).update({ baseRate: next.baseRate, basePrice: next.basePrice, premiums: JSON.stringify(next.premiums), price: next.price, updatedAt: now, updatedBy: userId })
+    await trx("units")
+      .where({ id: u.id })
+      .update({ baseRate: next.baseRate, basePrice: next.basePrice, premiums: JSON.stringify(next.premiums), price: next.price, updatedAt: now, updatedBy: userId })
     changed++
   }
   return changed
@@ -63,7 +65,14 @@ export async function activateList(db, userId, listRow, { apply = true } = {}) {
     if (apply) repriced = await applyList(trx, userId, listRow)
   })
   const project = await db("projects").where({ id: listRow.projectId }).first("name")
-  await logActivity(db, { type: "estate", action: "price_list.activated", actorUserId: userId, summary: `activated ${listRow.name} (v${listRow.version}) for ${project.name}${apply ? `, re-pricing ${repriced} unsold ${repriced === 1 ? "unit" : "units"}` : ""}`, subjectType: "project", subjectId: listRow.projectId })
+  await logActivity(db, {
+    type: "estate",
+    action: "price_list.activated",
+    actorUserId: userId,
+    summary: `activated ${listRow.name} (v${listRow.version}) for ${project.name}${apply ? `, re-pricing ${repriced} unsold ${repriced === 1 ? "unit" : "units"}` : ""}`,
+    subjectType: "project",
+    subjectId: listRow.projectId,
+  })
   return { repriced }
 }
 
@@ -74,5 +83,12 @@ export async function returnToDraft(db, userId, listRow, { status, note = null }
     await trx("priceLists").where({ id: listRow.id, status: "pending" }).update({ status: "draft", updatedAt: new Date(), updatedBy: userId })
     if (request) await closeApproval(trx, request.id, { status, userId, note })
   })
-  await logActivity(db, { type: "estate", action: status === "rejected" ? "price_list.rejected" : "price_list.withdrawn", actorUserId: userId, summary: status === "rejected" ? `sent ${listRow.name} back for changes${note ? `: ${note}` : ""}` : `withdrew ${listRow.name} from approval`, subjectType: "project", subjectId: listRow.projectId })
+  await logActivity(db, {
+    type: "estate",
+    action: status === "rejected" ? "price_list.rejected" : "price_list.withdrawn",
+    actorUserId: userId,
+    summary: status === "rejected" ? `sent ${listRow.name} back for changes${note ? `: ${note}` : ""}` : `withdrew ${listRow.name} from approval`,
+    subjectType: "project",
+    subjectId: listRow.projectId,
+  })
 }

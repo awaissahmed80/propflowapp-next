@@ -90,7 +90,16 @@ export function HoldDialog({ codes, title, extending = false, currentReason, onC
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button leftIcon="lock-line" loading={pending} onClick={() => run(() => holdUnits(codes, { hours: Number(hours), reason }), (r) => (onDone?.(r), onClose()))}>
+          <Button
+            leftIcon="lock-line"
+            loading={pending}
+            onClick={() =>
+              run(
+                () => holdUnits(codes, { hours: Number(hours), reason }),
+                (r) => (onDone?.(r), onClose()),
+              )
+            }
+          >
             {extending ? "Extend hold" : "Hold"}
           </Button>
         </>
@@ -129,7 +138,17 @@ export function BlockDialog({ codes, title, onClose, onDone }) {
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="destructive" leftIcon="forbid-line" loading={pending} onClick={() => run(() => blockUnits(codes, reason), (r) => (onDone?.(r), onClose()))}>
+          <Button
+            variant="destructive"
+            leftIcon="forbid-line"
+            loading={pending}
+            onClick={() =>
+              run(
+                () => blockUnits(codes, reason),
+                (r) => (onDone?.(r), onClose()),
+              )
+            }
+          >
             Block
           </Button>
         </>
@@ -167,7 +186,21 @@ export function RepriceDialog({ units, onClose, onDone }) {
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button leftIcon="price-tag-3-line" loading={pending} disabled={!unsold.length} onClick={() => run(() => repriceUnits(unsold.map((u) => u.code), { mode, value }), (r) => (onDone?.(r), onClose()))}>
+          <Button
+            leftIcon="price-tag-3-line"
+            loading={pending}
+            disabled={!unsold.length}
+            onClick={() =>
+              run(
+                () =>
+                  repriceUnits(
+                    unsold.map((u) => u.code),
+                    { mode, value },
+                  ),
+                (r) => (onDone?.(r), onClose()),
+              )
+            }
+          >
             Update prices
           </Button>
         </>

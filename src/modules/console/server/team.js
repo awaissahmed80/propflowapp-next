@@ -21,8 +21,7 @@ async function requireTeamManager() {
   return { staff }
 }
 
-const emailInvite = ({ to, name, role, inviter, link }) =>
-  sendEmail("team-invite", { to, data: { name, inviter, role: roleLabel(role), link, days: INVITE_DAYS } })
+const emailInvite = ({ to, name, role, inviter, link }) => sendEmail("team-invite", { to, data: { name, inviter, role: roleLabel(role), link, days: INVITE_DAYS } })
 
 // New token for an invitation row; returns the link (only ever shown once)
 async function issueToken(db, id) {
@@ -138,9 +137,14 @@ export async function setMemberActive(userId, active) {
   if (error) return { error }
   const target = await changeableMember(staff, Number(userId))
   if (target.error) return target
-  await platformDb()("platformStaff").where({ id: target.member.id }).update({ isActive: Boolean(active), updatedAt: new Date(), updatedBy: staff.user.id })
+  await platformDb()("platformStaff")
+    .where({ id: target.member.id })
+    .update({ isActive: Boolean(active), updatedAt: new Date(), updatedBy: staff.user.id })
   if (!active) {
-    await authDb()("sessions").where({ userId: Number(userId), kind: "console" }).whereNull("revokedAt").update({ revokedAt: new Date() })
+    await authDb()("sessions")
+      .where({ userId: Number(userId), kind: "console" })
+      .whereNull("revokedAt")
+      .update({ revokedAt: new Date() })
   }
   await logAudit({ actorUserId: staff.user.id, action: active ? "team.reactivated" : "team.deactivated", subjectType: "user", subjectId: Number(userId), details: { summary: target.person.name } })
   return { ok: true }

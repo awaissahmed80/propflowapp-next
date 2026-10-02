@@ -11,19 +11,7 @@ import { APP_PERMISSIONS, SCOPE_LABELS, scopeHint } from "../permissions"
 function GrantControl({ def, value, readOnly, onChange }) {
   if (def.type === "toggle") return <Checkbox aria-label={def.label} checked={Boolean(value)} disabled={readOnly} onChange={onChange} />
   if (def.type === "percent")
-    return (
-      <NumberInput
-        aria-label={def.label}
-        className="w-28"
-        suffix="%"
-        min={0}
-        max={def.max}
-        step={0.5}
-        value={value}
-        disabled={readOnly}
-        onChange={(v) => onChange(Math.min(def.max, Math.max(0, v ?? 0)))}
-      />
-    )
+    return <NumberInput aria-label={def.label} className="w-28" suffix="%" min={0} max={def.max} step={0.5} value={value} disabled={readOnly} onChange={(v) => onChange(Math.min(def.max, Math.max(0, v ?? 0)))} />
   return <ToggleGroup aria-label={def.label} value={value} disabled={readOnly} onChange={(v) => v && onChange(v)} options={def.options.map(([v, label]) => ({ value: v, label }))} />
 }
 
@@ -33,9 +21,7 @@ export function RoleAccess({ apps, matrix, value, readOnly, onChange }) {
   if (!listed.length) return <p className="p-6 text-sm text-muted-foreground">None of your apps have record limits or extra permissions.</p>
   return (
     <div className="space-y-4 p-4">
-      <p className="text-sm text-muted-foreground">
-        Limit which records this role sees, and what people with it can do inside each app. The same limits apply to lists, reports, exports and links.
-      </p>
+      <p className="text-sm text-muted-foreground">Limit which records this role sees, and what people with it can do inside each app. The same limits apply to lists, reports, exports and links.</p>
       {listed.map((app) => {
         const def = APP_PERMISSIONS[app.code]
         const open = matrix[app.code]?.includes("view")

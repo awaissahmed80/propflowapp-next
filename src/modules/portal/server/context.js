@@ -32,9 +32,7 @@ export const getPortal = cache(async () => {
   ])
 
   const others = memberships.filter((m) => m.tenantId !== s.tenant.id).map((m) => m.tenantId)
-  const workspaces = others.length
-    ? await live(platform, "tenants").whereIn("id", others).orderBy("name").select("id", "code", "name", "status")
-    : []
+  const workspaces = others.length ? await live(platform, "tenants").whereIn("id", others).orderBy("name").select("id", "code", "name", "status") : []
 
   const permissions = role?.permissions ?? []
   return {

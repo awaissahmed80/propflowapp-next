@@ -90,9 +90,7 @@ export function InvoicesTable({ rows, canManage, taxRate, showWorkspace = true, 
             ...(canManage && EDITABLE.includes(i.status) ? [{ label: "Edit", icon: "edit-line", onClick: () => edit(i.code) }] : []),
             { label: "Download PDF", icon: "file-download-line", onClick: () => download(`/api/console/invoices/${urlCode(i.code)}/pdf`, `${i.code}.pdf`) },
             { label: "Print", icon: "printer-line", onClick: () => printPage(`/billing/invoices/${urlCode(i.code)}?print=1`) },
-            ...(canManage && ["issued", "overdue"].includes(i.status)
-              ? [{ type: "separator" }, { label: "Resend email", icon: "mail-send-line", onClick: () => resend(i) }]
-              : []),
+            ...(canManage && ["issued", "overdue"].includes(i.status) ? [{ type: "separator" }, { label: "Resend email", icon: "mail-send-line", onClick: () => resend(i) }] : []),
             ...(canManage && !["paid", "void"].includes(i.status)
               ? [...(["issued", "overdue"].includes(i.status) ? [] : [{ type: "separator" }]), { label: "Void invoice…", icon: "forbid-line", variant: "destructive", onClick: () => setVoiding(i) }]
               : []),

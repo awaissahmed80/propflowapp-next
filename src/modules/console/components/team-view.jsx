@@ -64,9 +64,7 @@ function InviteDialog({ onClose, onDone }) {
         {role && (
           <div className="rounded-lg border bg-muted/40 p-3 text-sm">
             <p className="text-muted-foreground">{role.description}</p>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Sees: {role.view.map((a) => CONSOLE_AREAS[a]).join(", ")}
-            </p>
+            <p className="mt-2 text-xs text-muted-foreground">Sees: {role.view.map((a) => CONSOLE_AREAS[a]).join(", ")}</p>
           </div>
         )}
       </form>
@@ -154,9 +152,7 @@ export function TeamView({ team, invites, currentUserId, manage }) {
                                   onClick: () => run(() => setMemberActive(u.id, true), { text: `${u.name} can sign in to the console again.` }),
                                 },
                           ]}
-                          trigger={
-                            <Button variant="ghost" size="icon" aria-label={`More for ${u.name}`} leftIcon="more-2-line" disabled={pending} />
-                          }
+                          trigger={<Button variant="ghost" size="icon" aria-label={`More for ${u.name}`} leftIcon="more-2-line" disabled={pending} />}
                         />
                       </>
                     )}
@@ -185,7 +181,14 @@ export function TeamView({ team, invites, currentUserId, manage }) {
                       <Button size="sm" variant="outline" leftIcon="send-plane-line" disabled={pending} onClick={() => run(() => resendInvite(i.id), { email: i.email })}>
                         Resend
                       </Button>
-                      <Button size="sm" variant="ghost" leftIcon="link" disabled={pending} title="Makes a new link to copy and share, without emailing it" onClick={() => run(() => resendInvite(i.id, { send: false }), { email: i.email })}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        leftIcon="link"
+                        disabled={pending}
+                        title="Makes a new link to copy and share, without emailing it"
+                        onClick={() => run(() => resendInvite(i.id, { send: false }), { email: i.email })}
+                      >
                         Copy link
                       </Button>
                       <Button size="sm" variant="ghost" leftIcon="close-line" disabled={pending} onClick={() => run(() => revokeInvite(i.id), { text: `Invitation to ${i.email} cancelled.` })}>

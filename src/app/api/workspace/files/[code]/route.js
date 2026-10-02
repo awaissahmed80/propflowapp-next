@@ -33,12 +33,23 @@ export async function GET(request, { params }) {
   }
   const download = request.nextUrl.searchParams.get("download") === "1"
   const name = asset.fileName.replace(/[^\w.\- ]+/g, "_")
-  return new NextResponse(bytes, {
-    headers: {
-      "Content-Type": asset.mime,
-      "Content-Disposition": `${download ? "attachment" : "inline"}; filename="${name}"`,
-      "X-Content-Type-Options": "nosniff",
-      "Cache-Control": "private, max-age=3600",
-    },
-  })
+  const headers = {
+    "Content-Type": asset.mime,
+    "Content-Disposition": `${download ? "attachment" : "inline"}; filename="${name}"`,
+    "X-Content-Type-Options": "nosniff",
+    "Cache-Control": "private, max-age=3600",
+    "Accept-Ranges": "bytes",
+  }
+  // Byte ranges, so audio (voice notes) can play and seek, which Safari requires
+  const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get("range") ?? "")
+  if (range) {
+    const size = bytes.length
+    let start = range[1] ? Number(range[1]) : size - Number(range[2])
+    let end = range[1] && range[2] ? Number(range[2]) : size - 1
+    start = Math.max(0, start)
+    end = Math.min(size - 1, end)
+    if (start > end || start >= size) return new NextResponse(null, { status: 416, headers: { "Content-Range": `bytes */${size}` } })
+    return new NextResponse(bytes.subarray(start, end + 1), { status: 206, headers: { ...headers, "Content-Range": `bytes ${start}-${end}/${size}`, "Content-Length": String(end - start + 1) } })
+  }
+  return new NextResponse(bytes, { headers })
 }

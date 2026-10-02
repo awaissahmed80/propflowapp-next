@@ -65,7 +65,7 @@ function ProofPicker({ file, onChange, error }) {
           className={cn(
             "flex cursor-pointer flex-col items-center gap-1 rounded-lg border border-dashed px-4 py-6 text-center transition-colors hover:border-primary/50 hover:bg-muted/50",
             over && "border-primary bg-primary/5",
-            error && "border-destructive"
+            error && "border-destructive",
           )}
         >
           <Icon name="upload-cloud-2-line" className="text-2xl text-muted-foreground" />

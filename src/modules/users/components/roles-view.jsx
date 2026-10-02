@@ -81,13 +81,7 @@ function Matrix({ apps, value, readOnly, onChange }) {
               ))}
               <td className="px-2 py-2 text-center">
                 <span className="inline-flex">
-                  <BaseCheckbox
-                    aria-label={`${app.name}: all actions`}
-                    checked={all}
-                    indeterminate={actions.length > 0 && !all}
-                    disabled={readOnly}
-                    onCheckedChange={() => set(app.code, all ? [] : [...ACTIONS])}
-                  />
+                  <BaseCheckbox aria-label={`${app.name}: all actions`} checked={all} indeterminate={actions.length > 0 && !all} disabled={readOnly} onCheckedChange={() => set(app.code, all ? [] : [...ACTIONS])} />
                 </span>
               </td>
             </tr>
@@ -267,7 +261,7 @@ export function RolesView({ roles, apps, canEdit }) {
                 aria-current={r.id === selected?.id}
                 className={cn(
                   "flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-left text-sm outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
-                  r.id === selected?.id && "bg-primary/10 font-medium text-primary hover:bg-primary/10"
+                  r.id === selected?.id && "bg-primary/10 font-medium text-primary hover:bg-primary/10",
                 )}
               >
                 <span className="min-w-0 flex-1">

@@ -135,8 +135,15 @@ export async function createInvoice(input) {
     })
     await trx("invoiceLines").insert(lines.map((l) => ({ invoiceId: id, description: l.description, quantity: l.quantity, unitPrice: l.unitPrice, amount: l.amount, sortOrder: l.sortOrder, createdBy: staff.user.id })))
     await logAudit(
-      { actorUserId: staff.user.id, action: v.issue ? "invoice.issued" : "invoice.created", subjectType: "invoice", subjectId: id, tenantId: tenant.id, details: { summary: `${code} · ${rs(total)}${v.issue ? "" : " (draft)"}` } },
-      trx
+      {
+        actorUserId: staff.user.id,
+        action: v.issue ? "invoice.issued" : "invoice.created",
+        subjectType: "invoice",
+        subjectId: id,
+        tenantId: tenant.id,
+        details: { summary: `${code} · ${rs(total)}${v.issue ? "" : " (draft)"}` },
+      },
+      trx,
     )
     return { id, code }
   })
@@ -149,7 +156,9 @@ export async function createInvoice(input) {
 }
 
 async function invoiceById(id) {
-  return live(platformDb(), "invoices").where({ id: Number(id) }).first()
+  return live(platformDb(), "invoices")
+    .where({ id: Number(id) })
+    .first()
 }
 
 // Draft → issued, and email it
@@ -222,7 +231,10 @@ export async function recordPayment(id, formData) {
     await db.transaction(async (trx) => {
       const pending = await live(trx, "invoicePayments").where({ invoiceId: inv.id, status: "pending" }).orderBy("id", "desc").first("id", "code")
       const payment = { method: v.method, amount: inv.total, reference: v.reference || null, ...proof, status: "confirmed", paidAt, verifiedBy: staff.user.id }
-      if (pending) await trx("invoicePayments").where({ id: pending.id }).update({ ...payment, ...(pending.code ? {} : { code: await nextCode(trx, "payment") }), updatedAt: new Date(), updatedBy: staff.user.id })
+      if (pending)
+        await trx("invoicePayments")
+          .where({ id: pending.id })
+          .update({ ...payment, ...(pending.code ? {} : { code: await nextCode(trx, "payment") }), updatedAt: new Date(), updatedBy: staff.user.id })
       else await trx("invoicePayments").insert({ ...payment, code: await nextCode(trx, "payment"), invoiceId: inv.id, createdBy: staff.user.id })
       await trx("invoices").where({ id: inv.id }).update({ status: "paid", paidAt, updatedAt: new Date(), updatedBy: staff.user.id })
 
@@ -231,7 +243,10 @@ export async function recordPayment(id, formData) {
       if (tenant.status === "past_due") patch.status = "active"
       const periodEnd = inv.periodEnd ? pkEnd(new Date(inv.periodEnd).toISOString().slice(0, 10)) : null
       if (periodEnd && (!tenant.currentPeriodEndsAt || periodEnd > tenant.currentPeriodEndsAt)) patch.currentPeriodEndsAt = periodEnd
-      if (Object.keys(patch).length) await trx("tenants").where({ id: tenant.id }).update({ ...patch, updatedAt: new Date(), updatedBy: staff.user.id })
+      if (Object.keys(patch).length)
+        await trx("tenants")
+          .where({ id: tenant.id })
+          .update({ ...patch, updatedAt: new Date(), updatedBy: staff.user.id })
 
       await logAudit(
         {
@@ -242,7 +257,7 @@ export async function recordPayment(id, formData) {
           tenantId: inv.tenantId,
           details: { summary: `${inv.code} · ${rs(inv.total)} by ${v.method}${v.reference ? ` (${v.reference})` : ""}, proof attached`, proofKey },
         },
-        trx
+        trx,
       )
     })
   } catch (err) {
@@ -262,7 +277,9 @@ export async function voidInvoice(id, reason) {
   if (!inv) return { error: "Invoice not found." }
   if (inv.status === "paid") return { error: "Paid invoices can't be voided. Issue a credit instead." }
   if (inv.status === "void") return { ok: true }
-  await platformDb()("invoices").where({ id: inv.id }).update({ status: "void", voidedAt: new Date(), voidReason: why.slice(0, 255), updatedAt: new Date(), updatedBy: staff.user.id })
+  await platformDb()("invoices")
+    .where({ id: inv.id })
+    .update({ status: "void", voidedAt: new Date(), voidReason: why.slice(0, 255), updatedAt: new Date(), updatedBy: staff.user.id })
   await logAudit({ actorUserId: staff.user.id, action: "invoice.voided", subjectType: "invoice", subjectId: inv.id, tenantId: inv.tenantId, details: { summary: `${inv.code}: ${why}` } })
   return { ok: true }
 }
@@ -330,7 +347,9 @@ export async function updateInvoice(id, input) {
         updatedBy: staff.user.id,
       })
     await trx("invoiceLines").where({ invoiceId: inv.id }).whereNull("deletedAt").update({ deletedAt: now, deletedBy: staff.user.id })
-    await trx("invoiceLines").insert(lines.map((l) => ({ invoiceId: inv.id, description: l.description, quantity: l.quantity, unitPrice: l.unitPrice, amount: l.amount, sortOrder: l.sortOrder, createdBy: staff.user.id })))
+    await trx("invoiceLines").insert(
+      lines.map((l) => ({ invoiceId: inv.id, description: l.description, quantity: l.quantity, unitPrice: l.unitPrice, amount: l.amount, sortOrder: l.sortOrder, createdBy: staff.user.id })),
+    )
     const summary = [inv.code, Number(inv.total) !== total ? `${rs(inv.total)} → ${rs(total)}` : "details changed", issuing ? "issued" : null].filter(Boolean).join(" · ")
     await logAudit({ actorUserId: staff.user.id, action: issuing ? "invoice.issued" : "invoice.updated", subjectType: "invoice", subjectId: inv.id, tenantId: inv.tenantId, details: { summary } }, trx)
   })
@@ -370,7 +389,7 @@ export async function setInvoiceStatus(id, status) {
         tenantId: inv.tenantId,
         details: { summary: `${inv.code}: ${inv.status === "issued" ? "unpaid" : inv.status} → ${label}${inv.status === "paid" ? " (payment reversed)" : ""}` },
       },
-      trx
+      trx,
     )
   })
   return { ok: true }

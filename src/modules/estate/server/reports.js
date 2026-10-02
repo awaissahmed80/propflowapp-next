@@ -60,7 +60,16 @@ export const REPORTS = [
       }
       const rows = [...map.values()].map(({ units, ...r }) => {
         const c = countByStatus(units)
-        return { ...r, total: units.length, ...c, soldPct: pct(c.booked + c.sold, units.length), availableValue: sum(units.filter((u) => u.status === "available"), (u) => u.price) }
+        return {
+          ...r,
+          total: units.length,
+          ...c,
+          soldPct: pct(c.booked + c.sold, units.length),
+          availableValue: sum(
+            units.filter((u) => u.status === "available"),
+            (u) => u.price,
+          ),
+        }
       })
       const c = countByStatus(inv.units)
       return {
@@ -78,7 +87,15 @@ export const REPORTS = [
           { label: "Units", value: number(inv.units.length) },
           { label: "Available", value: number(c.available) },
           { label: "Booked or sold", value: `${pct(c.booked + c.sold, inv.units.length)}%` },
-          { label: "Available stock", value: rs(sum(inv.units.filter((u) => u.status === "available"), (u) => u.price)) },
+          {
+            label: "Available stock",
+            value: rs(
+              sum(
+                inv.units.filter((u) => u.status === "available"),
+                (u) => u.price,
+              ),
+            ),
+          },
         ],
         chart: rows.length
           ? {
@@ -112,7 +129,19 @@ export const REPORTS = [
         .map(({ units, ...r }) => {
           const c = countByStatus(units)
           const prices = units.map((u) => u.price)
-          return { ...r, total: units.length, available: c.available, hold: c["on-hold"], committed: c.booked + c.sold, min: Math.min(...prices), max: Math.max(...prices), availableValue: sum(units.filter((u) => u.status === "available"), (u) => u.price) }
+          return {
+            ...r,
+            total: units.length,
+            available: c.available,
+            hold: c["on-hold"],
+            committed: c.booked + c.sold,
+            min: Math.min(...prices),
+            max: Math.max(...prices),
+            availableValue: sum(
+              units.filter((u) => u.status === "available"),
+              (u) => u.price,
+            ),
+          }
         })
         .sort((a, b) => a.typeKey.localeCompare(b.typeKey) || a.rank - b.rank)
       return {
@@ -133,7 +162,16 @@ export const REPORTS = [
           { label: "Available units", value: number(sum(rows, (r) => r.available)) },
           { label: "Available stock", value: rs(sum(rows, (r) => r.availableValue)) },
         ],
-        chart: rows.length ? { kind: "bar", title: "Available units", categoryKey: "label", valueKey: "available", valueLabel: "Available units", data: rows.map((r) => ({ label: `${r.size} ${r.type.toLowerCase()}`, available: r.available })) } : null,
+        chart: rows.length
+          ? {
+              kind: "bar",
+              title: "Available units",
+              categoryKey: "label",
+              valueKey: "available",
+              valueLabel: "Available units",
+              data: rows.map((r) => ({ label: `${r.size} ${r.type.toLowerCase()}`, available: r.available })),
+            }
+          : null,
       }
     },
   },
@@ -278,7 +316,11 @@ export const REPORTS = [
     icon: "price-tag-3-line",
     filters: ["project"],
     async load(ctx, { project }) {
-      const [lists, projects, labels] = await Promise.all([activeListsByProject(ctx), live(ctx.db, "projects").orderBy("name").select("code", "name", "marlaSqft"), getLookups(ctx.db, ["unit-type", "block-category", "area-unit"])])
+      const [lists, projects, labels] = await Promise.all([
+        activeListsByProject(ctx),
+        live(ctx.db, "projects").orderBy("name").select("code", "name", "marlaSqft"),
+        getLookups(ctx.db, ["unit-type", "block-category", "area-unit"]),
+      ])
       const label = (key, v) => labels[key].find((x) => x.value === v)?.label ?? v
       const m = measures(labels)
       const shown = projects.filter((p) => lists[p.code] && (!project || p.code.toLowerCase() === project))
@@ -333,6 +375,9 @@ export async function reportFilters(ctx) {
 export async function runReport(ctx, report, query, filters) {
   const values = Object.fromEntries((report.filters ?? []).map((k) => [k, String(query?.[k] ?? "").toLowerCase()]))
   const result = await report.load(ctx, values)
-  const scope = (report.filters ?? []).map((k) => filters[k]?.options.find((o) => o.value === values[k])?.label ?? filters[k]?.all).filter(Boolean).join(" · ")
+  const scope = (report.filters ?? [])
+    .map((k) => filters[k]?.options.find((o) => o.value === values[k])?.label ?? filters[k]?.all)
+    .filter(Boolean)
+    .join(" · ")
   return { ...result, values, scope }
 }

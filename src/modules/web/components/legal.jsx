@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
 import { Dialog } from "@/components/ui/dialog"
+import { siteForHost, siteUrl } from "@/lib/sites"
 import { LEGAL, LEGAL_UPDATED } from "../legal"
 
 // A legal document (privacy policy, terms): used by its own page and inside the modal
@@ -28,13 +29,16 @@ export function LegalDocument({ doc, className }) {
 }
 
 // A link to /privacy-policy or /terms-and-conditions that opens the document in a modal on this
-// page (the address shows its URL, Back or closing returns). Opening the URL directly shows the
-// full page instead.
+// page. On the website the address shows its URL (Back or closing returns); on other sites
+// (sign-in…) the page doesn't exist, so the address stays as it is. Opening the URL directly,
+// or Ctrl/Cmd-click, shows the full page on the website.
 //   <LegalLink doc="terms">Terms & Conditions</LegalLink>
 export function LegalLink({ doc: key, className, children }) {
   const doc = LEGAL[key]
   const [open, setOpen] = useState(false)
-  const href = `/${doc.slug}`
+  const path = `/${doc.slug}`
+  const href = siteUrl("web", path)
+  const onWebsite = () => siteForHost(window.location.host) === "web"
 
   // The browser's Back button closes it
   useEffect(() => {
@@ -46,7 +50,7 @@ export function LegalLink({ doc: key, className, children }) {
 
   const close = () => {
     setOpen(false)
-    if (window.location.pathname === href) window.history.back()
+    if (onWebsite() && window.location.pathname === path) window.history.back()
   }
   return (
     <>
@@ -56,7 +60,7 @@ export function LegalLink({ doc: key, className, children }) {
         onClick={(e) => {
           if (e.metaKey || e.ctrlKey || e.shiftKey) return // new tab: the full page
           e.preventDefault()
-          window.history.pushState({ legal: key }, "", href)
+          if (onWebsite()) window.history.pushState({ legal: key }, "", path)
           setOpen(true)
         }}
       >

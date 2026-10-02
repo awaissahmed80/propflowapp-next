@@ -139,12 +139,24 @@ export function ApprovalsView({ data }) {
               a={a}
               mode={view}
               busy={busy === a.code}
-              onApprove={(x) => run(x, () => decideApproval(x.code, "approved"), (r) => setMsg({ tone: "success", text: r.message }))}
+              onApprove={(x) =>
+                run(
+                  x,
+                  () => decideApproval(x.code, "approved"),
+                  (r) => setMsg({ tone: "success", text: r.message }),
+                )
+              }
               onReject={(x) => {
                 setNote("")
                 setRejecting(x)
               }}
-              onWithdraw={(x) => run(x, () => withdrawApproval(x.code), () => setMsg({ tone: "success", text: `Withdrawn: ${x.title}.` }))}
+              onWithdraw={(x) =>
+                run(
+                  x,
+                  () => withdrawApproval(x.code),
+                  () => setMsg({ tone: "success", text: `Withdrawn: ${x.title}.` }),
+                )
+              }
             />
           ))}
         </ul>

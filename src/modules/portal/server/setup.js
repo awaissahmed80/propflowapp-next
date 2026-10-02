@@ -26,10 +26,7 @@ export async function writeSettings(tenant, values, userId) {
 
 // Everything the setup page shows, plus which steps are done
 export async function getSetup(tenant) {
-  const [settings, accounts] = await Promise.all([
-    readSettings(tenant, [...PROFILE_KEYS, ...OTHER_KEYS]),
-    live(db(tenant), "accounts").whereNotNull("kind").where({ isActive: true }).orderBy("sortOrder").orderBy("code"),
-  ])
+  const [settings, accounts] = await Promise.all([readSettings(tenant, [...PROFILE_KEYS, ...OTHER_KEYS]), live(db(tenant), "accounts").whereNotNull("kind").where({ isActive: true }).orderBy("sortOrder").orderBy("code")])
   const filled = (k) => typeof settings[k] === "string" && settings[k].trim().length > 0
   const banks = accounts.filter((a) => a.kind === "bank")
   const steps = {

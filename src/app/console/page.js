@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import Link from "next/link"
 import { formatAmount, formatDate, formatPkr, timeAgo } from "@/lib/format"
 import { requireStaff } from "@/server/auth/dal"
@@ -9,6 +10,8 @@ import { StatTile } from "@/components/stat-tile"
 import { AccountStatus, ViewAll } from "@/modules/console/components/parts"
 import { PlanMixChart, SignupsChart } from "@/modules/console/components/charts"
 import { urlCode } from "@/lib/url"
+import { RANGES } from "@/modules/console/server/analytics"
+import { WebsiteAnalytics, WebsiteAnalyticsLoading } from "@/modules/console/components/website-analytics"
 
 export const metadata = { title: "Overview" }
 
@@ -28,8 +31,11 @@ function Row({ href, title, text, right }) {
 
 const Empty = ({ children }) => <p className="px-4 py-8 text-center text-sm text-muted-foreground">{children}</p>
 
-export default async function OverviewPage() {
+export default async function OverviewPage({ searchParams }) {
   const staff = await requireStaff("/")
+  // Website period: ?range=7 | 28 | 90 (days)
+  const range = Number((await searchParams).range)
+  const days = RANGES.includes(range) ? range : 28
   const m = await platformMetrics()
   const money = canView(staff.role, "billing")
 
@@ -127,6 +133,11 @@ export default async function OverviewPage() {
           )}
         </SectionCard>
       </div>
+
+      {/* propflowapp.com visitors (Google Analytics); streams in after the rest of the page */}
+      <Suspense key={days} fallback={<WebsiteAnalyticsLoading />}>
+        <WebsiteAnalytics days={days} />
+      </Suspense>
 
       {m.atRisk.length > 0 && (
         <SectionCard title="Past due or suspended" bodyClassName="p-0">

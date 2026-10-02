@@ -51,12 +51,12 @@ export function Screen({ id, url, alt = "", lenses = [], priority = false, class
   if (!s) return null
   return (
     <div className={cn("relative", className)}>
-      <div className="overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 shadow-slate-900/15 ring-slate-900/10 dark:bg-neutral-900 dark:shadow-black/50 dark:ring-white/10">
-        <div className="flex h-8 items-center gap-1.5 border-b border-slate-200 bg-slate-50 px-3 dark:border-white/10 dark:bg-neutral-800">
+      <div className="overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 shadow-slate-900/15 ring-slate-900/10 dark:bg-zinc-900 dark:shadow-black/50 dark:ring-white/10">
+        <div className="flex h-8 items-center gap-1.5 border-b border-slate-200 bg-slate-50 px-3 dark:border-white/10 dark:bg-zinc-800">
           <span className="size-2.5 rounded-full bg-[#ff5f57]" />
           <span className="size-2.5 rounded-full bg-[#febc2e]" />
           <span className="size-2.5 rounded-full bg-[#28c840]" />
-          <span className="mx-auto hidden truncate rounded-md bg-white px-3 py-0.5 text-[11px] text-slate-500 ring-1 ring-slate-200 sm:block dark:bg-neutral-900 dark:text-neutral-400 dark:ring-white/10">
+          <span className="mx-auto hidden truncate rounded-md bg-white px-3 py-0.5 text-[11px] text-slate-500 ring-1 ring-slate-200 sm:block dark:bg-zinc-900 dark:text-zinc-400 dark:ring-white/10">
             {url ?? "portal.propflowapp.com"}
           </span>
         </div>

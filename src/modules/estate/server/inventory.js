@@ -130,11 +130,20 @@ export async function addUnits(input) {
   const numbers = units.map((u) => u.number)
   const existing = new Set((await live(ctx.db, "units").where({ blockId: block.id }).whereIn("number", numbers).select("number")).map((u) => u.number))
   const dupes = numbers.filter((n) => existing.has(n))
-  if (dupes.length) return { fieldErrors: { [v.numbering === "single" ? "number" : v.sizing === "mixed" ? "rows" : "from"]: `${dupes.slice(0, 5).join(", ")}${dupes.length > 5 ? "…" : ""} already ${dupes.length === 1 ? "exists" : "exist"} in ${block.name}.` } }
+  if (dupes.length)
+    return {
+      fieldErrors: {
+        [v.numbering === "single" ? "number" : v.sizing === "mixed" ? "rows" : "from"]:
+          `${dupes.slice(0, 5).join(", ")}${dupes.length > 5 ? "…" : ""} already ${dupes.length === 1 ? "exists" : "exist"} in ${block.name}.`,
+      },
+    }
 
   const lists = await getLookups(ctx.db, ["unit-type", "feature"])
   if (!isLookupValue(lists["unit-type"], v.type)) return { fieldErrors: { type: "Pick a unit type." } }
-  const featureList = withListPremiums(lists.feature.filter((f) => f.isActive), await activeList(ctx.db, project.id))
+  const featureList = withListPremiums(
+    lists.feature.filter((f) => f.isActive),
+    await activeList(ctx.db, project.id),
+  )
   const shared = {
     projectId: project.id,
     phaseId: phase.id,
@@ -153,7 +162,14 @@ export async function addUnits(input) {
     const rows = units.map((u, i) => ({ ...shared, ...figures({ type: v.type, ...u, rate: v.rate, marlaSqft: project.marlaSqft, featureList, m }), code: codes[i], number: u.number }))
     for (let i = 0; i < rows.length; i += 200) await trx("units").insert(rows.slice(i, i + 200))
   })
-  await logActivity(ctx.db, { type: "estate", action: "units.added", actorUserId: ctx.user.id, summary: `added ${units.length} ${lists["unit-type"].find((t) => t.value === v.type)?.label.toLowerCase() ?? "unit"}${units.length === 1 ? "" : "s"} to ${project.name} · ${block.name}`, subjectType: "project", subjectId: project.id })
+  await logActivity(ctx.db, {
+    type: "estate",
+    action: "units.added",
+    actorUserId: ctx.user.id,
+    summary: `added ${units.length} ${lists["unit-type"].find((t) => t.value === v.type)?.label.toLowerCase() ?? "unit"}${units.length === 1 ? "" : "s"} to ${project.name} · ${block.name}`,
+    subjectType: "project",
+    subjectId: project.id,
+  })
   return { ok: true, added: units.length, blockName: block.name }
 }
 
@@ -171,7 +187,9 @@ const editSchema = z.object({
 export async function updateUnit(code, input) {
   const { ctx, error } = await estateAction("edit")
   if (error) return { error }
-  const u = await live(ctx.db, "units").where({ code: String(code ?? "").toUpperCase() }).first()
+  const u = await live(ctx.db, "units")
+    .where({ code: String(code ?? "").toUpperCase() })
+    .first()
   if (!u) return { error: "That unit was removed." }
   if (!["available", "on-hold", "blocked"].includes(u.status)) return { error: "Booked and sold units keep their size and price." }
   const parsed = editSchema.safeParse(input)
@@ -188,7 +206,8 @@ export async function updateUnit(code, input) {
   const keep = (u.features ?? []).filter((f) => v.features.includes(f))
   const fresh = v.features.filter((f) => !keep.includes(f) && isLookupValue(featureList, f))
   const f = figures({ type: u.type, sizeValue: v.sizeValue, sizeUnit: v.sizeUnit, features: [...keep, ...fresh], rate, marlaSqft: project.marlaSqft, featureList, m })
-  await ctx.db("units")
+  await ctx
+    .db("units")
     .where({ id: u.id })
     .update({
       ...f,
@@ -198,7 +217,14 @@ export async function updateUnit(code, input) {
       updatedAt: new Date(),
       updatedBy: ctx.user.id,
     })
-  await logActivity(ctx.db, { type: "estate", action: "unit.updated", actorUserId: ctx.user.id, summary: `updated ${u.number} in ${project.name} (now ${round1000(f.price).toLocaleString("en-PK")})`, subjectType: "unit", subjectId: u.id })
+  await logActivity(ctx.db, {
+    type: "estate",
+    action: "unit.updated",
+    actorUserId: ctx.user.id,
+    summary: `updated ${u.number} in ${project.name} (now ${round1000(f.price).toLocaleString("en-PK")})`,
+    subjectType: "unit",
+    subjectId: u.id,
+  })
   return { ok: true }
 }
 
@@ -221,7 +247,9 @@ async function change(ctx, codes, patchFor, summary) {
     for (const u of units) {
       const patch = patchFor(u)
       if (!patch) continue
-      await trx("units").where({ id: u.id }).update({ ...patch, updatedAt: now, updatedBy: ctx.user.id })
+      await trx("units")
+        .where({ id: u.id })
+        .update({ ...patch, updatedAt: now, updatedBy: ctx.user.id })
       changed++
     }
   })
@@ -239,13 +267,23 @@ export async function holdUnits(codes, { hours, reason } = {}) {
   const reasons = (await getLookups(ctx.db, ["hold-reason"]))["hold-reason"]
   if (!isLookupValue(reasons, reason)) return { error: "Pick why it's on hold." }
   const expires = new Date(Date.now() + Number(hours) * 3_600_000)
-  return change(ctx, codes, (u) => (["available", "on-hold"].includes(u.status) ? { status: "on-hold", holdBy: ctx.user.id, holdReason: reason, holdExpiresAt: expires } : null), (n) => `put ${label(n)} on hold for ${hours} hours`)
+  return change(
+    ctx,
+    codes,
+    (u) => (["available", "on-hold"].includes(u.status) ? { status: "on-hold", holdBy: ctx.user.id, holdReason: reason, holdExpiresAt: expires } : null),
+    (n) => `put ${label(n)} on hold for ${hours} hours`,
+  )
 }
 
 export async function releaseHolds(codes) {
   const { ctx, error } = await estateAction("edit")
   if (error) return { error }
-  return change(ctx, codes, (u) => (u.status === "on-hold" ? { status: "available", holdBy: null, holdReason: null, holdExpiresAt: null } : null), (n) => `released ${label(n)} from hold`)
+  return change(
+    ctx,
+    codes,
+    (u) => (u.status === "on-hold" ? { status: "available", holdBy: null, holdReason: null, holdExpiresAt: null } : null),
+    (n) => `released ${label(n)} from hold`,
+  )
 }
 
 export async function blockUnits(codes, reason) {
@@ -253,13 +291,23 @@ export async function blockUnits(codes, reason) {
   if (error) return { error }
   const why = String(reason ?? "").trim()
   if (why.length < 3) return { error: "Give a reason, e.g. litigation or management reserve." }
-  return change(ctx, codes, (u) => (u.status === "available" ? { status: "blocked", blockReason: why.slice(0, 255) } : null), (n) => `blocked ${label(n)} (${why.slice(0, 60)})`)
+  return change(
+    ctx,
+    codes,
+    (u) => (u.status === "available" ? { status: "blocked", blockReason: why.slice(0, 255) } : null),
+    (n) => `blocked ${label(n)} (${why.slice(0, 60)})`,
+  )
 }
 
 export async function unblockUnits(codes) {
   const { ctx, error } = await estateAction("edit")
   if (error) return { error }
-  return change(ctx, codes, (u) => (u.status === "blocked" ? { status: "available", blockReason: null } : null), (n) => `unblocked ${label(n)}`)
+  return change(
+    ctx,
+    codes,
+    (u) => (u.status === "blocked" ? { status: "available", blockReason: null } : null),
+    (n) => `unblocked ${label(n)}`,
+  )
 }
 
 // Into a dealer's quota (dealerCode) or back to company stock (null)
@@ -268,7 +316,9 @@ export async function allocateUnits(codes, dealerCode) {
   if (error) return { error }
   let dealer = null
   if (dealerCode) {
-    dealer = await live(ctx.db, "dealers").where({ code: String(dealerCode).toUpperCase() }).first("id", "name", "isActive")
+    dealer = await live(ctx.db, "dealers")
+      .where({ code: String(dealerCode).toUpperCase() })
+      .first("id", "name", "isActive")
     if (!dealer) return { error: "That dealer was removed." }
     if (!dealer.isActive) return { error: `${dealer.name} is inactive.` }
   }
@@ -280,7 +330,7 @@ export async function allocateUnits(codes, dealerCode) {
       if (dealer ? u.dealerId === dealer.id : !u.dealerId) return null
       return { dealerId: dealer?.id ?? null }
     },
-    (n) => (dealer ? `allocated ${label(n)} to ${dealer.name}` : `returned ${label(n)} to company stock`)
+    (n) => (dealer ? `allocated ${label(n)} to ${dealer.name}` : `returned ${label(n)} to company stock`),
   )
 }
 
@@ -305,6 +355,6 @@ export async function repriceUnits(codes, { mode, value } = {}) {
       const pct = (u.type === "file" ? [] : (u.premiums ?? [])).reduce((s, p) => s + Number(p.percent || 0), 0)
       return { baseRate: Math.round(rate * 100) / 100, basePrice: base, price: u.type === "file" ? base : round1000(base * (1 + pct / 100)) }
     },
-    (n) => (mode === "rate" ? `repriced ${label(n)} to a base rate of Rs ${v.toLocaleString("en-PK")}` : `repriced ${label(n)} by ${v > 0 ? "+" : ""}${v}%`)
+    (n) => (mode === "rate" ? `repriced ${label(n)} to a base rate of Rs ${v.toLocaleString("en-PK")}` : `repriced ${label(n)} by ${v > 0 ? "+" : ""}${v}%`),
   )
 }

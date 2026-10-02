@@ -25,12 +25,14 @@ export const OPEN_STEPS = ["new", "contacted", "interested", "site-visit", "nego
 export const stepIndex = (status) => OPEN_STEPS.indexOf(status)
 
 // When the next follow-up should be: tomorrow 11 AM, in 3 days, next week (Pakistan time)
-export function followUpAt(preset, from = new Date()) {
-  const days = { tomorrow: 1, "3-days": 3, "next-week": 7 }[preset] ?? 1
+export function followUpAt(days, from = new Date(), time = "11:00") {
+  // Older callers may still pass a preset name
+  const n = typeof days === "number" ? days : ({ tomorrow: 1, "3-days": 3, "next-week": 7 }[days] ?? 1)
+  const [h, m] = /^\d{2}:\d{2}$/.test(time ?? "") ? time.split(":").map(Number) : [11, 0]
   const d = new Date(from)
-  d.setDate(d.getDate() + days)
-  // 11:00 in Pakistan (UTC+5)
-  d.setUTCHours(6, 0, 0, 0)
+  d.setDate(d.getDate() + n)
+  // That time in Pakistan (UTC+5)
+  d.setUTCHours(h - 5, m, 0, 0)
   return d
 }
 export const FOLLOW_UP_PRESETS = [

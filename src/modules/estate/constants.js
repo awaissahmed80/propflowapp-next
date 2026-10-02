@@ -40,7 +40,11 @@ const defsFrom = (values, builtin, pick) => {
 
 // lists: { "area-unit": [...], "unit-type": [...], "block-category": [...] } as lookups give them
 export function measures(lists = {}) {
-  const units = defsFrom(lists["area-unit"], BUILTIN_UNITS, (v) => ({ measures: v.meta?.measures ?? BUILTIN_UNITS[v.value]?.measures ?? "floor", size: Number(v.meta?.size) || BUILTIN_UNITS[v.value]?.size || 1, short: v.meta?.short || v.label }))
+  const units = defsFrom(lists["area-unit"], BUILTIN_UNITS, (v) => ({
+    measures: v.meta?.measures ?? BUILTIN_UNITS[v.value]?.measures ?? "floor",
+    size: Number(v.meta?.size) || BUILTIN_UNITS[v.value]?.size || 1,
+    short: v.meta?.short || v.label,
+  }))
   const types = defsFrom(lists["unit-type"], BUILTIN_TYPES, (v) => ({ measures: v.meta?.measures ?? BUILTIN_TYPES[v.value]?.measures ?? "land", fits: v.meta?.fits ?? BUILTIN_TYPES[v.value]?.fits ?? "both" }))
   const cats = defsFrom(lists["block-category"], BUILTIN_CATEGORIES, (v) => ({ holds: v.meta?.holds ?? BUILTIN_CATEGORIES[v.value]?.holds ?? "both" }))
   const unit = (u) => units.def[u] ?? { measures: "floor", size: 1, short: u ?? "" }

@@ -98,12 +98,7 @@ export async function getPriceList(ctx, code) {
 
 // Active lists by project code, for pricing new inventory
 export async function activeListsByProject(ctx) {
-  const rows = await ctx.db("priceLists as l")
-    .join("projects as p", "p.id", "l.projectId")
-    .whereNull("l.deletedAt")
-    .whereNull("p.deletedAt")
-    .where("l.status", "active")
-    .select("l.*", "p.code as projectCode")
+  const rows = await ctx.db("priceLists as l").join("projects as p", "p.id", "l.projectId").whereNull("l.deletedAt").whereNull("p.deletedAt").where("l.status", "active").select("l.*", "p.code as projectCode")
   return Object.fromEntries(rows.map((l) => [l.projectCode, shapeList(l)]))
 }
 

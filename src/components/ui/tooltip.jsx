@@ -17,10 +17,12 @@ function BaseTooltip({
   return <TooltipPrimitive.Root data-slot="tooltip" {...props} />;
 }
 
+// delay: how long the pointer rests before the tooltip shows (Base UI's default is 600ms)
 function TooltipTrigger({
+  delay = 200,
   ...props
 }) {
-  return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />;
+  return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" delay={delay} {...props} />;
 }
 
 function TooltipContent({

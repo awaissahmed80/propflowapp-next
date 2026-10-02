@@ -39,9 +39,12 @@ export const crmContext = cache(async (path = "/crm") => {
   }
 })
 
-export async function crmPage(path) {
+// feature: a part of CRM the page belongs to (portal/features.js); not found if the plan leaves it out
+export async function crmPage(path, feature) {
   const ctx = await crmContext(path)
-  if (!ctx.can("view")) notFound()
+  if (!ctx.can("view") || (feature && !ctx.has(feature))) notFound()
+  // Leads nobody reached in time move on (Assignment rules); never in the way of the page
+  await import("./assignment").then((m) => m.reassignUnreached(ctx)).catch((err) => console.error("Reassign check failed:", err.message))
   return ctx
 }
 

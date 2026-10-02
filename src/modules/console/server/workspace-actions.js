@@ -24,7 +24,9 @@ async function staffFor(area, code) {
 }
 
 async function tenantById(id) {
-  return live(platformDb(), "tenants").where({ id: Number(id) }).first()
+  return live(platformDb(), "tenants")
+    .where({ id: Number(id) })
+    .first()
 }
 
 const fmt = (d) => (d ? new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Karachi", day: "numeric", month: "short", year: "numeric" }).format(new Date(d)) : "—")
@@ -53,9 +55,19 @@ export async function setWorkspaceApps(tenantId, appCodes, off = {}) {
   const offJson = (code) => (offOf(code).length ? JSON.stringify(offOf(code)) : null)
 
   await db.transaction(async (trx) => {
-    if (removed.length) await trx("tenantApps").where({ tenantId: t.id }).whereIn("appId", removed.map((a) => a.id)).delete()
+    if (removed.length)
+      await trx("tenantApps")
+        .where({ tenantId: t.id })
+        .whereIn(
+          "appId",
+          removed.map((a) => a.id),
+        )
+        .delete()
     if (added.length) await trx("tenantApps").insert(added.map((a) => ({ tenantId: t.id, appId: a.id, enabledBy: staff.user.id, offFeatures: offJson(a.code) })))
-    for (const a of reshaped) await trx("tenantApps").where({ tenantId: t.id, appId: a.id }).update({ offFeatures: offJson(a.code) })
+    for (const a of reshaped)
+      await trx("tenantApps")
+        .where({ tenantId: t.id, appId: a.id })
+        .update({ offFeatures: offJson(a.code) })
     await logAudit(
       {
         actorUserId: staff.user.id,
@@ -69,7 +81,7 @@ export async function setWorkspaceApps(tenantId, appCodes, off = {}) {
           removed: removed.map((a) => a.code),
         },
       },
-      trx
+      trx,
     )
   })
   return { ok: true }
@@ -159,7 +171,14 @@ export async function retryWorkspaceSetup(tenantId) {
   if (t.status !== "provisioning") return { ok: true }
   const finalStatus = t.trialEndsAt ? "trial" : "active"
   const result = await provisionTenant(t.id, { finalStatus, company: { name: t.name, city: t.city } })
-  await logAudit({ actorUserId: staff.user.id, action: "tenant.setup_retried", subjectType: "tenant", subjectId: t.id, tenantId: t.id, details: { summary: result.ok ? "Setup finished" : `Setup failed again: ${result.error}` } })
+  await logAudit({
+    actorUserId: staff.user.id,
+    action: "tenant.setup_retried",
+    subjectType: "tenant",
+    subjectId: t.id,
+    tenantId: t.id,
+    details: { summary: result.ok ? "Setup finished" : `Setup failed again: ${result.error}` },
+  })
   return result.ok ? { ok: true } : { error: `Setup failed again: ${result.error}` }
 }
 
@@ -212,7 +231,12 @@ export async function changeWorkspacePlan(tenantId, { planId, billingCycle, rese
   if (error) return { error }
   if (!["monthly", "yearly"].includes(billingCycle)) return { error: "Pick monthly or yearly." }
   const db = platformDb()
-  const [plan, oldPlan] = await Promise.all([live(db, "plans").where({ id: Number(planId), isActive: true }).first("id", "name", "priceMonthly"), db("plans").where({ id: t.planId }).first("name")])
+  const [plan, oldPlan] = await Promise.all([
+    live(db, "plans")
+      .where({ id: Number(planId), isActive: true })
+      .first("id", "name", "priceMonthly"),
+    db("plans").where({ id: t.planId }).first("name"),
+  ])
   if (!plan) return { error: "That plan isn't available." }
   if (plan.id === t.planId && billingCycle === t.billingCycle && !resetApps) return { ok: true }
 
@@ -232,7 +256,11 @@ export async function changeWorkspacePlan(tenantId, { planId, billingCycle, rese
     const offFor = (appId) => planRows.find((r) => r.appId === appId)?.offFeatures ?? null
     if (add.length) await trx("tenantApps").insert(add.map((appId) => ({ tenantId: t.id, appId, enabledBy: staff.user.id, offFeatures: offFor(appId) ? JSON.stringify(offFor(appId)) : null })))
     // Reset: the plan's features too
-    if (resetApps) for (const r of planRows) await trx("tenantApps").where({ tenantId: t.id, appId: r.appId }).update({ offFeatures: r.offFeatures ? JSON.stringify(r.offFeatures) : null })
+    if (resetApps)
+      for (const r of planRows)
+        await trx("tenantApps")
+          .where({ tenantId: t.id, appId: r.appId })
+          .update({ offFeatures: r.offFeatures ? JSON.stringify(r.offFeatures) : null })
     await logAudit(
       {
         actorUserId: staff.user.id,
@@ -242,7 +270,7 @@ export async function changeWorkspacePlan(tenantId, { planId, billingCycle, rese
         tenantId: t.id,
         details: { summary: `${oldPlan?.name ?? "—"} (${t.billingCycle}) → ${plan.name} (${billingCycle})${resetApps ? ", apps reset to the plan" : ""}` },
       },
-      trx
+      trx,
     )
   })
   return { ok: true }

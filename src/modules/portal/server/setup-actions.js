@@ -136,7 +136,9 @@ export async function saveBankAccount(id, input) {
     const makeDefault = v.isDefault || !banks.some((b) => b.isDefault && b.id !== Number(id))
     if (makeDefault) await trx("accounts").where({ kind: "bank" }).update({ isDefault: false })
     if (id) {
-      const updated = await live(trx, "accounts").where({ id: Number(id), kind: "bank" }).update({ ...row, isDefault: makeDefault })
+      const updated = await live(trx, "accounts")
+        .where({ id: Number(id), kind: "bank" })
+        .update({ ...row, isDefault: makeDefault })
       if (!updated) throw new Error("Bank account not found.")
     } else {
       const code = await nextBankCode(trx)
@@ -151,7 +153,9 @@ export async function removeBankAccount(id) {
   const { s, error } = await requireSetupAccess()
   if (error) return { error }
   const tdb = db(s.tenant)
-  const acc = await live(tdb, "accounts").where({ id: Number(id), kind: "bank" }).first("id", "isDefault")
+  const acc = await live(tdb, "accounts")
+    .where({ id: Number(id), kind: "bank" })
+    .first("id", "isDefault")
   if (!acc) return { error: "Bank account not found." }
   // Soft delete; once vouchers exist, accounts with entries will be closed instead
   await tdb("accounts").where({ id: acc.id }).update({ deletedAt: new Date(), deletedBy: s.user.id, isDefault: false })
@@ -171,7 +175,9 @@ export async function saveCashOpening(input) {
   for (const code of ["1110", "1120"]) {
     const amount = Number(input?.[code] ?? 0)
     if (!Number.isFinite(amount) || amount < 0) return { fieldErrors: { [code]: "Enter zero or more." } }
-    await live(tdb, "accounts").where({ code, kind: "cash" }).update({ openingBalance: round2(amount), openingDate: new Date(), updatedAt: new Date(), updatedBy: s.user.id })
+    await live(tdb, "accounts")
+      .where({ code, kind: "cash" })
+      .update({ openingBalance: round2(amount), openingDate: new Date(), updatedAt: new Date(), updatedBy: s.user.id })
   }
   await logActivity(db(s.tenant), { type: "settings", action: "setup.saveCashOpening", actorUserId: s.user.id, summary: "set the cash in hand opening balance" })
   return { ok: true }

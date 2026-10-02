@@ -16,9 +16,7 @@ import { savePaymentSettings } from "../server/actions"
 import { Notice } from "./parts"
 
 function BankDetails({ bank, onChange, errors, disabled }) {
-  const field = (key, label, props = {}) => (
-    <Input label={label} value={bank[key]} disabled={disabled} onChange={(e) => onChange({ ...bank, [key]: e.target.value })} error={errors[key]} {...props} />
-  )
+  const field = (key, label, props = {}) => <Input label={label} value={bank[key]} disabled={disabled} onChange={(e) => onChange({ ...bank, [key]: e.target.value })} error={errors[key]} {...props} />
   return (
     <div className="grid gap-4 border-t px-5 py-4 sm:grid-cols-2">
       {field("bankName", "Bank", { placeholder: "Meezan Bank" })}

@@ -77,12 +77,7 @@ function AppPicker({ apps, value, onChange, off = {}, onOffChange, error }) {
                             )}
                           </span>
                         </span>
-                        <Switch
-                          aria-label={a.name}
-                          checked={on}
-                          disabled={a.alwaysOn}
-                          onChange={(checked) => onChange(checked ? [...value, a.code] : value.filter((c) => c !== a.code))}
-                        />
+                        <Switch aria-label={a.name} checked={on} disabled={a.alwaysOn} onChange={(checked) => onChange(checked ? [...value, a.code] : value.filter((c) => c !== a.code))} />
                       </label>
                       {on && !a.alwaysOn && onOffChange && <AppFeatures app={a.code} off={off[a.code] ?? []} onChange={(keys) => onOffChange({ ...off, [a.code]: keys })} className="mt-1 mb-1 ml-13" />}
                     </li>
