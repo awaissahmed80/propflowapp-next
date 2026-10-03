@@ -44,7 +44,7 @@ const subscribeSystem = (cb) => {
   return () => mql.removeEventListener("change", cb)
 }
 
-// Switch without every element animating its colours at once
+// Switch without every element animating its colors at once
 function withoutTransitions(fn) {
   const style = document.createElement("style")
   style.appendChild(document.createTextNode("*,*::before,*::after{transition:none!important}"))
@@ -54,12 +54,20 @@ function withoutTransitions(fn) {
   setTimeout(() => style.remove(), 1)
 }
 
-export function ThemeProvider({ children }) {
+// forced: "light" pins the page (public campaign pages: the workspace's own brand), leaving the
+// saved choice and cookie alone
+export function ThemeProvider({ children, forced = null }) {
   const theme = useSyncExternalStore(subscribeTheme, readTheme, () => "system")
-  const systemDark = useSyncExternalStore(subscribeSystem, () => window.matchMedia(QUERY).matches, () => false)
-  const resolvedTheme = theme === "system" ? (systemDark ? "dark" : "light") : theme
+  const systemDark = useSyncExternalStore(
+    subscribeSystem,
+    () => window.matchMedia(QUERY).matches,
+    () => false,
+  )
+  const resolvedTheme = forced ?? (theme === "system" ? (systemDark ? "dark" : "light") : theme)
 
-  useEffect(() => writeCookie(theme, resolvedTheme), [theme, resolvedTheme])
+  useEffect(() => {
+    if (!forced) writeCookie(theme, resolvedTheme)
+  }, [forced, theme, resolvedTheme])
 
   useEffect(() => {
     const el = document.documentElement

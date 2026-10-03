@@ -55,7 +55,13 @@ export function PersonPicker({ people, value, onChange, me, label, error, allowN
         open={open}
         onOpenChange={(o) => {
           setOpen(o)
-          if (o) setActive(Math.max(0, options.findIndex((x) => x.id === value)))
+          if (o)
+            setActive(
+              Math.max(
+                0,
+                options.findIndex((x) => x.id === value),
+              ),
+            )
           else setQ("")
         }}
       >

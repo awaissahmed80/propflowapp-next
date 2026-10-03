@@ -12,7 +12,7 @@ const numberInputVariants = cva(
     "flex items-stretch overflow-hidden rounded-md border border-input bg-transparent text-sm shadow-xs transition-[color,box-shadow] dark:bg-input/20",
     "has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-[3px] has-[input:focus-visible]:ring-ring/50",
     "has-[input[aria-invalid='true']]:border-destructive has-[input[aria-invalid='true']]:ring-destructive/20",
-    "has-[input:disabled]:cursor-not-allowed has-[input:disabled]:opacity-50"
+    "has-[input:disabled]:cursor-not-allowed has-[input:disabled]:opacity-50",
   ),
   {
     variants: {
@@ -23,7 +23,7 @@ const numberInputVariants = cva(
       },
     },
     defaultVariants: { size: "default" },
-  }
+  },
 )
 
 const stepButton =
@@ -69,28 +69,14 @@ function NumberInput({
           {required && <span className="text-sm text-destructive">*</span>}
         </Label>
       )}
-      <NumberFieldPrimitive.Root
-        value={value ?? null}
-        onValueChange={(next) => onChange?.(next)}
-        min={min}
-        max={max}
-        step={step}
-        format={format}
-        locale="en-US"
-        disabled={disabled}
-        {...props}
-      >
+      <NumberFieldPrimitive.Root value={value ?? null} onValueChange={(next) => onChange?.(next)} min={min} max={max} step={step} format={format} locale="en-US" disabled={disabled} {...props}>
         <NumberFieldPrimitive.Group data-slot="number-input" className={numberInputVariants({ size })}>
           {prefix && <span className="flex items-center pl-3 text-muted-foreground select-none">{prefix}</span>}
           <NumberFieldPrimitive.Input
             aria-label={ariaLabel}
             aria-invalid={!!error}
             placeholder={placeholder}
-            className={cn(
-              "h-full w-full min-w-0 bg-transparent px-3 text-right tabular-nums outline-0 placeholder:text-muted-foreground",
-              prefix && "pl-2",
-              inputClassName
-            )}
+            className={cn("h-full w-full min-w-0 bg-transparent px-3 text-right tabular-nums outline-0 placeholder:text-muted-foreground", prefix && "pl-2", inputClassName)}
           />
           {suffix && <span className="flex items-center pr-2 text-muted-foreground select-none">{suffix}</span>}
           {showSteppers && (

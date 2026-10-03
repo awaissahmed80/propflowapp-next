@@ -2,7 +2,7 @@ import "server-only"
 import { canSetUp } from "@/modules/portal/server/setup"
 
 // Who may change CRM's rules: anyone with setup rights (Settings › CRM), or anyone whose role can
-// edit in CRM (CRM › Settings), the same as Lists & Labels. ctx: crmContext()
+// edit in CRM (CRM › Customize), the same as Lists & Labels. ctx: crmContext()
 export const canEditCrmRules = (ctx) => canSetUp(ctx.permissions) || ctx.can("edit")
 
 // Pipeline rules each workspace sets in Settings › CRM (stored in the workspace's settings table)

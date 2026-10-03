@@ -81,7 +81,7 @@ export async function resendInvite(id, { send = true } = {}) {
   const { staff, error } = await requireTeamManager()
   if (error) return { error }
   const invite = await pendingInvite(Number(id))
-  if (!invite) return { error: "That invitation was already used or cancelled." }
+  if (!invite) return { error: "That invitation was already used or canceled." }
   // A fresh token: the old link stops working
   const link = await issueToken(authDb(), invite.id)
   if (!send) {
@@ -97,7 +97,7 @@ export async function revokeInvite(id) {
   const { staff, error } = await requireTeamManager()
   if (error) return { error }
   const invite = await pendingInvite(Number(id))
-  if (!invite) return { error: "That invitation was already used or cancelled." }
+  if (!invite) return { error: "That invitation was already used or canceled." }
   await authDb()("invitations").where({ id: invite.id }).update({ revokedAt: new Date(), updatedAt: new Date(), updatedBy: staff.user.id })
   await logAudit({ actorUserId: staff.user.id, action: "team.invite_revoked", subjectType: "invitation", subjectId: invite.id, details: { summary: invite.email } })
   return { ok: true }

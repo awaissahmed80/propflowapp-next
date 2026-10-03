@@ -104,7 +104,7 @@ export async function contactSupport(form) {
   if (shots.error) return { fieldErrors: { screenshots: shots.error } }
   const saved = []
   for (const f of shots.files) {
-    const key = await saveFile({ folder: "support", buffer: f.buffer, ext: f.type.ext })
+    const key = await saveFile({ folder: "support", buffer: f.buffer, ext: f.type.ext, contentType: f.type.mime })
     saved.push({ ref: crypto.randomBytes(12).toString("hex"), key, name: f.name, type: f.type.mime, size: f.buffer.length })
   }
 

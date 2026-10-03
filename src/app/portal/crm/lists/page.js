@@ -1,24 +1,7 @@
-import { notFound } from "next/navigation"
-import { crmPage } from "@/modules/crm/server/context"
-import { canEditCrmRules } from "@/modules/crm/server/settings"
-import { getLookupLists } from "@/modules/lookups/server"
-import { PageHeader } from "@/components/page-header"
-import { LookupEditor } from "@/modules/lookups/components/lookup-editor"
+import { redirect } from "next/navigation"
 
-export const metadata = { title: "Lists & Labels" }
-
-// CRM's own lists (Settings › Lists & Labels has every app's)
-export default async function CrmListsPage({ searchParams }) {
-  const ctx = await crmPage("/crm/lists")
-  // Setup: locked in the sidebar for people who can't change CRM
-  if (!canEditCrmRules(ctx)) notFound()
-  const lists = await getLookupLists(ctx.db, ["crm"])
-  return (
-    <div className="flex h-[calc(100svh-3.5rem)] flex-col gap-4 p-4 sm:p-6 lg:p-8">
-      <PageHeader title="Lists & Labels" description="Lead statuses, temperature, sources, loss reasons and activity types." />
-      <div className="min-h-0 flex-1">
-        <LookupEditor lists={lists} initialKey={(await searchParams).list} />
-      </div>
-    </div>
-  )
+// Moved under CRM › Customize
+export default async function Moved({ searchParams }) {
+  const q = new URLSearchParams(await searchParams).toString()
+  redirect(`/crm/customize/lists${q ? `?${q}` : ""}`)
 }

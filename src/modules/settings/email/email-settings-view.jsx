@@ -4,12 +4,12 @@ import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { formatDateTime } from "@/lib/format"
-import { Notice } from "@/modules/users/components/user-parts"
+import { toastAction } from "@/lib/toast-action"
+import { useAlert } from "@/components/alert-context"
 import { PageHeader } from "@/components/page-header"
 import { SectionCard } from "@/components/section-card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Dialog } from "@/components/ui/dialog"
 import { Icon } from "@/components/ui/icon"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
@@ -18,7 +18,7 @@ import { removeEmailSettings, saveEmailSettings, sendTestEmail } from "./actions
 // Common providers: picking one fills in the server, port and security
 const PRESETS = [
   { value: "google", label: "Google Workspace / Gmail", host: "smtp.gmail.com", port: 587, security: "starttls", hint: "Use an app password (Google Account → Security → App passwords), not your normal password." },
-  { value: "microsoft", label: "Microsoft 365 / Outlook", host: "smtp.office365.com", port: 587, security: "starttls", hint: "SMTP sending must be allowed for this mailbox in the Microsoft 365 admin centre." },
+  { value: "microsoft", label: "Microsoft 365 / Outlook", host: "smtp.office365.com", port: 587, security: "starttls", hint: "SMTP sending must be allowed for this mailbox in the Microsoft 365 admin center." },
   { value: "zoho", label: "Zoho Mail", host: "smtp.zoho.com", port: 465, security: "ssl", hint: "Use an app-specific password if two-factor sign-in is on." },
   { value: "hosting", label: "Your website hosting (cPanel)", host: "mail.", port: 465, security: "ssl", hint: "Usually mail.yourdomain.com with the mailbox's full email as the username." },
   { value: "other", label: "Other", host: "", port: 587, security: "starttls", hint: "" },
@@ -37,8 +37,7 @@ export function EmailSettingsView({ saved, canEdit, myEmail }) {
   const [form, setForm] = useState(saved ? { ...saved, port: String(saved.port), password: "" } : blank)
   const [preset, setPreset] = useState(saved ? "" : "google")
   const [errors, setErrors] = useState({})
-  const [notice, setNotice] = useState(null)
-  const [confirmRemove, setConfirmRemove] = useState(false)
+  const { confirm } = useAlert()
   const [pending, startTransition] = useTransition()
   const hint = PRESETS.find((p) => p.value === preset)?.hint
 
@@ -54,13 +53,10 @@ export function EmailSettingsView({ saved, canEdit, myEmail }) {
 
   const save = (e) => {
     e.preventDefault()
-    setNotice(null)
     startTransition(async () => {
-      const r = await saveEmailSettings(form)
+      const r = await toastAction(() => saveEmailSettings(form), { loading: "Connecting…", success: "Connected and saved. Send a test email to make sure it arrives." })
       if (r.fieldErrors) setErrors(r.fieldErrors)
-      else if (r.error) setNotice({ tone: "error", text: r.error })
-      else {
-        setNotice({ tone: "success", text: "Connected and saved. Send a test email to make sure it arrives." })
+      else if (!r.error) {
         setEditing(false)
         set({ password: "" })
         router.refresh()
@@ -69,26 +65,29 @@ export function EmailSettingsView({ saved, canEdit, myEmail }) {
   }
   const test = () =>
     startTransition(async () => {
-      setNotice(null)
-      const r = await sendTestEmail()
-      setNotice(r.error ? { tone: "error", text: r.error } : { tone: "success", text: `Test email sent to ${r.to}. Check the inbox (and spam folder).` })
+      await toastAction(() => sendTestEmail(), { loading: "Sending a test email…", success: (r) => `Test email sent to ${r.to}. Check the inbox (and spam folder).` })
     })
-  const remove = () =>
+  const remove = async () => {
+    const ok = await confirm({
+      title: "Remove email settings?",
+      description: "PropFlow stops sending email from this workspace, and the Email button disappears from leads until email is set up again.",
+      confirmLabel: "Remove",
+      destructive: true,
+    })
+    if (!ok) return
     startTransition(async () => {
-      const r = await removeEmailSettings()
-      setConfirmRemove(false)
-      if (r.error) return setNotice({ tone: "error", text: r.error })
+      const r = await toastAction(() => removeEmailSettings(), { loading: "Removing…", success: "Email settings removed. PropFlow won't send email from this workspace until you set it up again." })
+      if (r.error) return
       setForm(blank)
       setPreset("google")
       setEditing(true)
-      setNotice({ tone: "success", text: "Email settings removed. PropFlow won't send email from this workspace until you set it up again." })
       router.refresh()
     })
+  }
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       <PageHeader title="Email" description="Your own email account for sending to leads and customers" />
-      {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         {saved && !editing ? (
@@ -122,7 +121,7 @@ export function EmailSettingsView({ saved, canEdit, myEmail }) {
                 <Button variant="outline" leftIcon="edit-line" onClick={() => setEditing(true)}>
                   Change
                 </Button>
-                <Button variant="ghost" className="ml-auto text-destructive" leftIcon="delete-bin-line" onClick={() => setConfirmRemove(true)}>
+                <Button variant="ghost" className="ml-auto text-destructive" leftIcon="delete-bin-line" disabled={pending} onClick={remove}>
                   Remove
                 </Button>
               </div>
@@ -211,26 +210,6 @@ export function EmailSettingsView({ saved, canEdit, myEmail }) {
           </ul>
         </aside>
       </div>
-
-      {confirmRemove && (
-        <Dialog
-          open
-          onOpenChange={(o) => !o && setConfirmRemove(false)}
-          className="sm:max-w-md"
-          title="Remove email settings?"
-          description="The Email button disappears from leads until email is set up again."
-          footer={
-            <>
-              <Button variant="outline" onClick={() => setConfirmRemove(false)}>
-                Cancel
-              </Button>
-              <Button variant="destructive" leftIcon="delete-bin-line" loading={pending} onClick={remove}>
-                Remove
-              </Button>
-            </>
-          }
-        />
-      )}
     </div>
   )
 }

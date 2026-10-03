@@ -15,7 +15,7 @@ const byCode = (ctx, code) =>
 
 // decision: "approved" | "rejected" (rejecting needs a note) → { ok, message } or { error }
 export async function decideApproval(code, decision, note = "") {
-  const ctx = await deskContext("/desk/approvals")
+  const ctx = await deskContext("/approvals")
   const a = await byCode(ctx, code)
   if (!a) return { error: "That request was removed." }
   if (a.status !== "pending") return { error: "It has already been decided." }
@@ -35,7 +35,7 @@ export async function decideApproval(code, decision, note = "") {
 
 // Take back a request you made
 export async function withdrawApproval(code) {
-  const ctx = await deskContext("/desk/approvals")
+  const ctx = await deskContext("/approvals")
   const a = await byCode(ctx, code)
   if (!a || a.status !== "pending") return { error: "It isn't waiting any more." }
   if (a.requestedBy !== ctx.user.id) return { error: "Only the person who asked can withdraw it." }

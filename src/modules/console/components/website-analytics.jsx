@@ -20,7 +20,7 @@ function duration(seconds) {
   return m < 60 ? `${m}m ${s % 60}s` : `${Math.floor(m / 60)}h ${m % 60}m`
 }
 
-// "▲ 12% vs previous 28 days": green up / red down, with an arrow so it isn't colour alone
+// "▲ 12% vs previous 28 days": green up / red down, with an arrow so it isn't color alone
 function Change({ now, before, days }) {
   if (!before) return <span>{now ? `New in the last ${days} days` : `None in the last ${days} days`}</span>
   const pct = Math.round(((now - before) / before) * 100)

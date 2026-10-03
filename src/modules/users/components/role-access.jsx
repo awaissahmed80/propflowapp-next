@@ -35,19 +35,21 @@ export function RoleAccess({ apps, matrix, value, readOnly, onChange }) {
             </header>
             {open && (
               <div className="divide-y">
-                <div className="grid gap-2 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_14rem] sm:items-center">
-                  <div>
-                    <p className="text-sm font-medium">Can see</p>
-                    <p className="text-xs text-muted-foreground">{scopeHint(scope, def.noun)}</p>
+                {def.scopes.length > 1 && (
+                  <div className="grid gap-2 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_14rem] sm:items-center">
+                    <div>
+                      <p className="text-sm font-medium">Can see</p>
+                      <p className="text-xs text-muted-foreground">{scopeHint(scope, def.noun)}</p>
+                    </div>
+                    <Select
+                      aria-label={`${app.name}: can see`}
+                      value={scope}
+                      disabled={readOnly}
+                      onChange={(v) => onChange({ ...value, scope: { ...value.scope, [app.code]: v } })}
+                      options={def.scopes.map((s) => ({ value: s, label: SCOPE_LABELS[s] }))}
+                    />
                   </div>
-                  <Select
-                    aria-label={`${app.name}: can see`}
-                    value={scope}
-                    disabled={readOnly}
-                    onChange={(v) => onChange({ ...value, scope: { ...value.scope, [app.code]: v } })}
-                    options={def.scopes.map((s) => ({ value: s, label: SCOPE_LABELS[s] }))}
-                  />
-                </div>
+                )}
                 {def.grants.map((g) => (
                   <div key={g.key} className="grid gap-2 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                     <div>

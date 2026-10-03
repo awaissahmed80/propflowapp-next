@@ -21,7 +21,8 @@ import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { DEFAULT_TEAM_COLOR, teamColor } from "../constants"
 import { deleteTeam, saveTeam } from "../server/teams"
-import { Notice } from "./user-parts"
+import { toastAction } from "@/lib/toast-action"
+import { useAlert } from "@/components/alert-context"
 import { memberHref } from "../links"
 
 const number = (n) => new Intl.NumberFormat("en-PK").format(n)
@@ -57,7 +58,6 @@ function TeamDialog({ team, members, lists, onClose, onSaved }) {
     target: team?.target ?? { bookings: 10, value: 100_000_000 },
   }))
   const [errors, setErrors] = useState({})
-  const [error, setError] = useState("")
   const [pending, startTransition] = useTransition()
   const set = (k, v) => {
     setForm((f) => ({ ...f, [k]: v }))
@@ -67,11 +67,9 @@ function TeamDialog({ team, members, lists, onClose, onSaved }) {
 
   const submit = () =>
     startTransition(async () => {
-      setError("")
-      const result = await saveTeam(form, team?.id)
+      const result = await toastAction(() => saveTeam(form, team?.id), { loading: "Saving…", success: team ? "Team saved." : "Team created." })
       if (result.fieldErrors) setErrors(result.fieldErrors)
-      else if (result.error) setError(result.error)
-      else onSaved()
+      else if (!result.error) onSaved()
     })
 
   return (
@@ -94,13 +92,8 @@ function TeamDialog({ team, members, lists, onClose, onSaved }) {
       }
     >
       <div className="grid gap-4 p-px sm:grid-cols-2">
-        {error && (
-          <div className="sm:col-span-2">
-            <Notice tone="error">{error}</Notice>
-          </div>
-        )}
         <Input label="Team name" required autoFocus placeholder="e.g. DHA Sales Team" value={form.name} onChange={(e) => set("name", e.target.value)} error={errors.name} />
-        <ColorPicker label="Colour" value={form.color} onChange={(v) => set("color", v)} />
+        <ColorPicker label="Color" value={form.color} onChange={(v) => set("color", v)} />
         <div className="sm:col-span-2">
           <Textarea label="Description" rows={2} value={form.description} onChange={(e) => set("description", e.target.value)} error={errors.description} />
         </div>
@@ -206,10 +199,22 @@ function TeamCard({ team, allowed, onEdit, onDelete }) {
 export function TeamsView({ teams, members, lists, allowed }) {
   const router = useRouter()
   const [editing, setEditing] = useState(null) // team | "new"
-  const [deleting, setDeleting] = useState(null)
-  const [message, setMessage] = useState(null)
-  const [pending, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
+  const { confirm } = useAlert()
   const unassigned = members.filter((m) => !m.teamId && !m.dealerId && m.status === "active" && !m.isOwner)
+  const remove = async (t) => {
+    const ok = await confirm({
+      title: `Delete the team “${t.name}”?`,
+      description: `Its ${t.members.length} ${t.members.length === 1 ? "member stays" : "members stay"} in the workspace without a team. This can't be undone.`,
+      confirmLabel: "Delete team",
+      destructive: true,
+    })
+    if (!ok) return
+    startTransition(async () => {
+      await toastAction(() => deleteTeam(t.id), { loading: "Deleting…", success: `${t.name} deleted.` })
+      router.refresh()
+    })
+  }
 
   return (
     <div className="flex h-[calc(100svh-3.5rem)] flex-col gap-4 p-4 sm:p-6 lg:p-8">
@@ -224,11 +229,10 @@ export function TeamsView({ teams, members, lists, allowed }) {
           )
         }
       />
-      {message && <Notice tone={message.tone}>{message.text}</Notice>}
       <ScrollView className="-mx-1 min-h-0 flex-1" viewportClassName="px-1 pt-1 pb-2">
         <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {teams.map((t) => (
-            <TeamCard key={t.id} team={t} allowed={allowed} onEdit={() => setEditing(t)} onDelete={() => setDeleting(t)} />
+            <TeamCard key={t.id} team={t} allowed={allowed} onEdit={() => setEditing(t)} onDelete={() => remove(t)} />
           ))}
           {allowed.edit ? (
             <button
@@ -265,41 +269,9 @@ export function TeamsView({ teams, members, lists, allowed }) {
           lists={lists}
           onClose={() => setEditing(null)}
           onSaved={() => {
-            setMessage({ tone: "success", text: editing === "new" ? "Team created." : "Team saved." })
             setEditing(null)
             router.refresh()
           }}
-        />
-      )}
-      {deleting && (
-        <Dialog
-          open
-          onOpenChange={(o) => !o && setDeleting(null)}
-          className="sm:max-w-md"
-          title={`Delete ${deleting.name}?`}
-          description={`Its ${deleting.members.length} ${deleting.members.length === 1 ? "member stays" : "members stay"} in the workspace without a team.`}
-          footer={
-            <>
-              <Button variant="outline" onClick={() => setDeleting(null)}>
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                leftIcon="delete-bin-6-line"
-                loading={pending}
-                onClick={() =>
-                  startTransition(async () => {
-                    const result = await deleteTeam(deleting.id)
-                    setMessage(result.error ? { tone: "error", text: result.error } : { tone: "success", text: `${deleting.name} deleted.` })
-                    setDeleting(null)
-                    router.refresh()
-                  })
-                }
-              >
-                Delete team
-              </Button>
-            </>
-          }
         />
       )}
     </div>

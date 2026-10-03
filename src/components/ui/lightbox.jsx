@@ -74,7 +74,10 @@ export function Lightbox({ images, index = 0, onClose }) {
               aria-label={`Photo ${i + 1}`}
               aria-current={i === current}
               onClick={() => setCurrent(i)}
-              className={cn("size-16 shrink-0 cursor-pointer overflow-hidden rounded-md border-2 outline-none focus-visible:ring-2 focus-visible:ring-ring", i === current ? "border-primary" : "border-transparent opacity-60 hover:opacity-100")}
+              className={cn(
+                "size-16 shrink-0 cursor-pointer overflow-hidden rounded-md border-2 outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                i === current ? "border-primary" : "border-transparent opacity-60 hover:opacity-100",
+              )}
             >
               {/* eslint-disable-next-line @next/next/no-img-element -- served by the workspace file route */}
               <img src={img.url} alt="" loading="lazy" className="size-full object-cover" />

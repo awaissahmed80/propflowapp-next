@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { formatDate, tenure } from "@/lib/format"
 import { labelOf } from "@/modules/lookups/options"
-import { TeamChip, Notice } from "@/modules/users/components/user-parts"
+import { TeamChip } from "@/modules/users/components/user-parts"
 import { InlinePhone } from "@/components/inline-phone"
 import { PageHeader } from "@/components/page-header"
 import { Avatar } from "@/components/ui/avatar"
@@ -29,13 +29,11 @@ function Row({ icon, label, children }) {
 // your role, team, designation and department are set by an administrator.
 export function ProfileView({ me, user, workspace, lists }) {
   const router = useRouter()
-  const [message, setMessage] = useState(null)
   const none = <span className="font-normal text-muted-foreground">Not set</span>
   const savePhone = async (phone) => {
-    setMessage(null)
     const result = await updateMyPhone(phone)
     if (!result?.error) {
-      setMessage("Mobile number updated.")
+      toast.success("Mobile number updated.")
       router.refresh()
     }
     return result
@@ -43,7 +41,6 @@ export function ProfileView({ me, user, workspace, lists }) {
   return (
     <div className="w-full min-w-0 space-y-6 p-4 sm:p-6 lg:p-8">
       <PageHeader title="Profile" description="Your details in this workspace. Ask an administrator to change your role, team or designation." />
-      {message && <Notice>{message}</Notice>}
       <div className="flex items-center gap-4 rounded-xl border bg-background p-5 shadow-xs">
         <Avatar name={user.name} source={user.avatarUrl} size="xl" />
         <div className="min-w-0">

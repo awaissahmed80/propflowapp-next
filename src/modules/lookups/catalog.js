@@ -1,8 +1,8 @@
 // Pick-lists the apps use. The list definitions live here; each workspace keeps its own values in
-// its `lookups` table (seeded from `values` below), so it can relabel, recolour and reorder them.
-//   kind "system": the code relies on these values; they can be relabelled, never added or removed
+// its `lookups` table (seeded from `values` below), so it can relabel, recolor and reorder them.
+//   kind "system": the code relies on these values; they can be relabeled, never added or removed
 //   kind "custom": the workspace can add values and switch off the ones that came with PropFlow
-// Records store only the value; labels and colours always come from the workspace's list.
+// Records store only the value; labels and colors always come from the workspace's list.
 // defaultable: the workspace picks one value that forms preselect (defaultValue to start with).
 // Used by the tenant seed too, so no path aliases here.
 
@@ -50,11 +50,11 @@ export const LOOKUP_LISTS = [
       { value: "invited", label: "Invited", color: "amber" },
     ],
   },
-  // ---------- Estate Management ----------
+  // ---------- Project Portfolio ----------
   {
     key: "project-type",
     name: "Project types",
-    app: "estate",
+    app: "portfolio",
     kind: "custom",
     defaultable: true,
     defaultValue: "housing",
@@ -71,7 +71,7 @@ export const LOOKUP_LISTS = [
   {
     key: "project-status",
     name: "Project statuses",
-    app: "estate",
+    app: "portfolio",
     kind: "system",
     defaultable: true,
     defaultValue: "pre-launch",
@@ -89,7 +89,7 @@ export const LOOKUP_LISTS = [
   {
     key: "approval-status",
     name: "Approval statuses",
-    app: "estate",
+    app: "portfolio",
     kind: "system",
     defaultable: true,
     defaultValue: "noc-applied",
@@ -105,7 +105,7 @@ export const LOOKUP_LISTS = [
   {
     key: "authority",
     name: "Approving authorities",
-    app: "estate",
+    app: "portfolio",
     kind: "custom",
     defaultable: true,
     defaultValue: "LDA",
@@ -125,7 +125,7 @@ export const LOOKUP_LISTS = [
   {
     key: "phase-stage",
     name: "Phase stages",
-    app: "estate",
+    app: "portfolio",
     kind: "system",
     defaultable: true,
     defaultValue: "balloted",
@@ -138,7 +138,7 @@ export const LOOKUP_LISTS = [
   {
     key: "block-category",
     name: "Block categories",
-    app: "estate",
+    app: "portfolio",
     kind: "custom",
     defaultable: true,
     defaultValue: "residential",
@@ -164,7 +164,7 @@ export const LOOKUP_LISTS = [
   {
     key: "unit-type",
     name: "Unit types",
-    app: "estate",
+    app: "portfolio",
     kind: "custom",
     icons: true,
     fields: [
@@ -205,7 +205,7 @@ export const LOOKUP_LISTS = [
   {
     key: "unit-status",
     name: "Unit statuses",
-    app: "estate",
+    app: "portfolio",
     kind: "system",
     colored: true,
     description: "Where a unit is in its sale. The order is also the order of the availability bars.",
@@ -220,7 +220,7 @@ export const LOOKUP_LISTS = [
   {
     key: "feature",
     name: "Premium features",
-    app: "estate",
+    app: "portfolio",
     kind: "custom",
     fields: [{ key: "premium", label: "Premium %", type: "number", min: 0, max: 100 }],
     description: "Location features that add a premium to a unit's price, e.g. corner +10%.",
@@ -235,7 +235,7 @@ export const LOOKUP_LISTS = [
   {
     key: "project-document-type",
     name: "Project document types",
-    app: "estate",
+    app: "portfolio",
     kind: "custom",
     defaultable: true,
     defaultValue: "other",
@@ -254,7 +254,7 @@ export const LOOKUP_LISTS = [
   {
     key: "development-work",
     name: "Development works",
-    app: "estate",
+    app: "portfolio",
     kind: "custom",
     icons: true,
     description: "Work items whose progress is tracked on projects, e.g. roads 80%.",
@@ -273,7 +273,7 @@ export const LOOKUP_LISTS = [
   {
     key: "update-type",
     name: "Update types",
-    app: "estate",
+    app: "portfolio",
     kind: "custom",
     colored: true,
     defaultable: true,
@@ -290,7 +290,7 @@ export const LOOKUP_LISTS = [
   {
     key: "event-type",
     name: "Event types",
-    app: "estate",
+    app: "portfolio",
     kind: "custom",
     icons: true,
     defaultable: true,
@@ -308,7 +308,7 @@ export const LOOKUP_LISTS = [
   {
     key: "hold-reason",
     name: "Hold reasons",
-    app: "estate",
+    app: "portfolio",
     kind: "custom",
     defaultable: true,
     defaultValue: "token",
@@ -323,7 +323,7 @@ export const LOOKUP_LISTS = [
   {
     key: "marla-size",
     name: "Marla sizes",
-    app: "estate",
+    app: "portfolio",
     kind: "custom",
     defaultable: true,
     defaultValue: "225",
@@ -359,7 +359,7 @@ export const LOOKUP_LISTS = [
       { value: "acre", label: "Acre", meta: { short: "Acre", measures: "land", size: 160 } },
       { value: "sqft", label: "Square feet", meta: { short: "sq ft", measures: "floor", size: 1 } },
       { value: "sqyd", label: "Square yards", meta: { short: "sq yd", measures: "floor", size: 9 } },
-      { value: "sqm", label: "Square metres", meta: { short: "m²", measures: "floor", size: 10.7639 } },
+      { value: "sqm", label: "Square meters", meta: { short: "m²", measures: "floor", size: 10.7639 } },
     ],
   },
 
@@ -444,7 +444,7 @@ export const LOOKUP_LISTS = [
   {
     key: "booking-stage",
     name: "Booking pipeline",
-    app: "sales",
+    app: "operations",
     kind: "system",
     colored: true,
     description: "Steps a booking moves through, from token to completion. A token booking starts at Token; a full booking at Booking & KYC.",
@@ -459,7 +459,7 @@ export const LOOKUP_LISTS = [
   {
     key: "booking-status",
     name: "Booking statuses",
-    app: "sales",
+    app: "operations",
     kind: "custom",
     colored: true,
     defaultable: true,
@@ -468,10 +468,67 @@ export const LOOKUP_LISTS = [
     values: [
       { value: "current", label: "Current", color: "green" },
       { value: "overdue", label: "Overdue", color: "amber" },
+      { value: "defaulter", label: "Defaulter", color: "red" },
       { value: "on-hold", label: "On hold", color: "gray" },
       { value: "transferred", label: "Transferred", color: "violet" },
-      { value: "cancelled", label: "Cancelled", color: "red" },
+      { value: "cancelled", label: "Canceled", color: "red" },
       { value: "refunded", label: "Refunded", color: "teal" },
+    ],
+  },
+  {
+    key: "booking-document",
+    name: "Booking documents",
+    app: "operations",
+    kind: "custom",
+    icons: true,
+    fields: [
+      {
+        key: "gate",
+        label: "Needed before",
+        type: "select",
+        options: [
+          { value: "allotment", label: "Allotment letter" },
+          { value: "handover", label: "Handover" },
+          { value: "possession", label: "Possession" },
+          { value: "", label: "Not tied to a step" },
+        ],
+      },
+      {
+        key: "required",
+        label: "Required?",
+        type: "select",
+        options: [
+          { value: "yes", label: "Required" },
+          { value: "no", label: "Optional" },
+        ],
+      },
+    ],
+    description: "The papers a booking collects on the way to handover. Required ones have to be uploaded before the step they're needed for (Operations › Customize › Settings can switch the check off).",
+    values: [
+      { value: "buyer-cnic", label: "Buyer's CNIC (both sides)", icon: "id-card-line", meta: { gate: "allotment", required: "yes" } },
+      { value: "photos", label: "Passport-size photos", icon: "image-line", meta: { gate: "allotment", required: "yes" } },
+      { value: "booking-form", label: "Signed booking form", icon: "file-text-line", meta: { gate: "allotment", required: "yes" } },
+      { value: "nominee-cnic", label: "Nominee's CNIC", icon: "id-card-line", meta: { gate: "allotment", required: "no" } },
+      { value: "signed-allotment", label: "Signed allotment letter", icon: "file-paper-2-line", meta: { gate: "handover", required: "yes" } },
+      { value: "ndc", label: "No demand certificate (NDC)", icon: "shield-check-line", meta: { gate: "handover", required: "yes" } },
+      { value: "possession-letter", label: "Signed possession letter", icon: "key-2-line", meta: { gate: "possession", required: "yes" } },
+      { value: "other", label: "Other", icon: "file-line", meta: { gate: "", required: "no" } },
+    ],
+  },
+  {
+    key: "payment-method",
+    name: "Payment methods",
+    app: "operations",
+    kind: "custom",
+    icons: true,
+    description: "How buyers pay. Cheques and pay orders wait in clearing until marked cleared.",
+    values: [
+      { value: "bank-transfer", label: "Bank transfer (IBFT)", icon: "bank-line" },
+      { value: "cheque", label: "Cheque", icon: "bank-card-2-line" },
+      { value: "pay-order", label: "Pay order", icon: "file-paper-2-line" },
+      { value: "cash", label: "Cash", icon: "money-dollar-circle-line" },
+      { value: "jazzcash", label: "JazzCash", icon: "smartphone-line" },
+      { value: "easypaisa", label: "Easypaisa", icon: "smartphone-line" },
     ],
   },
   {
@@ -495,7 +552,7 @@ export const LOOKUP_LISTS = [
     name: "Activity types",
     app: "crm",
     // Workspaces add their own (e.g. Video call) and switch off what they don't use. Call,
-    // WhatsApp and Site visit carry extra behaviour (header shortcuts, Site visit stage).
+    // WhatsApp and Site visit carry extra behavior (header shortcuts, Site visit stage).
     kind: "custom",
     icons: true,
     colored: true,
@@ -608,15 +665,162 @@ export const LOOKUP_LISTS = [
     description: "Cities used across the workspace: projects, dealers, contacts.",
     values: ["Lahore", "Karachi", "Islamabad", "Rawalpindi", "Faisalabad", "Multan", "Peshawar", "Gujranwala", "Sialkot", "Hyderabad", "Quetta", "Bahawalpur"].map((c) => ({ value: c, label: c })),
   },
+  {
+    key: "campaign-status",
+    name: "Campaign statuses",
+    app: "campaigns",
+    kind: "system",
+    description: "Where a campaign is in its life. Reports rely on these, so they can be renamed and recolored but not removed.",
+    colored: true,
+    values: [
+      { value: "draft", label: "Draft", color: "gray" },
+      { value: "scheduled", label: "Scheduled", color: "sky" },
+      { value: "active", label: "Live", color: "green" },
+      { value: "paused", label: "Paused", color: "amber" },
+      { value: "completed", label: "Ended", color: "violet" },
+    ],
+  },
+  {
+    key: "campaign-objective",
+    name: "Campaign objectives",
+    app: "campaigns",
+    kind: "custom",
+    description: "What a campaign is for. Used to group campaigns in lists and reports.",
+    icons: true,
+    values: [
+      { value: "launch", label: "Project launch", icon: "rocket-2-line" },
+      { value: "pre-launch", label: "Pre-launch registrations", icon: "file-list-3-line" },
+      { value: "balloting", label: "Balloting / draw", icon: "shuffle-line" },
+      { value: "booking-drive", label: "Booking drive", icon: "hand-coin-line" },
+      { value: "event", label: "Expo / event", icon: "calendar-event-line" },
+      { value: "overseas", label: "Overseas roadshow", icon: "plane-line" },
+      { value: "possession", label: "Possession / handover", icon: "key-2-line" },
+      { value: "resale", label: "Resale & rentals", icon: "home-4-line" },
+      { value: "always-on", label: "Always-on", icon: "infinity-line" },
+      { value: "awareness", label: "Brand awareness", icon: "megaphone-line" },
+    ],
+  },
+  {
+    key: "service-request-type",
+    name: "Request types",
+    app: "estate",
+    kind: "system",
+    description: "What a buyer or resident can ask for. The app relies on these; rename and recolor them only.",
+    colored: true,
+    icons: true,
+    values: [
+      { value: "transfer", label: "Transfer", color: "violet", icon: "arrow-left-right-line" },
+      { value: "ndc", label: "NDC", color: "teal", icon: "shield-check-line" },
+      { value: "possession", label: "Possession", color: "green", icon: "key-2-line" },
+      { value: "complaint", label: "Complaint", color: "amber", icon: "error-warning-line" },
+      { value: "document", label: "Document", color: "sky", icon: "file-copy-2-line" },
+      { value: "record-update", label: "Record update", color: "gray", icon: "edit-box-line" },
+    ],
+  },
+  {
+    key: "service-status",
+    name: "Request statuses",
+    app: "estate",
+    kind: "system",
+    description: "Where a request is. The app relies on these; rename and recolor them only.",
+    colored: true,
+    values: [
+      { value: "new", label: "New", color: "blue" },
+      { value: "in-progress", label: "In progress", color: "amber" },
+      { value: "awaiting-customer", label: "Waiting on customer", color: "violet" },
+      { value: "completed", label: "Done", color: "green" },
+      { value: "rejected", label: "Rejected", color: "gray" },
+    ],
+  },
+  {
+    key: "service-priority",
+    name: "Complaint priorities",
+    app: "estate",
+    kind: "system",
+    description: "How urgent a complaint is; each has its own response time (Customize › Fees & timelines).",
+    colored: true,
+    values: [
+      { value: "urgent", label: "Urgent", color: "red" },
+      { value: "high", label: "High", color: "amber" },
+      { value: "normal", label: "Normal", color: "blue" },
+      { value: "low", label: "Low", color: "gray" },
+    ],
+  },
+  {
+    key: "complaint-category",
+    name: "Complaint categories",
+    app: "estate",
+    kind: "custom",
+    description: "What residents complain about. Used to sort complaints and in reports.",
+    icons: true,
+    values: [
+      { value: "water-supply", label: "Water supply", icon: "drop-line" },
+      { value: "sewerage", label: "Sewerage", icon: "contrast-drop-2-line" },
+      { value: "electricity", label: "Electricity", icon: "flashlight-line" },
+      { value: "streetlights", label: "Streetlights", icon: "lightbulb-line" },
+      { value: "security", label: "Security", icon: "shield-user-line" },
+      { value: "cleanliness", label: "Cleanliness", icon: "delete-bin-2-line" },
+      { value: "lift", label: "Lift", icon: "arrow-up-down-line" },
+      { value: "parks", label: "Parks", icon: "plant-line" },
+      { value: "gas", label: "Gas", icon: "fire-line" },
+      { value: "roads", label: "Roads", icon: "road-map-line" },
+      { value: "other", label: "Other", icon: "question-line" },
+    ],
+  },
+  {
+    key: "service-document",
+    name: "Documents on request",
+    app: "estate",
+    kind: "custom",
+    description: "Documents buyers can ask for; each has its own fee (Customize › Fees & timelines).",
+    values: [
+      { value: "duplicate-allotment", label: "Duplicate allotment letter" },
+      { value: "statement", label: "Statement of account" },
+      { value: "site-plan", label: "Site plan" },
+      { value: "noc-mortgage", label: "NOC for mortgage" },
+    ],
+  },
+  {
+    key: "service-channel",
+    name: "Request channels",
+    app: "estate",
+    kind: "custom",
+    description: "How a request came in.",
+    values: [
+      { value: "walk-in", label: "Walk-in" },
+      { value: "phone", label: "Phone" },
+      { value: "whatsapp", label: "WhatsApp" },
+      { value: "email", label: "Email" },
+      { value: "letter", label: "Letter" },
+    ],
+  },
+  {
+    key: "vendor-category",
+    name: "Vendor categories",
+    app: "finance",
+    kind: "custom",
+    icons: true,
+    description: "What a vendor supplies, for grouping payments.",
+    values: [
+      { value: "contractor", label: "Contractor", icon: "hammer-line" },
+      { value: "supplier", label: "Material supplier", icon: "truck-line" },
+      { value: "media", label: "Media & advertising", icon: "megaphone-line" },
+      { value: "utility", label: "Utility", icon: "flashlight-line" },
+      { value: "professional", label: "Professional services", icon: "briefcase-4-line" },
+      { value: "landlord", label: "Landlord", icon: "home-4-line" },
+      { value: "government", label: "Government & authority", icon: "government-line" },
+      { value: "other", label: "Other", icon: "more-line" },
+    ],
+  },
 ]
 
 export const lookupList = (key) => LOOKUP_LISTS.find((l) => l.key === key) ?? null
 
-// Colour names older values may hold (new colours are hex from the colour picker)
+// Color names older values may hold (new colors are hex from the color picker)
 export const LOOKUP_COLORS = ["gray", "blue", "sky", "teal", "green", "amber", "red", "violet"]
 
 // Headings for lists grouped by app in the editor
-export const LOOKUP_APPS = { users: "Users & Teams", estate: "Estate Management", crm: "CRM", sales: "Sales", general: "General" }
+export const LOOKUP_APPS = { users: "Users & Teams", portfolio: "Project Portfolio", campaigns: "Campaigns", crm: "CRM", operations: "Operations", estate: "Estate Management", finance: "Finance", general: "General" }
 
 // "Senior Sales Executive" → senior-sales-executive
 export const slugify = (text) =>

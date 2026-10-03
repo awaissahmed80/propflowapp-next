@@ -26,7 +26,9 @@ export async function listAssetLibrary({ collection = "images", search = "", own
   if (term) q = q.where((w) => w.whereLike("title", `%${term}%`).orWhereLike("fileName", `%${term}%`))
   if (ownerType && ownerCode && OWNERS[ownerType]) {
     const o = OWNERS[ownerType]
-    const owner = await live(db, o.table).where({ [o.code]: String(ownerCode).toUpperCase() }).first("id")
+    const owner = await live(db, o.table)
+      .where({ [o.code]: String(ownerCode).toUpperCase() })
+      .first("id")
     q = q.where({ ownerType, ownerId: owner?.id ?? 0 })
   }
   const rows = (await q).filter((a) => full || can(permissions, a.app, a.isPrivate ? "edit" : "view"))

@@ -16,7 +16,7 @@ function ComboboxContent({ className, children, ...props }) {
           data-slot="combobox-content"
           className={cn(
             "max-h-(--available-height) w-(--anchor-width) min-w-56 origin-(--transform-origin) overflow-hidden rounded-lg bg-popover text-popover-foreground shadow-md ring-1 ring-foreground/10 duration-100 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-            className
+            className,
           )}
           {...props}
         >
@@ -33,7 +33,7 @@ function ComboboxItem({ className, children, ...props }) {
       data-slot="combobox-item"
       className={cn(
         "relative flex w-full cursor-pointer items-center gap-2 rounded-md py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50",
-        className
+        className,
       )}
       {...props}
     >
@@ -81,9 +81,7 @@ function Combobox({
   const items = useMemo(() => {
     const q = query.trim().toLowerCase()
     const showingSelection = !clearOnSelect && selected && query === selected.label
-    const matches = q && !showingSelection
-      ? options.filter((o) => [o.label, o.description].some((t) => t?.toLowerCase().includes(q)))
-      : options
+    const matches = q && !showingSelection ? options.filter((o) => [o.label, o.description].some((t) => t?.toLowerCase().includes(q))) : options
     const exact = options.some((o) => o.label.toLowerCase() === q)
     return creatable && q && !exact && !showingSelection ? [...matches, { value: CREATE, label: query.trim() }] : matches
   }, [options, query, creatable, clearOnSelect, selected])
@@ -115,15 +113,11 @@ function Combobox({
             "flex items-center gap-2 rounded-md border border-input bg-transparent pr-1 pl-3 text-sm shadow-xs transition-[color,box-shadow] dark:bg-input/20",
             "has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-[1px] has-[input:focus-visible]:ring-ring/50",
             error && "border-destructive",
-            size === "sm" ? "h-control-sm" : size === "lg" ? "h-control-lg" : "h-control"
+            size === "sm" ? "h-control-sm" : size === "lg" ? "h-control-lg" : "h-control",
           )}
         >
           <Icon name="search-line" className="shrink-0 text-base text-muted-foreground" />
-          <ComboboxPrimitive.Input
-            placeholder={placeholder}
-            aria-invalid={!!error}
-            className="h-full min-w-0 flex-1 bg-transparent outline-0 placeholder:text-muted-foreground"
-          />
+          <ComboboxPrimitive.Input placeholder={placeholder} aria-invalid={!!error} className="h-full min-w-0 flex-1 bg-transparent outline-0 placeholder:text-muted-foreground" />
           {clearable && !clearOnSelect && (selected || query) && (
             <button
               type="button"
@@ -137,17 +131,12 @@ function Combobox({
               <Icon name="close-line" className="text-base" />
             </button>
           )}
-          <ComboboxPrimitive.Trigger
-            aria-label="Show options"
-            className="flex size-7 cursor-pointer items-center justify-center rounded text-muted-foreground hover:bg-accent"
-          >
+          <ComboboxPrimitive.Trigger aria-label="Show options" className="flex size-7 cursor-pointer items-center justify-center rounded text-muted-foreground hover:bg-accent">
             <Icon name="arrow-down-s-line" className="text-base" />
           </ComboboxPrimitive.Trigger>
         </div>
         <ComboboxContent>
-          <ComboboxPrimitive.Empty className="px-3 py-6 text-center text-sm text-muted-foreground empty:hidden">
-            {emptyText}
-          </ComboboxPrimitive.Empty>
+          <ComboboxPrimitive.Empty className="px-3 py-6 text-center text-sm text-muted-foreground empty:hidden">{emptyText}</ComboboxPrimitive.Empty>
           <ComboboxPrimitive.List className="max-h-72 overflow-y-auto p-1 empty:hidden">
             {(option) =>
               option.value === CREATE ? (
@@ -162,9 +151,7 @@ function Combobox({
                   {option.icon && <Icon name={option.icon} className="text-base text-muted-foreground" />}
                   <span className="min-w-0 flex-1">
                     <span className="block truncate">{option.label}</span>
-                    {option.description && (
-                      <span className="block truncate text-xs text-muted-foreground">{option.description}</span>
-                    )}
+                    {option.description && <span className="block truncate text-xs text-muted-foreground">{option.description}</span>}
                   </span>
                 </ComboboxItem>
               )

@@ -66,7 +66,7 @@ export async function uploadLogo(formData) {
   const buffer = Buffer.from(await file.arrayBuffer())
   const type = detectFileType(buffer)
   if (!type || !LOGO_TYPES.includes(type.mime)) return { error: "Use a PNG, JPG or WebP image. (SVG isn't accepted.)" }
-  const key = await saveFile({ folder: `tenants/${s.tenant.code.toLowerCase()}/branding`, buffer, ext: type.ext })
+  const key = await saveFile({ folder: `tenants/${s.tenant.code.toLowerCase()}/branding`, buffer, ext: type.ext, contentType: type.mime })
   const old = (await readSettings(s.tenant, ["company_logo"])).company_logo
   await writeSettings(s.tenant, { company_logo: key, company_logo_type: type.mime }, s.user.id)
   if (old) await deleteFile(old).catch(() => {})
@@ -134,7 +134,8 @@ export async function saveBankAccount(id, input) {
     const banks = await live(trx, "accounts").where({ kind: "bank" }).select("id", "isDefault")
     // The first bank account is where receipts go unless someone picks another
     const makeDefault = v.isDefault || !banks.some((b) => b.isDefault && b.id !== Number(id))
-    if (makeDefault) await trx("accounts").where({ kind: "bank" }).update({ isDefault: false })
+    // One default for all cash and bank accounts (the first bank takes over from Cash in hand)
+    if (makeDefault) await trx("accounts").whereIn("kind", ["cash", "bank"]).update({ isDefault: false })
     if (id) {
       const updated = await live(trx, "accounts")
         .where({ id: Number(id), kind: "bank" })

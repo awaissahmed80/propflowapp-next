@@ -11,9 +11,14 @@ export async function up(knex) {
   let n = 0
   for (const r of rows) {
     n++
-    await knex("invoice_payments").where({ id: r.id }).update({ code: `PAY-${new Date(r.created_at).getFullYear()}-${String(n).padStart(5, "0")}` })
+    await knex("invoice_payments")
+      .where({ id: r.id })
+      .update({ code: `PAY-${new Date(r.created_at).getFullYear()}-${String(n).padStart(5, "0")}` })
   }
-  if (n) await knex("sequences").where({ key: "payment" }).update({ next_value: n + 1, period: year })
+  if (n)
+    await knex("sequences")
+      .where({ key: "payment" })
+      .update({ next_value: n + 1, period: year })
 }
 
 export async function down(knex) {

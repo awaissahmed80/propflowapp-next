@@ -13,7 +13,9 @@ import { loadInvoice, resendInvoice } from "../server/invoices"
 import { VoidDialog } from "./invoice-actions"
 import { InvoiceDialog } from "./invoice-dialog"
 import { InvoicePreviewDialog, download } from "./invoice-preview"
-import { InvoiceStatus, Notice } from "./parts"
+import { toast } from "sonner"
+import { toastAction } from "@/lib/toast-action"
+import { InvoiceStatus } from "./parts"
 import { urlCode } from "@/lib/url"
 
 const EDITABLE = ["draft", "issued", "overdue"]
@@ -25,7 +27,6 @@ export function InvoicesTable({ rows, canManage, taxRate, showWorkspace = true, 
   const router = useRouter()
   const [preview, setPreview] = useState(null) // invoice code
   const [editing, setEditing] = useState(null) // invoice from loadInvoice
-  const [notice, setNotice] = useState(null)
   const [loadingCode, setLoadingCode] = useState(null)
   const [voiding, setVoiding] = useState(null) // invoice row being voided
   const [, startTransition] = useTransition()
@@ -35,16 +36,15 @@ export function InvoicesTable({ rows, canManage, taxRate, showWorkspace = true, 
       setLoadingCode(code)
       const r = await loadInvoice(code)
       setLoadingCode(null)
-      if (r.error) setNotice({ tone: "error", text: r.error })
+      if (r.error) toast.error(r.error)
       else setEditing(r.inv)
     })
   const open = (row) => setPreview(row.code)
   const resend = (row) =>
     startTransition(async () => {
       setLoadingCode(row.code)
-      const r = await resendInvoice(row.id)
+      await toastAction(() => resendInvoice(row.id), { loading: "Sending…", success: `${row.code} emailed again, with the PDF attached.` })
       setLoadingCode(null)
-      setNotice(r.error ? { tone: "error", text: r.error } : { tone: "success", text: `${row.code} emailed again, with the PDF attached.` })
     })
 
   const columns = [
@@ -103,7 +103,6 @@ export function InvoicesTable({ rows, canManage, taxRate, showWorkspace = true, 
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
-      {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
       <div className="min-h-0 flex-1">
         <DataTable columns={columns} rows={rows} minWidth={minWidth} onRowClick={open} empty={empty} />
       </div>
@@ -124,7 +123,7 @@ export function InvoicesTable({ rows, canManage, taxRate, showWorkspace = true, 
           onClose={() => setVoiding(null)}
           onDone={(m) => {
             setVoiding(null)
-            setNotice({ tone: "success", text: `${voiding.code}: ${m}` })
+            toast.success(`${voiding.code}: ${m}`)
             router.refresh()
           }}
         />
@@ -136,17 +135,8 @@ export function InvoicesTable({ rows, canManage, taxRate, showWorkspace = true, 
           onClose={() => setEditing(null)}
           onDone={(result, issued) => {
             setEditing(null)
-            setNotice({
-              tone: result.emailed === false ? "error" : "success",
-              text:
-                result.emailed === false
-                  ? `${result.code} saved, but the email couldn't be sent: ${result.emailError}`
-                  : issued
-                    ? `${result.code} issued and emailed.`
-                    : result.emailed
-                      ? `${result.code} saved and emailed again.`
-                      : `${result.code} saved.`,
-            })
+            if (result.emailed === false) toast.error(`${result.code} saved, but the email couldn't be sent: ${result.emailError}`)
+            else toast.success(issued ? `${result.code} issued and emailed.` : result.emailed ? `${result.code} saved and emailed again.` : `${result.code} saved.`)
             router.refresh()
           }}
         />

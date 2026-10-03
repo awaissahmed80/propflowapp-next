@@ -142,8 +142,8 @@ export async function seatUsage(ctx, { members, invites } = {}) {
 
 // Dealer firms with their logins and waiting invitations
 export async function listDealers(ctx, members, invites) {
-  const rows = await live(ctx.db, "dealers").orderBy("name").select("id", "code", "name", "contactName", "phone", "email", "city", "address", "ntn", "notes", "isActive")
-  // Inventory allocated to each dealer's quota (Estate Management)
+  const rows = await live(ctx.db, "dealers").orderBy("name").select("id", "code", "name", "contactName", "phone", "email", "city", "address", "ntn", "commissionPct", "notes", "isActive")
+  // Inventory allocated to each dealer's quota (Project Portfolio)
   const quota = await live(ctx.db, "units").whereNotNull("dealerId").groupBy("dealerId", "status").select("dealerId", "status").count({ n: "id" })
   const quotaOf = (id) => {
     const mine = quota.filter((q) => q.dealerId === id)
@@ -151,6 +151,7 @@ export async function listDealers(ctx, members, invites) {
   }
   return rows.map((d) => ({
     ...d,
+    commissionPct: d.commissionPct == null ? "" : Number(d.commissionPct),
     quota: quotaOf(d.id),
     logins: members.filter((m) => m.dealerId === d.id),
     invites: invites.filter((i) => i.dealerId === d.id),

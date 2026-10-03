@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useState, useTransition } from "react"
+import { toast } from "sonner"
 import { requestResetCode, setNewPassword, verifyResetCode } from "@/server/auth/reset-actions"
 import { MIN_PASSWORD } from "@/lib/password"
 import { Button } from "@/components/ui/button"
@@ -46,7 +47,6 @@ export function ResetFlow({ initialEmail }) {
   const [form, setForm] = useState({ password: "", confirm: "" })
   const [errors, setErrors] = useState({})
   const [error, setError] = useState("")
-  const [notice, setNotice] = useState("")
   const [resendIn, setResendIn] = useCountdown(0)
   // Remounts the code field so it takes focus again after a wrong code or a new code
   const [codeRound, setCodeRound] = useState(0)
@@ -63,7 +63,7 @@ export function ResetFlow({ initialEmail }) {
       setCode("")
       setCodeRound((r) => r + 1)
       setResendIn(result.resendIn)
-      setNotice(again ? "If there's an account for this email, a new code is on its way." : "")
+      if (again) toast.success("If there's an account for this email, a new code is on its way.")
       setStep("code")
     })
 
@@ -166,11 +166,6 @@ export function ResetFlow({ initialEmail }) {
         <p className="mt-1.5 text-sm text-muted-foreground">
           If there&apos;s an account for <span className="font-medium text-foreground">{email}</span>, we&apos;ve sent a 6-digit code. It works for 15 minutes.
         </p>
-        {notice && !error && (
-          <p role="status" className="mt-4 text-sm text-muted-foreground">
-            {notice}
-          </p>
-        )}
         {error && <Alert>{error}</Alert>}
         <div className="mt-6">
           <OtpField

@@ -6,8 +6,7 @@ export async function up(knex) {
   await knex.schema.alterTable("lookups", (t) => {
     t.boolean("is_preselected").notNullable().defaultTo(false).after("is_default")
   })
-  for (const list of LOOKUP_LISTS.filter((l) => l.defaultValue))
-    await knex("lookups").where({ list_key: list.key, value: list.defaultValue }).whereNull("deleted_at").update({ is_preselected: true })
+  for (const list of LOOKUP_LISTS.filter((l) => l.defaultValue)) await knex("lookups").where({ list_key: list.key, value: list.defaultValue }).whereNull("deleted_at").update({ is_preselected: true })
 }
 
 export async function down(knex) {

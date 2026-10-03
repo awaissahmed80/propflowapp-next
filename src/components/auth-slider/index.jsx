@@ -60,7 +60,7 @@ function usePrefersReducedMotion() {
       return () => mq.removeEventListener("change", onChange)
     },
     () => window.matchMedia(REDUCED).matches,
-    () => false
+    () => false,
   )
 }
 
@@ -71,7 +71,7 @@ function useDocumentHidden() {
       return () => document.removeEventListener("visibilitychange", onChange)
     },
     () => document.hidden,
-    () => false
+    () => false,
   )
 }
 
@@ -81,20 +81,7 @@ function PlotPattern() {
     <svg aria-hidden className="absolute inset-0 -z-20 size-full text-white/10">
       <defs>
         <pattern id="auth-plots" width="176" height="128" patternUnits="userSpaceOnUse">
-          {[0, 1, 2, 3].map((col) =>
-            [0, 1].map((row) => (
-              <rect
-                key={`${col}-${row}`}
-                x={12 + col * 38}
-                y={12 + row * 48}
-                width="34"
-                height="44"
-                rx="2"
-                fill="none"
-                stroke="currentColor"
-              />
-            ))
-          )}
+          {[0, 1, 2, 3].map((col) => [0, 1].map((row) => <rect key={`${col}-${row}`} x={12 + col * 38} y={12 + row * 48} width="34" height="44" rx="2" fill="none" stroke="currentColor" />))}
         </pattern>
       </defs>
       <rect width="100%" height="100%" fill="url(#auth-plots)" />
@@ -123,23 +110,14 @@ export function AuthSlider({ className }) {
       onMouseLeave={() => setHovered(false)}
     >
       <PlotPattern />
-      <div
-        aria-hidden
-        className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_35%,rgb(2_112_210/0.35),transparent_60%)]"
-      />
+      <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_35%,rgb(2_112_210/0.35),transparent_60%)]" />
 
       <div className="flex h-full flex-col p-8 xl:p-12">
         <div className="flex items-center justify-between">
-          <a
-            href={siteUrl("web")}
-            aria-label="PropFlow home"
-            className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-          >
+          <a href={siteUrl("web")} aria-label="PropFlow home" className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-white/70">
             <Logo variant="light" className="h-9" />
           </a>
-          <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur-sm">
-            Real Estate ERP
-          </span>
+          <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur-sm">Real Estate ERP</span>
         </div>
 
         {/* Workflow chart for the current slide; key re-mounts it so it animates in again */}
@@ -150,19 +128,12 @@ export function AuthSlider({ className }) {
         </div>
 
         <div className="max-w-xl">
-          <div
-            key={index}
-            aria-live={autoplay && !paused ? "off" : "polite"}
-            className="animate-in fade-in slide-in-from-bottom-4 duration-700 motion-reduce:animate-none"
-          >
+          <div key={index} aria-live={autoplay && !paused ? "off" : "polite"} className="animate-in fade-in slide-in-from-bottom-4 duration-700 motion-reduce:animate-none">
             <p className="inline-flex items-center gap-1.5 rounded-full bg-sky-400/10 px-2.5 py-1 text-xs font-semibold tracking-wide text-sky-300 ring-1 ring-sky-400/20">
               <Icon name={slide.icon} /> {slide.eyebrow}
             </p>
             <h2 className="mt-4 text-3xl leading-[1.1] font-semibold tracking-tight text-balance xl:text-[2.5rem]">
-              {slide.title}{" "}
-              <span className="bg-gradient-to-r from-sky-300 to-blue-500 bg-clip-text text-transparent">
-                {slide.highlight}
-              </span>
+              {slide.title} <span className="bg-gradient-to-r from-sky-300 to-blue-500 bg-clip-text text-transparent">{slide.highlight}</span>
             </h2>
             <p className="mt-4 text-base leading-relaxed text-pretty text-white/65">{slide.text}</p>
           </div>
@@ -170,14 +141,7 @@ export function AuthSlider({ className }) {
           {/* Progress bars double as slide navigation */}
           <div className="mt-8 flex gap-2">
             {SLIDES.map((s, i) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => setIndex(i)}
-                aria-label={`Show slide ${i + 1}: ${s.eyebrow}`}
-                aria-current={i === index}
-                className="group h-6 flex-1 cursor-pointer py-2.5 outline-none"
-              >
+              <button key={s.id} type="button" onClick={() => setIndex(i)} aria-label={`Show slide ${i + 1}: ${s.eyebrow}`} aria-current={i === index} className="group h-6 flex-1 cursor-pointer py-2.5 outline-none">
                 <span className="block h-1 overflow-hidden rounded-full bg-white/20 transition-colors group-hover:bg-white/35 group-focus-visible:ring-2 group-focus-visible:ring-white/70">
                   {i < index && <span className="block h-full bg-white" />}
                   {i === index && (

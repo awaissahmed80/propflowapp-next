@@ -59,7 +59,7 @@ function Empty({ children }) {
   return <p className="px-5 py-8 text-center text-sm text-muted-foreground">{children}</p>
 }
 
-// Open leads by stage: one bar each, in the stage's colour, labelled
+// Open leads by stage: one bar each, in the stage's color, labeled
 function Stages({ stages }) {
   const statuses = useList("lead-status")
   const max = Math.max(1, ...stages.map((s) => s.count))
@@ -85,7 +85,7 @@ function Stages({ stages }) {
   )
 }
 
-// New leads per week: columns with the count on hover; the latest week is labelled
+// New leads per week: columns with the count on hover; the latest week is labeled
 function Weeks({ weeks }) {
   const max = Math.max(1, ...weeks.map((w) => w.count))
   const label = (d) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(new Date(`${d}T00:00:00`))

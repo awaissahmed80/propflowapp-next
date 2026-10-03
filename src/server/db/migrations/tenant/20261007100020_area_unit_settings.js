@@ -7,7 +7,9 @@ export async function up(knex) {
     const row = await knex("lookups").where({ list_key: "area-unit", value }).first("id", "meta")
     if (!row) continue
     const meta = typeof row.meta === "string" ? JSON.parse(row.meta) : (row.meta ?? {})
-    await knex("lookups").where({ id: row.id }).update({ meta: JSON.stringify({ measures, size, ...meta }) })
+    await knex("lookups")
+      .where({ id: row.id })
+      .update({ meta: JSON.stringify({ measures, size, ...meta }) })
   }
 }
 

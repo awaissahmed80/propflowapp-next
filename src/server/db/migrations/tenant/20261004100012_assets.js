@@ -2,7 +2,7 @@ import { externalId, tableDefaults, timestamps } from "../../columns.js"
 
 // Every file in the workspace, in one place: project photos and documents, unit photos, booking
 // documents, contact CNIC scans… attached to any record (owner_type + owner_id). Virtual folders
-// (asset_folders) organise them for the Documents app. Files live in storage; each asset has a
+// (asset_folders) organize them for the Documents app. Files live in storage; each asset has a
 // random code for its URL, never the row id.
 export async function up(knex) {
   await knex.schema.dropTableIfExists("project_files")

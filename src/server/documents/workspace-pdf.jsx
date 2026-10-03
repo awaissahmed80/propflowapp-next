@@ -74,4 +74,10 @@ export function Table({ cols, rows, header = true }) {
 }
 
 // "PL-0001 · page 1 of 2" at the foot of every page
-export const Footer = ({ text }) => <Text fixed style={{ position: "absolute", bottom: 26, left: 45, right: 45, fontSize: 7.5, color: MUTED, textAlign: "center" }} render={({ pageNumber, totalPages }) => `${text} · page ${pageNumber} of ${totalPages}`} />
+export const Footer = ({ text }) => (
+  <Text
+    fixed
+    style={{ position: "absolute", bottom: 26, left: 45, right: 45, fontSize: 7.5, color: MUTED, textAlign: "center" }}
+    render={({ pageNumber, totalPages }) => `${text} · page ${pageNumber} of ${totalPages}`}
+  />
+)

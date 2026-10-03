@@ -10,7 +10,7 @@ import { normalizeHex } from "@/lib/color"
 import { LOOKUP_COLORS, lookupList, slugify } from "./catalog"
 
 // Lists & Labels: save or reset one list. Whoever can edit the list's app (or has full access)
-// may change it. System lists: relabel, recolour, reorder only. Custom lists: also add values,
+// may change it. System lists: relabel, recolor, reorder only. Custom lists: also add values,
 // switch them off, and delete values the workspace added. Values that came with PropFlow are
 // never deleted, so older records keep their label.
 
@@ -35,12 +35,12 @@ const valuesSchema = z
     z.object({
       value: z.string().trim().min(1).max(60),
       label: z.string().trim().min(1, "Every value needs a label.").max(120, "Keep labels under 120 characters."),
-      // Hex from the colour picker (older lists may still hold a colour name)
+      // Hex from the color picker (older lists may still hold a color name)
       color: z
         .string()
         .nullable()
         .optional()
-        .refine((c) => !c || LOOKUP_COLORS.includes(c) || normalizeHex(c), "Pick a colour.")
+        .refine((c) => !c || LOOKUP_COLORS.includes(c) || normalizeHex(c), "Pick a color.")
         .transform((c) => (c && !LOOKUP_COLORS.includes(c) ? normalizeHex(c) : c)),
       icon: z
         .string()
@@ -131,7 +131,7 @@ export async function saveLookupList(key, input) {
   return { ok: true }
 }
 
-// Back to the values PropFlow ships with: their labels, colours, order and on. Values the
+// Back to the values PropFlow ships with: their labels, colors, order and on. Values the
 // workspace added are switched off (not deleted), so records using them keep their label.
 export async function resetLookupList(key) {
   const { list, db, user, error } = await listEditor(key)

@@ -13,7 +13,9 @@ export const SITES = { web: null, auth: "auth", portal: "portal", console: "cons
 
 // "auth.propflowapp.test:443" → "auth"; unknown hosts → null
 export function siteForHost(host) {
-  const hostname = String(host ?? "").split(":")[0].toLowerCase()
+  const hostname = String(host ?? "")
+    .split(":")[0]
+    .toLowerCase()
   if (hostname === ROOT_DOMAIN || hostname === `www.${ROOT_DOMAIN}`) return "web"
   if (!hostname.endsWith(`.${ROOT_DOMAIN}`)) return null
   const sub = hostname.slice(0, -(ROOT_DOMAIN.length + 1))

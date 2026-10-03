@@ -13,7 +13,7 @@ function box(screen, id) {
 }
 
 // Crop of a screenshot, magnified, keeping the area's proportions
-export function Lens({ screen, callout, n, label, className, style }) {
+export function Lens({ screen, callout, n, label, className, style, float = false }) {
   const c = box(screen, callout)
   if (!c) return null
   const { src, srcDark } = SCREENS[screen]
@@ -25,8 +25,15 @@ export function Lens({ screen, callout, n, label, className, style }) {
     backgroundPosition: `${pos(c.x, c.w)}% ${pos(c.y, c.h)}%`,
   })
   return (
-    <figure className={cn("pointer-events-none rounded-2xl bg-card p-1.5 shadow-2xl ring-1 shadow-slate-900/20 ring-slate-900/10 dark:shadow-black/60 dark:ring-white/15", className)} style={style}>
-      <div className="overflow-hidden rounded-xl ring-1 ring-slate-900/5 dark:ring-white/10">
+    <figure
+      className={cn(
+        "pointer-events-none rounded-2xl bg-card p-1.5 shadow-2xl ring-1 shadow-slate-900/20 ring-slate-900/10 dark:shadow-black/60 dark:ring-white/15",
+        float && "motion-safe:animate-[lens-float_7s_ease-in-out_infinite]",
+        className,
+      )}
+      style={{ ...style, ...(float ? { animationDelay: `${(n ?? 0) * -1.7}s` } : {}) }}
+    >
+      <div className="lens-sheen relative overflow-hidden rounded-xl ring-1 ring-slate-900/5 dark:ring-white/10" style={{ "--sheen-delay": `${(n ?? 0) * 1.6}s` }}>
         <div role="img" aria-label={label} className="dark:hidden" style={crop(src)} />
         <div role="img" aria-label={label} className="hidden dark:block" style={crop(srcDark ?? src)} />
       </div>
@@ -40,8 +47,13 @@ export function Lens({ screen, callout, n, label, className, style }) {
   )
 }
 
-function Badge({ n, className }) {
-  return <span className={cn("flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground", className)}>{n}</span>
+function Badge({ n, className, ping = false }) {
+  return (
+    <span className={cn("relative flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground", className)}>
+      {ping && <span aria-hidden className="absolute inset-0 rounded-full bg-primary motion-safe:animate-[callout-ping_2.6s_cubic-bezier(0,0,0.2,1)_infinite]" style={{ animationDelay: `${n * 0.45}s` }} />}
+      <span className="relative">{n}</span>
+    </span>
+  )
 }
 
 // A screen in a browser frame. lenses: [{ callout, label, screen?, at: { left|right, top|bottom }, width }]
@@ -51,7 +63,7 @@ export function Screen({ id, url, alt = "", lenses = [], priority = false, class
   if (!s) return null
   return (
     <div className={cn("relative", className)}>
-      <div className="overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 shadow-slate-900/15 ring-slate-900/10 dark:bg-zinc-900 dark:shadow-black/50 dark:ring-white/10">
+      <div data-reveal="screen" className="overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 shadow-slate-900/15 ring-slate-900/10 dark:bg-zinc-900 dark:shadow-black/50 dark:ring-white/10">
         <div className="flex h-8 items-center gap-1.5 border-b border-slate-200 bg-slate-50 px-3 dark:border-white/10 dark:bg-zinc-800">
           <span className="size-2.5 rounded-full bg-[#ff5f57]" />
           <span className="size-2.5 rounded-full bg-[#febc2e]" />
@@ -78,7 +90,8 @@ export function Screen({ id, url, alt = "", lenses = [], priority = false, class
                 className="absolute rounded-lg ring-2 ring-primary motion-safe:animate-[pulse-ring_2.4s_ease-in-out_infinite]"
                 style={{ left: `${c.x}%`, top: `${c.y}%`, width: `${c.w}%`, height: `${c.h}%` }}
               >
-                <Badge n={i + 1} className="absolute -top-2.5 -left-2.5 shadow" />
+                <span className="callout-trace" style={{ animationDelay: `${i * -1.5}s` }} />
+                <Badge n={i + 1} ping className="absolute -top-2.5 -left-2.5 shadow" />
               </span>
             )
           })}
@@ -87,18 +100,19 @@ export function Screen({ id, url, alt = "", lenses = [], priority = false, class
       {lenses.length > 0 && (
         <div className="mt-6 grid gap-6 sm:grid-cols-2 md:contents">
           {lenses.map((l, i) => (
-            <Lens
+            // Pops in after the screen, one after another, then floats
+            <div
               key={l.callout + (l.screen ?? "")}
-              screen={l.screen ?? id}
-              callout={l.callout}
-              n={i + 1}
-              label={l.label}
+              data-reveal="lens"
               className="md:absolute md:top-(--top) md:right-(--right) md:bottom-(--bottom) md:left-(--left) md:z-10 md:w-(--w)"
               style={{
                 "--w": l.width ?? "38%",
+                "--delay": `${450 + i * 220}ms`,
                 ...Object.fromEntries(Object.entries(l.at ?? {}).map(([k, v]) => [`--${k}`, v])),
               }}
-            />
+            >
+              <Lens screen={l.screen ?? id} callout={l.callout} n={i + 1} label={l.label} float />
+            </div>
           ))}
         </div>
       )}

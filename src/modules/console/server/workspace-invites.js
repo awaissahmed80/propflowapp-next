@@ -159,7 +159,7 @@ export async function resendWorkspaceInvite(id, { send = true } = {}) {
     action: "workspace_invite.resent",
     subjectType: "workspace_invitation",
     subjectId: invite.id,
-    details: { summary: `${invite.email}${invite.revokedAt ? " (was cancelled)" : ""}`, emailed: mail.ok },
+    details: { summary: `${invite.email}${invite.revokedAt ? " (was canceled)" : ""}`, emailed: mail.ok },
   })
   return { ok: true, link, emailed: mail.ok, emailError: mail.ok ? null : mail.error }
 }
@@ -168,7 +168,7 @@ export async function revokeWorkspaceInvite(id) {
   const { staff, error } = await requireWorkspaces()
   if (error) return { error }
   const invite = await unusedInvite(id)
-  if (!invite || invite.revokedAt) return { error: "That invitation was already used or cancelled." }
+  if (!invite || invite.revokedAt) return { error: "That invitation was already used or canceled." }
   await platformDb()("workspaceInvitations").where({ id: invite.id }).update({ revokedAt: new Date(), updatedAt: new Date(), updatedBy: staff.user.id })
   await logAudit({ actorUserId: staff.user.id, action: "workspace_invite.revoked", subjectType: "workspace_invitation", subjectId: invite.id, details: { summary: invite.email } })
   return { ok: true }

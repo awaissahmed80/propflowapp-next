@@ -5,13 +5,12 @@ import { Button } from "@/components/ui/button"
 import { ScrollView } from "@/components/ui/scroll-view"
 import { ToggleGroup } from "@/components/ui/toggle-group"
 import { sendTestEmail } from "../server/actions"
-import { Notice } from "./parts"
+import { toastAction } from "@/lib/toast-action"
 
 // One rendered email: how it looks in an inbox list, the message itself (in a sandboxed frame,
 // always on white like a mail app), and the plain-text copy
 export function EmailPreview({ name, email, canSend, myEmail }) {
   const [view, setView] = useState("html")
-  const [notice, setNotice] = useState(null)
   const [pending, startTransition] = useTransition()
 
   return (
@@ -32,8 +31,7 @@ export function EmailPreview({ name, email, canSend, myEmail }) {
             loading={pending}
             onClick={() =>
               startTransition(async () => {
-                const result = await sendTestEmail(name)
-                setNotice(result.error ? { tone: "error", text: result.error } : { tone: "success", text: `Test sent to ${result.to}.` })
+                await toastAction(() => sendTestEmail(name), { loading: "Sending a test…", success: (r) => `Test sent to ${r.to}.` })
               })
             }
           >
@@ -41,7 +39,6 @@ export function EmailPreview({ name, email, canSend, myEmail }) {
           </Button>
         )}
       </div>
-      {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
 
       <div className="overflow-hidden rounded-xl border bg-background shadow-xs">
         <div className="border-b px-4 py-3">

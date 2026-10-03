@@ -7,23 +7,39 @@ import { normalizeHex, readableOn } from "@/lib/color"
 import { Icon } from "./icon"
 import { Label } from "./label"
 
-// Colour picker: a swatch button that opens a card with a big preview of the colour and its hex,
-// preset swatches, and a hex field for any other colour. Values are lowercase "#rrggbb".
-//   <ColorPicker label="Colour" value={hex} onChange={setHex} />
+// Color picker: a swatch button that opens a card with a big preview of the color and its hex,
+// preset swatches, and a hex field for any other color. Values are lowercase "#rrggbb".
+//   <ColorPicker label="Color" value={hex} onChange={setHex} />
 //   colors: the preset swatches (defaults to PRESET_COLORS)
 
-// Twenty to pick from: the rainbow, two greys and the brand blue
+// Twenty to pick from: the rainbow, two grays and the brand blue
 export const PRESET_COLORS = [
-  "#ef4444", "#f97316", "#f59e0b", "#eab308", "#84cc16",
-  "#22c55e", "#10b981", "#14b8a6", "#06b6d4", "#0ea5e9",
-  "#3b82f6", "#1528a0", "#6366f1", "#8b5cf6", "#a855f7",
-  "#d946ef", "#ec4899", "#f43f5e", "#64748b", "#78716c",
+  "#ef4444",
+  "#f97316",
+  "#f59e0b",
+  "#eab308",
+  "#84cc16",
+  "#22c55e",
+  "#10b981",
+  "#14b8a6",
+  "#06b6d4",
+  "#0ea5e9",
+  "#3b82f6",
+  "#1528a0",
+  "#6366f1",
+  "#8b5cf6",
+  "#a855f7",
+  "#d946ef",
+  "#ec4899",
+  "#f43f5e",
+  "#64748b",
+  "#78716c",
 ]
 
 // The card on its own, for use inside other popovers or forms
 export function ColorPickerPanel({ value, onChange, colors = PRESET_COLORS, className }) {
   const current = normalizeHex(value) ?? colors[0]
-  // The field shows what's typed; it only sets the colour once it's a valid hex
+  // The field shows what's typed; it only sets the color once it's a valid hex
   const [draft, setDraft] = useState(current.toUpperCase())
   const [editing, setEditing] = useState(false)
   const shown = editing ? draft : current.toUpperCase()
@@ -34,7 +50,7 @@ export function ColorPickerPanel({ value, onChange, colors = PRESET_COLORS, clas
         {current}
       </div>
       <div className="space-y-3 p-3">
-        <div className="grid grid-cols-5 gap-2" role="listbox" aria-label="Preset colours">
+        <div className="grid grid-cols-5 gap-2" role="listbox" aria-label="Preset colors">
           {colors.map((c) => {
             const selected = c.toLowerCase() === current
             return (
@@ -51,7 +67,7 @@ export function ColorPickerPanel({ value, onChange, colors = PRESET_COLORS, clas
                 }}
                 className={cn(
                   "flex aspect-square cursor-pointer items-center justify-center rounded-md outline-none ring-offset-2 ring-offset-popover transition hover:scale-105 focus-visible:ring-2 focus-visible:ring-ring",
-                  selected && "ring-2 ring-foreground/70"
+                  selected && "ring-2 ring-foreground/70",
                 )}
                 style={{ backgroundColor: c, color: readableOn(c) }}
               >
@@ -63,7 +79,7 @@ export function ColorPickerPanel({ value, onChange, colors = PRESET_COLORS, clas
         <label className="flex h-control items-center gap-2 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-[1px] focus-within:ring-ring/50 dark:bg-input/20">
           <span className="size-4 shrink-0 rounded-sm border" style={{ backgroundColor: normalizeHex(shown) ?? current }} aria-hidden />
           <input
-            aria-label="Hex colour"
+            aria-label="Hex color"
             spellCheck={false}
             maxLength={7}
             value={shown}
@@ -95,7 +111,8 @@ export function ColorPickerPanel({ value, onChange, colors = PRESET_COLORS, clas
 
 // Swatch field + popover card. Looks and sizes like Input (label, full width, error).
 // size "sm" matches small inputs (e.g. inside tables)
-export function ColorPicker({ value, onChange, colors = PRESET_COLORS, label, error, required = false, disabled, size = "default", className, "aria-label": ariaLabel }) {
+export function ColorPicker({ value, onChange, colors = PRESET_COLORS, label, error, required = false, disabled, size = "default", swatchOnly = false, className, "aria-label": ariaLabel }) {
+  // swatchOnly: a square button showing just the color (compact rows)
   const id = useId()
   const errorId = `${id}-error`
   const current = normalizeHex(value) ?? colors[0]
@@ -111,24 +128,28 @@ export function ColorPicker({ value, onChange, colors = PRESET_COLORS, label, er
         <PopoverPrimitive.Trigger
           id={id}
           disabled={disabled}
-          aria-label={ariaLabel ?? (label ? undefined : "Colour")}
+          aria-label={ariaLabel ?? (label ? undefined : "Color")}
           aria-invalid={!!error}
           aria-describedby={error ? errorId : undefined}
           className={cn(
-            "flex w-full min-w-0 cursor-pointer items-center gap-2 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs transition-[color,box-shadow] outline-0 dark:bg-input/20",
-            size === "sm" ? "h-control-sm" : "h-control",
+            "flex min-w-0 cursor-pointer items-center gap-2 rounded-md border border-input bg-transparent text-sm shadow-xs transition-[color,box-shadow] outline-0 dark:bg-input/20",
+            swatchOnly ? cn("justify-center px-0", size === "sm" ? "h-control-sm w-control-sm" : "h-control w-control") : cn("w-full px-3", size === "sm" ? "h-control-sm" : "h-control"),
             "focus-visible:border-ring focus-visible:ring-[1px] focus-visible:ring-ring/50 data-popup-open:border-ring data-popup-open:ring-[1px] data-popup-open:ring-ring/50",
-            "aria-invalid:border-destructive aria-invalid:ring-destructive/20 disabled:cursor-not-allowed disabled:opacity-60"
+            "aria-invalid:border-destructive aria-invalid:ring-destructive/20 disabled:cursor-not-allowed disabled:opacity-60",
           )}
         >
-          <span className="size-4 shrink-0 rounded-sm ring-1 ring-black/10 ring-inset" style={{ backgroundColor: current }} aria-hidden />
-          <span className="min-w-0 flex-1 truncate text-left uppercase">{current}</span>
-          <Icon name="arrow-down-s-line" className="text-base text-muted-foreground" />
+          <span className={cn("shrink-0 ring-1 ring-black/10 ring-inset", swatchOnly ? "size-4.5 rounded-full" : "size-4 rounded-sm")} style={{ backgroundColor: current }} aria-hidden />
+          {!swatchOnly && (
+            <>
+              <span className="min-w-0 flex-1 truncate text-left uppercase">{current}</span>
+              <Icon name="arrow-down-s-line" className="text-base text-muted-foreground" />
+            </>
+          )}
         </PopoverPrimitive.Trigger>
         <PopoverPrimitive.Portal>
           <PopoverPrimitive.Positioner side="bottom" align="start" sideOffset={10} className="isolate z-50">
             <PopoverPrimitive.Popup className="z-50 origin-(--transform-origin) rounded-lg shadow-lg ring-1 ring-foreground/10 outline-hidden duration-100 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95">
-              {/* Arrow in the preview's colour, like the card hangs from the button */}
+              {/* Arrow in the preview's color, like the card hangs from the button */}
               <PopoverPrimitive.Arrow className="data-[side=bottom]:-top-2 data-[side=top]:-bottom-2 data-[side=top]:rotate-180" style={{ "--arrow": current }}>
                 <svg width="20" height="10" viewBox="0 0 20 10" aria-hidden>
                   {/* Opened above the button, the arrow meets the white part of the card */}

@@ -17,20 +17,22 @@ import { DropdownMenu } from "@/components/ui/dropdown-menu"
 import { Icon } from "@/components/ui/icon"
 import { Input } from "@/components/ui/input"
 import { ScrollView } from "@/components/ui/scroll-view"
+import { NumberInput } from "@/components/ui/number-input"
 import { Textarea } from "@/components/ui/textarea"
 import { lastActive } from "../constants"
 import { memberHref } from "../links"
 import { removeDealer, saveDealer, setDealerActive } from "../server/dealers"
 import { inviteMember } from "../server/members"
+import { toastAction } from "@/lib/toast-action"
+import { useAlert } from "@/components/alert-context"
 import { MemberStatusBadge, Notice } from "./user-parts"
 
-const EMPTY = { name: "", contactName: "", phone: "", email: "", city: "", address: "", ntn: "", notes: "" }
+const EMPTY = { name: "", contactName: "", phone: "", email: "", city: "", address: "", ntn: "", commissionPct: "", notes: "" }
 
 // Add or edit a dealer firm
 function DealerDialog({ dealer, defaultCity, cities, canAddCity, onClose, onSaved }) {
   const [form, setForm] = useState(() => (dealer ? Object.fromEntries(Object.keys(EMPTY).map((k) => [k, k === "phone" ? formatPkPhone(dealer.phone) : (dealer[k] ?? "")])) : { ...EMPTY, city: defaultCity ?? "" }))
   const [errors, setErrors] = useState({})
-  const [error, setError] = useState("")
   const [pending, startTransition] = useTransition()
   const set = (key) => (e) => {
     setForm((f) => ({ ...f, [key]: e.target.value }))
@@ -39,11 +41,9 @@ function DealerDialog({ dealer, defaultCity, cities, canAddCity, onClose, onSave
   const submit = (e) => {
     e.preventDefault()
     startTransition(async () => {
-      setError("")
-      const result = await saveDealer(form, dealer?.code)
+      const result = await toastAction(() => saveDealer(form, dealer?.code), { loading: "Saving…", success: dealer ? `${form.name} saved.` : `${form.name} added. Invite their people next.` })
       if (result.fieldErrors) setErrors(result.fieldErrors)
-      else if (result.error) setError(result.error)
-      else onSaved(form.name)
+      else if (!result.error) onSaved(form.name)
     })
   }
   return (
@@ -66,17 +66,24 @@ function DealerDialog({ dealer, defaultCity, cities, canAddCity, onClose, onSave
       }
     >
       <form id="dealer-form" onSubmit={submit} noValidate className="grid gap-4 p-px sm:grid-cols-2">
-        {error && (
-          <div className="sm:col-span-2">
-            <Notice tone="error">{error}</Notice>
-          </div>
-        )}
         <Input label="Dealer name" required autoFocus placeholder="e.g. Al-Hamd Estate" value={form.name} onChange={set("name")} error={errors.name} />
         <Input label="Contact person" placeholder="Owner or manager" value={form.contactName} onChange={set("contactName")} error={errors.contactName} />
         <Input label="Phone" type="tel" placeholder="0300 1234567" value={form.phone} onChange={set("phone")} error={errors.phone} />
         <Input label="Email" type="email" placeholder="office@dealer.pk" value={form.email} onChange={set("email")} error={errors.email} />
         <LookupSelect list="city" values={cities} canAdd={canAddCity} app="users" label="City" empty="Not set" value={form.city} onChange={(v) => setForm((f) => ({ ...f, city: v ?? "" }))} error={errors.city} />
         <Input label="NTN" placeholder="Optional" value={form.ntn} onChange={set("ntn")} error={errors.ntn} />
+        <NumberInput
+          label="Commission"
+          info="Agreed % of the net price on bookings they bring. Empty: the default in Operations › Customize › Settings."
+          placeholder="Operations default"
+          min={0}
+          max={20}
+          step={0.25}
+          suffix="%"
+          value={form.commissionPct === "" ? null : form.commissionPct}
+          onChange={(n) => setForm((f) => ({ ...f, commissionPct: n ?? "" }))}
+          error={errors.commissionPct}
+        />
         <div className="sm:col-span-2">
           <Input label="Office address" value={form.address} onChange={set("address")} error={errors.address} />
         </div>
@@ -187,7 +194,7 @@ function DealerCard({ dealer, lists, allowed, now, onEdit, onInvite, onToggle, o
         {!dealer.logins.length && !dealer.invites.length && <li className="px-4 py-4 text-sm text-muted-foreground">No logins yet.</li>}
       </ul>
       <footer className="flex flex-wrap items-center justify-between gap-2 border-t px-4 py-2">
-        <a href={`/estate/inventory?view=board`} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary" title="Units allocated to this dealer's quota in Estate Management">
+        <a href={`/project-portfolio/inventory?view=board`} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary" title="Units allocated to this dealer's quota in Project Portfolio">
           <Icon name="stack-line" />
           <span>
             <span className="font-semibold text-foreground tabular-nums">{dealer.quota.total}</span> in quota · {dealer.quota.available} available
@@ -210,9 +217,8 @@ export function DealersView({ dealers, seats, lists, allowed }) {
   const [editing, setEditing] = useState(null) // dealer | "new"
   const [inviting, setInviting] = useState(null)
   const [sent, setSent] = useState(null)
-  const [confirm, setConfirm] = useState(null) // { dealer, kind: "deactivate" | "remove" }
-  const [message, setMessage] = useState(null)
-  const [pending, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
+  const { confirm } = useAlert()
   const [now] = useState(() => Date.now())
   const dealerSeats = seats.dealers
 
@@ -223,12 +229,32 @@ export function DealersView({ dealers, seats, lists, allowed }) {
 
   const act = (fn, success) =>
     startTransition(async () => {
-      setMessage(null)
-      const result = await fn()
-      setMessage(result?.error ? { tone: "error", text: result.error } : { tone: "success", text: typeof success === "function" ? success(result) : success })
-      setConfirm(null)
+      await toastAction(fn, { loading: "Working on it…", success })
       router.refresh()
     })
+  const deactivate = async (d) => {
+    const ok = await confirm({
+      title: `Deactivate ${d.name}?`,
+      description: "Their logins are suspended and signed out at once, and waiting invitations are canceled. You can activate the dealer again later.",
+      confirmLabel: "Deactivate",
+      destructive: true,
+      icon: "forbid-line",
+    })
+    if (ok)
+      act(
+        () => setDealerActive(d.code, false),
+        (r) => `${d.name} deactivated${r?.suspended ? `; ${r.suspended} login${r.suspended === 1 ? "" : "s"} suspended` : ""}.`,
+      )
+  }
+  const remove = async (d) => {
+    const ok = await confirm({
+      title: `Remove ${d.name}?`,
+      description: "Only dealers without logins or waiting invitations can be removed. Their past leads and bookings keep the dealer's name.",
+      confirmLabel: "Remove dealer",
+      destructive: true,
+    })
+    if (ok) act(() => removeDealer(d.code), `${d.name} removed.`)
+  }
 
   return (
     <div className="flex h-[calc(100svh-3.5rem)] flex-col gap-4 p-4 sm:p-6 lg:p-8">
@@ -255,7 +281,6 @@ export function DealersView({ dealers, seats, lists, allowed }) {
           )
         }
       />
-      {message && <Notice tone={message.tone}>{message.text}</Notice>}
       {dealerSeats.limit === 0 && (
         <Notice tone="error" icon="information-line">
           Your plan doesn&apos;t include dealer logins. You can add dealers now; upgrade to give their people logins.
@@ -285,8 +310,8 @@ export function DealersView({ dealers, seats, lists, allowed }) {
                 now={now}
                 onEdit={() => setEditing(d)}
                 onInvite={() => setInviting(d)}
-                onToggle={() => (d.isActive ? setConfirm({ dealer: d, kind: "deactivate" }) : act(() => setDealerActive(d.code, true), `${d.name} is active again. Reactivate its logins from Users.`))}
-                onRemove={() => setConfirm({ dealer: d, kind: "remove" })}
+                onToggle={() => (d.isActive ? deactivate(d) : act(() => setDealerActive(d.code, true), `${d.name} is active again. Reactivate its logins from Users.`))}
+                onRemove={() => remove(d)}
               />
             ))}
           </div>
@@ -301,8 +326,7 @@ export function DealersView({ dealers, seats, lists, allowed }) {
           cities={lists.city}
           canAddCity={allowed.edit}
           onClose={() => setEditing(null)}
-          onSaved={(name) => {
-            setMessage({ tone: "success", text: editing === "new" ? `${name} added. Invite their people next.` : `${name} saved.` })
+          onSaved={() => {
             setEditing(null)
             router.refresh()
           }}
@@ -321,41 +345,6 @@ export function DealersView({ dealers, seats, lists, allowed }) {
         />
       )}
       {sent && <LinkSentDialog result={sent.result} email={sent.email} days={7} onClose={() => setSent(null)} />}
-      {confirm && (
-        <Dialog
-          open
-          onOpenChange={(o) => !o && setConfirm(null)}
-          className="sm:max-w-md"
-          title={confirm.kind === "remove" ? `Remove ${confirm.dealer.name}?` : `Deactivate ${confirm.dealer.name}?`}
-          description={
-            confirm.kind === "remove"
-              ? "Only dealers without logins or waiting invitations can be removed. Their past leads and bookings keep the dealer's name."
-              : "Their logins are suspended and signed out at once, and waiting invitations are cancelled. You can activate the dealer again later."
-          }
-          footer={
-            <>
-              <Button variant="outline" onClick={() => setConfirm(null)}>
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                loading={pending}
-                leftIcon={confirm.kind === "remove" ? "delete-bin-6-line" : "forbid-line"}
-                onClick={() =>
-                  confirm.kind === "remove"
-                    ? act(() => removeDealer(confirm.dealer.code), `${confirm.dealer.name} removed.`)
-                    : act(
-                        () => setDealerActive(confirm.dealer.code, false),
-                        (r) => `${confirm.dealer.name} deactivated${r?.suspended ? `; ${r.suspended} login${r.suspended === 1 ? "" : "s"} suspended` : ""}.`,
-                      )
-                }
-              >
-                {confirm.kind === "remove" ? "Remove dealer" : "Deactivate"}
-              </Button>
-            </>
-          }
-        />
-      )}
     </div>
   )
 }

@@ -10,7 +10,7 @@ export function GoogleButton({ params, label = "Continue with Google", className
       {...props}
       className={cn(
         "flex h-control w-full items-center justify-center gap-2.5 rounded-md border bg-background px-4 text-sm font-medium shadow-xs transition-colors outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50",
-        className
+        className,
       )}
     >
       <svg aria-hidden viewBox="0 0 24 24" className="size-4">

@@ -20,16 +20,16 @@ const DEFAULT_YEARS_RANGE = 10
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
 
 const pad = (n) => String(n).padStart(2, "0")
-const MONTHS = Array.from({ length: 12 }, (_, m) =>
-  new Intl.DateTimeFormat("en-GB", { month: "long" }).format(new Date(2026, m, 1))
-)
+const MONTHS = Array.from({ length: 12 }, (_, m) => new Intl.DateTimeFormat("en-GB", { month: "long" }).format(new Date(2026, m, 1)))
 
 // ---------- value helpers ----------
 
 export function parseDateValue(value) {
   if (!value) return undefined
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? undefined : value
-  const m = String(value).trim().match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/)
+  const m = String(value)
+    .trim()
+    .match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/)
   if (!m) return undefined
   const date = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4] ?? 0), Number(m[5] ?? 0))
   return Number.isNaN(date.getTime()) ? undefined : date
@@ -111,7 +111,9 @@ function Calendar({ month, onMonthChange, selected, onSelect, minDate, maxDate, 
       </div>
       <div className="grid grid-cols-7 text-center text-xs text-muted-foreground">
         {WEEKDAYS.map((d) => (
-          <div key={d} className="py-1.5">{d}</div>
+          <div key={d} className="py-1.5">
+            {d}
+          </div>
         ))}
       </div>
       <div role="grid" className="grid grid-cols-7 gap-y-0.5">
@@ -135,7 +137,7 @@ function Calendar({ month, onMonthChange, selected, onSelect, minDate, maxDate, 
                 !isSelected && "hover:bg-muted",
                 isToday && !isSelected && "bg-muted font-semibold",
                 isSelected && "bg-primary font-semibold text-primary-foreground",
-                disabled && "pointer-events-none opacity-30"
+                disabled && "pointer-events-none opacity-30",
               )}
             >
               {day.getDate()}
@@ -149,20 +151,23 @@ function Calendar({ month, onMonthChange, selected, onSelect, minDate, maxDate, 
 
 // ---------- time wheel ----------
 
-// Scroll column whose selected value stays centred under the shared highlight band
+// Scroll column whose selected value stays centered under the shared highlight band
 function WheelColumn({ label, options, value, onSelect, disabled, format = (o) => (typeof o === "number" ? pad(o) : o) }) {
   const scrollerRef = useRef(null)
   const frameRef = useRef(0)
   const settleRef = useRef(0)
   const draggingRef = useRef(false)
   const [spacer, setSpacer] = useState(0)
-  const selectedIndex = Math.max(0, options.findIndex((o) => String(o) === String(value)))
+  const selectedIndex = Math.max(
+    0,
+    options.findIndex((o) => String(o) === String(value)),
+  )
 
   const scrollToIndex = useCallback((index, behavior = "auto") => {
     scrollerRef.current?.scrollTo({ top: index * WHEEL_ITEM_HEIGHT, behavior })
   }, [])
 
-  // Top/bottom spacers let the first and last items reach the centre
+  // Top/bottom spacers let the first and last items reach the center
   useLayoutEffect(() => {
     const el = scrollerRef.current
     if (!el) return undefined
@@ -177,8 +182,7 @@ function WheelColumn({ label, options, value, onSelect, disabled, format = (o) =
     if (spacer > 0 && !draggingRef.current) scrollToIndex(selectedIndex)
   }, [selectedIndex, spacer, scrollToIndex])
 
-  const indexFromScroll = () =>
-    Math.max(0, Math.min(options.length - 1, Math.round((scrollerRef.current?.scrollTop ?? 0) / WHEEL_ITEM_HEIGHT)))
+  const indexFromScroll = () => Math.max(0, Math.min(options.length - 1, Math.round((scrollerRef.current?.scrollTop ?? 0) / WHEEL_ITEM_HEIGHT)))
 
   const handleScroll = () => {
     draggingRef.current = true
@@ -195,13 +199,7 @@ function WheelColumn({ label, options, value, onSelect, disabled, format = (o) =
   }
 
   return (
-    <div
-      ref={scrollerRef}
-      role="listbox"
-      aria-label={label}
-      onScroll={handleScroll}
-      className="relative z-0 h-full min-w-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-    >
+    <div ref={scrollerRef} role="listbox" aria-label={label} onScroll={handleScroll} className="relative z-0 h-full min-w-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <div style={{ height: spacer }} aria-hidden />
       {options.map((option, index) => {
         const selected = String(option) === String(value)
@@ -220,7 +218,7 @@ function WheelColumn({ label, options, value, onSelect, disabled, format = (o) =
             style={{ height: WHEEL_ITEM_HEIGHT }}
             className={cn(
               "flex w-full cursor-pointer items-center justify-center text-sm tabular-nums transition-colors",
-              selected ? "text-base font-semibold text-foreground" : "text-muted-foreground hover:text-foreground"
+              selected ? "text-base font-semibold text-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
             {format(option)}
@@ -299,7 +297,7 @@ const triggerClasses = (size) =>
     "hover:bg-accent/40 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
     "disabled:cursor-not-allowed disabled:opacity-50 data-popup-open:border-ring",
     "aria-invalid:border-destructive aria-invalid:ring-destructive/20",
-    size === "sm" ? "h-control-sm" : size === "lg" ? "h-control-lg" : "h-control"
+    size === "sm" ? "h-control-sm" : size === "lg" ? "h-control-lg" : "h-control",
   )
 
 function ClearButton({ label, onClear }) {
@@ -387,23 +385,12 @@ function DatePicker({
     if (selected) emit(withTime(selected, t))
   }
 
-  const text = selected
-    ? showTime
-      ? `${displayDate(selected)}, ${formatDisplayTime(selected.getHours(), selected.getMinutes(), timeFormat)}`
-      : displayDate(selected)
-    : placeholder
+  const text = selected ? (showTime ? `${displayDate(selected)}, ${formatDisplayTime(selected.getHours(), selected.getMinutes(), timeFormat)}` : displayDate(selected)) : placeholder
 
   return (
     <FieldShell id={id} label={label} required={required} error={error} className={className}>
       <Popover open={open} onOpenChange={handleOpenChange}>
-        <PopoverTrigger
-          id={id}
-          type="button"
-          disabled={disabled}
-          aria-label={ariaLabel ?? label}
-          aria-invalid={Boolean(error) || undefined}
-          className={cn(triggerClasses(size), triggerClassName)}
-        >
+        <PopoverTrigger id={id} type="button" disabled={disabled} aria-label={ariaLabel ?? label} aria-invalid={Boolean(error) || undefined} className={cn(triggerClasses(size), triggerClassName)}>
           <span className="flex min-w-0 flex-1 items-center gap-2 text-left">
             <Icon name={showTime ? "calendar-schedule-line" : "calendar-line"} className="shrink-0 text-base text-muted-foreground" />
             <span className={cn("truncate", !selected && "text-muted-foreground")}>{text}</span>
@@ -415,12 +402,8 @@ function DatePicker({
           <div className="flex items-start justify-between gap-3 border-b px-4 py-3">
             <div className="min-w-0">
               <div className="text-xs text-muted-foreground">{headerDate.getFullYear()}</div>
-              <div className="truncate text-base font-semibold tracking-tight">
-                {new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "long" }).format(headerDate)}
-              </div>
-              {showTime && time && (
-                <div className="mt-0.5 text-sm text-muted-foreground">{formatDisplayTime(time.hours24, time.minutes, timeFormat)}</div>
-              )}
+              <div className="truncate text-base font-semibold tracking-tight">{new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "long" }).format(headerDate)}</div>
+              {showTime && time && <div className="mt-0.5 text-sm text-muted-foreground">{formatDisplayTime(time.hours24, time.minutes, timeFormat)}</div>}
             </div>
             <button
               type="button"
@@ -433,15 +416,7 @@ function DatePicker({
           </div>
 
           <div className={cn(showTime && "flex flex-col sm:flex-row")}>
-            <Calendar
-              month={month}
-              onMonthChange={setMonth}
-              selected={selected}
-              onSelect={handleSelect}
-              minDate={min}
-              maxDate={max}
-              yearsRange={yearsRange}
-            />
+            <Calendar month={month} onMonthChange={setMonth} selected={selected} onSelect={handleSelect} minDate={min} maxDate={max} yearsRange={yearsRange} />
             {showTime && (
               // Stretches to the calendar's height on wide screens; fixed height when stacked
               <div className="relative h-56 border-t sm:h-auto sm:w-48 sm:border-t-0 sm:border-l">
@@ -467,11 +442,7 @@ function DatePicker({
               {showTime ? "Now" : "Today"}
             </button>
             {showTime && (
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="cursor-pointer rounded-md bg-primary px-3 py-1 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-              >
+              <button type="button" onClick={() => setOpen(false)} className="cursor-pointer rounded-md bg-primary px-3 py-1 text-sm font-medium text-primary-foreground hover:bg-primary/90">
                 Done
               </button>
             )}
@@ -512,19 +483,10 @@ function TimePicker({
   return (
     <FieldShell id={id} label={label} required={required} error={error} className={className}>
       <Popover>
-        <PopoverTrigger
-          id={id}
-          type="button"
-          disabled={disabled}
-          aria-label={ariaLabel ?? label}
-          aria-invalid={Boolean(error) || undefined}
-          className={cn(triggerClasses(size), triggerClassName)}
-        >
+        <PopoverTrigger id={id} type="button" disabled={disabled} aria-label={ariaLabel ?? label} aria-invalid={Boolean(error) || undefined} className={cn(triggerClasses(size), triggerClassName)}>
           <span className="flex min-w-0 flex-1 items-center gap-2 text-left">
             <Icon name="time-line" className="shrink-0 text-base text-muted-foreground" />
-            <span className={cn("truncate", !parsed && "text-muted-foreground")}>
-              {parsed ? formatDisplayTime(parsed.hours24, parsed.minutes, timeFormat) : placeholder}
-            </span>
+            <span className={cn("truncate", !parsed && "text-muted-foreground")}>{parsed ? formatDisplayTime(parsed.hours24, parsed.minutes, timeFormat) : placeholder}</span>
           </span>
           {clearable && parsed && !disabled && <ClearButton label="Clear time" onClear={() => onChange?.("")} />}
         </PopoverTrigger>
@@ -554,25 +516,9 @@ function DateRangePicker({ value, onChange, presets = RANGE_PRESETS, size = "def
       />
       {custom && (
         <>
-          <DatePicker
-            size={size}
-            aria-label="From"
-            className="w-40"
-            clearable={false}
-            maxDate={value.to}
-            value={value.from}
-            onChange={(from) => from && onChange({ ...value, from })}
-          />
+          <DatePicker size={size} aria-label="From" className="w-40" clearable={false} maxDate={value.to} value={value.from} onChange={(from) => from && onChange({ ...value, from })} />
           <span className="text-sm text-muted-foreground">to</span>
-          <DatePicker
-            size={size}
-            aria-label="To"
-            className="w-40"
-            clearable={false}
-            minDate={value.from}
-            value={value.to}
-            onChange={(to) => to && onChange({ ...value, to })}
-          />
+          <DatePicker size={size} aria-label="To" className="w-40" clearable={false} minDate={value.from} value={value.to} onChange={(to) => to && onChange({ ...value, to })} />
         </>
       )}
     </div>

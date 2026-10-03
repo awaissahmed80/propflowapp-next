@@ -12,12 +12,7 @@ export const INVITE_GONE = "This invitation has expired or was already used. Ask
 // Returns { user } or { error }.
 export async function joinConsoleTeam(invite, person) {
   const auth = authDb()
-  const claimed = await auth("invitations")
-    .where({ id: invite.id })
-    .whereNull("acceptedAt")
-    .whereNull("revokedAt")
-    .where("expiresAt", ">", new Date())
-    .update({ acceptedAt: new Date() })
+  const claimed = await auth("invitations").where({ id: invite.id }).whereNull("acceptedAt").whereNull("revokedAt").where("expiresAt", ">", new Date()).update({ acceptedAt: new Date() })
   if (!claimed) return { error: INVITE_GONE }
 
   let user = person

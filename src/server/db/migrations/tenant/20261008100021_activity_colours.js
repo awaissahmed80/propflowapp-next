@@ -1,5 +1,5 @@
-// Activity types got colours (Lists & Labels). Workspaces created before then have them without
-// one: give each its default colour, but only where none has been set.
+// Activity types got colors (Lists & Labels). Workspaces created before then have them without
+// one: give each its default color, but only where none has been set.
 const COLOURS = { call: "blue", whatsapp: "green", "site-visit": "amber", meeting: "violet", email: "sky", sms: "teal" }
 
 export async function up(knex) {
@@ -9,5 +9,5 @@ export async function up(knex) {
 }
 
 export async function down() {
-  // Colours are harmless to keep
+  // Colors are harmless to keep
 }

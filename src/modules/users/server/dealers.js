@@ -23,6 +23,8 @@ const dealerSchema = z.object({
   city: optional(80),
   address: optional(255),
   ntn: optional(20),
+  // Agreed commission (% of the net price); empty: the Sales default
+  commissionPct: z.preprocess((v) => (v === "" || v === null || v === undefined ? null : Number(v)), z.number().min(0, "0% or more.").max(20, "At most 20%.").nullable().optional()),
   notes: optional(500),
 })
 
@@ -57,6 +59,7 @@ export async function saveDealer(input, code) {
     city: v.city ?? null,
     address: v.address ?? null,
     ntn: v.ntn ?? null,
+    commissionPct: v.commissionPct ?? null,
     notes: v.notes ?? null,
   }
   let saved = current?.code

@@ -1,4 +1,4 @@
-// Follow-up options got colours (Lists & Labels): give existing workspaces the defaults, only
+// Follow-up options got colors (Lists & Labels): give existing workspaces the defaults, only
 // where none has been set
 const COLOURS = { tomorrow: "blue", "3-days": "sky", "next-week": "violet", "two-weeks": "teal", "next-month": "amber" }
 
@@ -9,5 +9,5 @@ export async function up(knex) {
 }
 
 export async function down() {
-  // Colours are harmless to keep
+  // Colors are harmless to keep
 }

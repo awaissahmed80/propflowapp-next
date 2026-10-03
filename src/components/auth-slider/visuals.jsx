@@ -7,24 +7,10 @@ import { Icon } from "@/components/ui/icon"
 // drawn as UI (not images) so they stay sharp in any size. Everything staggers in and
 // respects reduced motion.
 
-const enter = (delay) =>
-  cn(
-    "animate-in fade-in slide-in-from-bottom-3 fill-mode-both duration-500 motion-reduce:animate-none",
-    delay
-  )
+const enter = (delay) => cn("animate-in fade-in slide-in-from-bottom-3 fill-mode-both duration-500 motion-reduce:animate-none", delay)
 
 function Card({ className, children, delay }) {
-  return (
-    <div
-      className={cn(
-        "rounded-xl bg-white/[0.07] px-3.5 py-2.5 text-sm shadow-lg ring-1 shadow-black/20 ring-white/10 backdrop-blur-md",
-        enter(delay),
-        className
-      )}
-    >
-      {children}
-    </div>
-  )
+  return <div className={cn("rounded-xl bg-white/[0.07] px-3.5 py-2.5 text-sm shadow-lg ring-1 shadow-black/20 ring-white/10 backdrop-blur-md", enter(delay), className)}>{children}</div>
 }
 
 // Solid card for the key facts, with a dashed leader line back to the diagram
@@ -68,16 +54,7 @@ function Annotated({ children, notes, height }) {
 function Connector({ className, delay }) {
   return (
     <svg aria-hidden viewBox="0 0 2 28" className={cn("mx-auto h-7 w-0.5 overflow-visible", enter(delay), className)}>
-      <line
-        x1="1"
-        y1="0"
-        x2="1"
-        y2="28"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeDasharray="4 4"
-        className="text-sky-400/70 motion-safe:animate-[auth-flow_0.8s_linear_infinite]"
-      />
+      <line x1="1" y1="0" x2="1" y2="28" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" className="text-sky-400/70 motion-safe:animate-[auth-flow_0.8s_linear_infinite]" />
     </svg>
   )
 }
@@ -176,12 +153,7 @@ export function InventoryMap() {
           {PLOTS.split("").map((s, i) => (
             <span
               key={i}
-              className={cn(
-                "aspect-[3/4] rounded-[3px]",
-                PLOT_TONE[s],
-                i === 13 && "relative z-10 ring-2 ring-white ring-offset-2 ring-offset-slate-900",
-                enter()
-              )}
+              className={cn("aspect-[3/4] rounded-[3px]", PLOT_TONE[s], i === 13 && "relative z-10 ring-2 ring-white ring-offset-2 ring-offset-slate-900", enter())}
               style={{ animationDelay: `${200 + i * 15}ms` }}
             />
           ))}
@@ -234,11 +206,7 @@ export function CampaignFunnel() {
               <span className="text-white/70">{label}</span>
               <span className="h-2.5 overflow-hidden rounded-full bg-white/10">
                 <span
-                  className={cn(
-                    "block h-full origin-left rounded-full bg-sky-400",
-                    "animate-in zoom-in-0 fill-mode-both duration-700 motion-reduce:animate-none",
-                    ["delay-200", "delay-300", "delay-500", "delay-700"][i]
-                  )}
+                  className={cn("block h-full origin-left rounded-full bg-sky-400", "animate-in zoom-in-0 fill-mode-both duration-700 motion-reduce:animate-none", ["delay-200", "delay-300", "delay-500", "delay-700"][i])}
                   style={{ width: `${(n / 26) * 100}%` }}
                 />
               </span>
@@ -298,13 +266,7 @@ export function LaunchFlow() {
       {steps.map((s, i) => (
         <div key={s.title}>
           {i > 0 && <Connector delay={["", "delay-200", "delay-400", "delay-600"][i]} className="h-5" />}
-          <Step
-            icon={s.icon}
-            tone={["blue", "amber", "violet", "green"][i]}
-            title={s.title}
-            text={s.text}
-            delay={["delay-0", "delay-300", "delay-500", "delay-700"][i]}
-          />
+          <Step icon={s.icon} tone={["blue", "amber", "violet", "green"][i]} title={s.title} text={s.text} delay={["delay-0", "delay-300", "delay-500", "delay-700"][i]} />
         </div>
       ))}
     </Annotated>

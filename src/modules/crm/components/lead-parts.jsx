@@ -20,7 +20,7 @@ export function LeadStatusBadge({ status, className }) {
   )
 }
 
-// A lead's temperature as its coloured icon (snowflake … fire), name on hover
+// A lead's temperature as its colored icon (snowflake … fire), name on hover
 export function TempIcon({ priority, className }) {
   const p = useList("lead-priority").map[priority]
   return (
@@ -30,7 +30,7 @@ export function TempIcon({ priority, className }) {
   )
 }
 
-// Very cold → very hot as five icon buttons; the picked one in its colour with its name beside
+// Very cold → very hot as five icon buttons; the picked one in its color with its name beside
 export function TempPicker({ value, onChange, disabled, label }) {
   const list = useList("lead-priority")
   const picked = list.map[value]

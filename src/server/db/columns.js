@@ -40,8 +40,7 @@ export function timestamps(t, knex, { softDelete = true, audit = true } = {}) {
 // being used again. Adds a generated `alive` column (1 when live, NULL when deleted; MySQL
 // ignores NULLs in unique indexes) once per table, then the unique index.
 export async function uniqueAlive(knex, table, columns, name) {
-  if (!(await knex.schema.hasColumn(table, "alive")))
-    await knex.raw("ALTER TABLE ?? ADD COLUMN `alive` TINYINT GENERATED ALWAYS AS (IF(`deleted_at` IS NULL, 1, NULL)) VIRTUAL", [table])
+  if (!(await knex.schema.hasColumn(table, "alive"))) await knex.raw("ALTER TABLE ?? ADD COLUMN `alive` TINYINT GENERATED ALWAYS AS (IF(`deleted_at` IS NULL, 1, NULL)) VIRTUAL", [table])
   const cols = Array.isArray(columns) ? columns : [columns]
   await knex.schema.alterTable(table, (t) => t.unique([...cols, "alive"], { indexName: name ?? `${table}_${cols.join("_")}_alive_unique` }))
 }

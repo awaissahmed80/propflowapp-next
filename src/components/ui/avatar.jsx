@@ -4,7 +4,6 @@ import * as React from "react"
 import { Avatar as AvatarPrimitive } from "@base-ui/react/avatar"
 import { cn } from "cn"
 
-
 // Two letters for a person's avatar: first + last name ("Muhammad Ali Khan" → "MK"), or the first
 // two letters of a single name ("Ayesha" → "AY"). Titles are skipped ("Dr. Bilal Shah" → "BS"), and
 // any script works ("عائشہ خان" → "عخ").
@@ -22,55 +21,38 @@ function getInitials(name) {
   return (Array.from(use[0])[0] + Array.from(use.at(-1))[0]).toUpperCase()
 }
 
-function BaseAvatar({
-  className,
-  size = "default",
-  ...props
-}) {
+function BaseAvatar({ className, size = "default", ...props }) {
   return (
     <AvatarPrimitive.Root
       data-slot="avatar"
       data-size={size}
       className={cn(
-        "group/avatar relative flex size-7 shrink-0 rounded-full select-none after:absolute after:inset-0 after:rounded-full after:border after:border-border after:mix-blend-darken data-[size=lg]:size-9 data-[size=sm]:size-6 data-[size=xl]:size-18 dark:after:mix-blend-lighten",
-        className
+        "group/avatar relative flex size-7 shrink-0 rounded-full select-none after:absolute after:inset-0 after:rounded-full after:border after:border-border after:mix-blend-darken data-[size=lg]:size-9 data-[size=sm]:size-6 data-[size=xs]:size-4 data-[size=xl]:size-18 dark:after:mix-blend-lighten",
+        className,
       )}
-      {...props} />
-  );
+      {...props}
+    />
+  )
 }
 
-function AvatarImage({
-  className,
-  ...props
-}) {
-  return (
-    <AvatarPrimitive.Image
-      data-slot="avatar-image"
-      referrerPolicy="no-referrer"
-      className={cn("aspect-square size-full rounded-full object-cover", className)}
-      {...props} />
-  );
+function AvatarImage({ className, ...props }) {
+  return <AvatarPrimitive.Image data-slot="avatar-image" referrerPolicy="no-referrer" className={cn("aspect-square size-full rounded-full object-cover", className)} {...props} />
 }
 
-function AvatarFallback({
-  className,
-  ...props
-}) {
+function AvatarFallback({ className, ...props }) {
   return (
     <AvatarPrimitive.Fallback
       data-slot="avatar-fallback"
       className={cn(
-        "flex size-full items-center justify-center rounded-full bg-muted text-xs text-muted-foreground group-data-[size=sm]/avatar:text-[10px] group-data-[size=lg]/avatar:text-sm group-data-[size=xl]/avatar:text-2xl group-data-[size=xl]/avatar:font-semibold",
-        className
+        "flex size-full items-center justify-center rounded-full bg-muted text-xs text-muted-foreground group-data-[size=sm]/avatar:text-[10px] group-data-[size=xs]/avatar:text-[7px] group-data-[size=xs]/avatar:font-semibold group-data-[size=lg]/avatar:text-sm group-data-[size=xl]/avatar:text-2xl group-data-[size=xl]/avatar:font-semibold",
+        className,
       )}
-      {...props} />
-  );
+      {...props}
+    />
+  )
 }
 
-function AvatarBadge({
-  className,
-  ...props
-}) {
+function AvatarBadge({ className, ...props }) {
   return (
     <span
       data-slot="avatar-badge"
@@ -79,43 +61,31 @@ function AvatarBadge({
         "group-data-[size=sm]/avatar:size-2 group-data-[size=sm]/avatar:[&>svg]:hidden",
         "group-data-[size=default]/avatar:size-2.5 group-data-[size=default]/avatar:[&>svg]:size-2",
         "group-data-[size=lg]/avatar:size-3 group-data-[size=lg]/avatar:[&>svg]:size-2",
-        className
+        className,
       )}
-      {...props} />
-  );
+      {...props}
+    />
+  )
 }
 
-function AvatarGroup({
-  className,
-  ...props
-}) {
-  return (
-    <div
-      data-slot="avatar-group"
-      className={cn(
-        "group/avatar-group flex -space-x-2 *:data-[slot=avatar]:ring-2 *:data-[slot=avatar]:ring-background",
-        className
-      )}
-      {...props} />
-  );
+function AvatarGroup({ className, ...props }) {
+  return <div data-slot="avatar-group" className={cn("group/avatar-group flex -space-x-2 *:data-[slot=avatar]:ring-2 *:data-[slot=avatar]:ring-background", className)} {...props} />
 }
 
-function AvatarGroupCount({
-  className,
-  ...props
-}) {
+function AvatarGroupCount({ className, ...props }) {
   return (
     <div
       data-slot="avatar-group-count"
       className={cn(
         "relative flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs text-muted-foreground ring-2 ring-background group-has-data-[size=lg]/avatar-group:size-9 group-has-data-[size=sm]/avatar-group:size-6 [&>svg]:size-4 group-has-data-[size=lg]/avatar-group:[&>svg]:size-5 group-has-data-[size=sm]/avatar-group:[&>svg]:size-3",
-        className
+        className,
       )}
-      {...props} />
-  );
+      {...props}
+    />
+  )
 }
 
-// Solid colours (no transparency) in light and dark; a name always maps to the same colour
+// Solid colors (no transparency) in light and dark; a name always maps to the same color
 const AVATAR_COLORS = [
   "bg-sky-100 text-sky-700 dark:bg-sky-800 dark:text-sky-100",
   "bg-emerald-100 text-emerald-700 dark:bg-emerald-800 dark:text-emerald-100",
@@ -136,27 +106,15 @@ function colorFor(value = "") {
 }
 
 // <Avatar name="Ayesha Khan" source={photoUrl} size="sm|default|lg|xl" />: photo when there is
-// one, otherwise initials on a colour picked from the name
-function Avatar ({source, name, badge, ...props}){
-    return(
-        <BaseAvatar {...props}>
-            {source && <AvatarImage src={source} alt="" />}
-            <AvatarFallback className={cn("font-medium", colorFor(name))}>{getInitials(name)}</AvatarFallback>
-            {
-                (badge) &&
-                <AvatarBadge>{badge}</AvatarBadge>
-            }
-        </BaseAvatar>
-    )
+// one, otherwise initials on a color picked from the name
+function Avatar({ source, name, badge, ...props }) {
+  return (
+    <BaseAvatar {...props}>
+      {source && <AvatarImage src={source} alt="" />}
+      <AvatarFallback className={cn("font-medium", colorFor(name))}>{getInitials(name)}</AvatarFallback>
+      {badge && <AvatarBadge>{badge}</AvatarBadge>}
+    </BaseAvatar>
+  )
 }
 
-export {
-  Avatar,
-  colorFor as avatarColor,
-  getInitials,
-  AvatarImage,
-  AvatarFallback,
-  AvatarGroup,
-  AvatarGroupCount,
-  AvatarBadge,
-}
+export { Avatar, colorFor as avatarColor, getInitials, AvatarImage, AvatarFallback, AvatarGroup, AvatarGroupCount, AvatarBadge }

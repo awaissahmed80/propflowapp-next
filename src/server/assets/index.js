@@ -44,7 +44,7 @@ export async function storeAsset(db, tenant, { app, ownerType = null, ownerId = 
   if (!type || !allowed.includes(type.mime)) return { error: `${file.name} isn't a file type that can be added here.` }
 
   const folder = `tenants/${tenant.code.toLowerCase()}/${app}${ownerType ? `/${ownerType}-${ownerId}` : ""}`
-  const key = await saveFile({ folder, buffer, ext: type.ext })
+  const key = await saveFile({ folder, buffer, ext: type.ext, contentType: type.mime })
   const same = () => live(db, "assets").where({ ownerType, ownerId, collection })
   const hasCover = collection === "images" && ownerType ? await same().clone().where({ isCover: true }).first("id") : true
   const last = await same().clone().max({ n: "sortOrder" }).first()
@@ -84,10 +84,15 @@ export async function coversFor(db, ownerType, ownerIds) {
   return new Map(rows.map((r) => [r.ownerId, assetUrl(r.code)]))
 }
 
-export const findAsset = (db, code) => live(db, "assets").where({ code: String(code ?? "").toLowerCase() }).first()
+export const findAsset = (db, code) =>
+  live(db, "assets")
+    .where({ code: String(code ?? "").toLowerCase() })
+    .first()
 
 export async function updateAsset(db, asset, patch, userId) {
-  await db("assets").where({ id: asset.id }).update({ ...patch, updatedAt: new Date(), updatedBy: userId })
+  await db("assets")
+    .where({ id: asset.id })
+    .update({ ...patch, updatedAt: new Date(), updatedBy: userId })
 }
 
 // Make this image its owner's cover

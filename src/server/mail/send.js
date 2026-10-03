@@ -20,10 +20,7 @@ const logoAttachment = () =>
 export async function sendMail({ to, subject, html, text, replyTo, attachments = [] }) {
   const key = process.env.RESEND_API_KEY
   if (!key) return { ok: false, error: "RESEND_API_KEY is not set." }
-  const files = [
-    ...(html?.includes(`cid:${LOGO_CID}`) ? [logoAttachment()] : []),
-    ...attachments.map((a) => ({ filename: a.filename, content: Buffer.isBuffer(a.content) ? a.content.toString("base64") : a.content })),
-  ]
+  const files = [...(html?.includes(`cid:${LOGO_CID}`) ? [logoAttachment()] : []), ...attachments.map((a) => ({ filename: a.filename, content: Buffer.isBuffer(a.content) ? a.content.toString("base64") : a.content }))]
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",

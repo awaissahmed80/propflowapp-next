@@ -67,7 +67,7 @@
   --control-height-lg: 2.75rem; /* 44px */
   --control-height-icon: 2.25rem;
 
-  /* Chart colours (validated with the dataviz palette checks). Keyed by lookup colour name. */
+  /* Chart colors (validated with the dataviz palette checks). Keyed by lookup color name. */
   --viz-blue: #2a78d6;
   --viz-green: #1baf7a;
   --viz-amber: #eda100;
@@ -79,7 +79,7 @@
 }
 
 .dark {
-  --background: oklch(0.2046 0.01 260); /* blue-grey */
+  --background: oklch(0.2046 0.01 260); /* blue-gray */
   --foreground: oklch(0.9219 0.004 255);
   --card: oklch(0.2686 0.011 258);
   --card-foreground: oklch(0.9219 0.004 255);
@@ -220,10 +220,10 @@
   }
   /* Panels (cards, tables, the lead panel, dialogs, popovers, menus, sheets) keep the normal
      border on their own edge; every line inside them, including cards inside cards, is a step
-     softer. Base layer, so a coloured border class (border-primary…) still wins. */
+     softer. Base layer, so a colored border class (border-primary…) still wins. */
   :where(.rounded-xl.border, .rounded-2xl.border, [data-slot="dialog-content"], [data-slot="popover-content"], [data-slot="sheet-content"], [data-slot="dropdown-menu-content"], [data-slot="select-content"]):not(
-      :where(.rounded-xl.border, .rounded-2xl.border, [data-slot="dialog-content"], [data-slot="popover-content"], [data-slot="sheet-content"], [data-slot="dropdown-menu-content"], [data-slot="select-content"]) *
-    ) {
+    :where(.rounded-xl.border, .rounded-2xl.border, [data-slot="dialog-content"], [data-slot="popover-content"], [data-slot="sheet-content"], [data-slot="dropdown-menu-content"], [data-slot="select-content"]) *
+  ) {
     --border: var(--border-nested);
     border-color: var(--border-outer);
   }
@@ -291,6 +291,103 @@
   }
   50% {
     box-shadow: 0 0 0 5px color-mix(in oklab, var(--primary) 0%, transparent);
+  }
+}
+
+/* Website scroll reveal (src/modules/web/components/reveal.jsx). Only hides content when the
+   head script ran and motion is welcome. */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal-ready [data-reveal] {
+    opacity: 0;
+    transform: translateY(18px);
+    transition:
+      opacity 0.7s ease,
+      transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+    transition-delay: var(--delay, 0ms);
+  }
+  .reveal-ready [data-reveal="lens"] {
+    transform: translateY(16px) scale(0.9);
+  }
+  .reveal-ready [data-reveal="screen"] {
+    transform: translateY(28px) scale(0.98);
+  }
+  .reveal-ready [data-reveal][data-shown] {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* Callout lenses drift gently once shown */
+@keyframes lens-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+/* A light traces slowly around each highlighted area of a screenshot */
+@property --trace-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+.callout-trace {
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  padding: 2px;
+  background: conic-gradient(from var(--trace-angle), transparent 0 62%, color-mix(in oklab, var(--primary) 70%, white) 80%, transparent 94%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: trace-spin 4.5s linear infinite;
+  pointer-events: none;
+}
+@keyframes trace-spin {
+  to {
+    --trace-angle: 360deg;
+  }
+}
+/* …and a sheen glides across each zoomed callout every few seconds */
+.lens-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 38%, rgb(255 255 255 / 0.28) 50%, transparent 62%);
+  transform: translateX(-130%);
+  animation: lens-sheen 7s ease-in-out infinite;
+  animation-delay: var(--sheen-delay, 0s);
+  pointer-events: none;
+}
+@keyframes lens-sheen {
+  0%,
+  72% {
+    transform: translateX(-130%);
+  }
+  100% {
+    transform: translateX(130%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .callout-trace,
+  .lens-sheen::after {
+    animation: none;
+    display: none;
+  }
+}
+/* A numbered callout badge sends out a ring, like a beacon */
+@keyframes callout-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  80%,
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
   }
 }
 

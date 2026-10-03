@@ -1,7 +1,7 @@
 import { code, tableDefaults, timestamps } from "../../columns.js"
 
 export async function up(knex) {
-  // App catalogue shown in the launcher and on plans
+  // App catalog shown in the launcher and on plans
   await knex.schema.createTable("apps", (t) => {
     tableDefaults(t)
     t.bigIncrements("id")

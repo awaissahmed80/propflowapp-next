@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { formatPkr } from "@/lib/format"
 import { useList } from "@/modules/lookups/context"
+import { toast } from "sonner"
+import { toastAction } from "@/lib/toast-action"
+import { useAlert } from "@/components/alert-context"
 import { Notice } from "@/modules/users/components/user-parts"
 import { PageHeader } from "@/components/page-header"
 import { PersonPicker } from "@/components/person-picker"
@@ -22,14 +25,14 @@ import { Switch } from "@/components/ui/switch"
 import { ToggleGroup } from "@/components/ui/toggle-group"
 import { deleteAssignmentRule, moveAssignmentRule, saveAssignmentRule, saveReassignRule, setAssignmentRuleActive } from "../server/assignment-actions"
 
-// CRM › Assignment rules: who gets new leads. Rules run top to bottom; the first match wins;
+// CRM › Customize › Assignment rules: who gets new leads. Rules run top to bottom; the first match wins;
 // nothing matches → the workspace's auto-assign (Settings › CRM). Plus: reassign new leads
 // nobody has reached within a set number of hours.
 
 const EMPTY = { name: "", conditions: { projects: [], sources: [], cities: [], unitTypes: [], overseas: null, budgetMin: null, budgetMax: null }, assignTo: "team", agentId: null, teamId: null, agentIds: [] }
 
 // Pick several from a list: a button showing what's picked, a checkbox menu to change it
-function MultiPick({ label, options, value, onChange, anyLabel = "Any" }) {
+export function MultiPick({ label, options, value, onChange, anyLabel = "Any" }) {
   const picked = options.filter((o) => value.includes(o.value))
   return (
     <div className="space-y-1">
@@ -76,7 +79,7 @@ function useConditionText() {
   }
 }
 
-function assigneeText(rule, agents, teams) {
+export function assigneeText(rule, agents, teams) {
   const name = (id) => agents.find((a) => a.id === id)?.name ?? "someone no longer active"
   if (rule.assignTo === "agent") return { icon: "user-line", text: name(rule.agentId) }
   if (rule.assignTo === "team") return { icon: "team-line", text: `Take turns in ${teams.find((t) => t.id === rule.teamId)?.name ?? "a removed team"}` }
@@ -214,27 +217,30 @@ function RuleDialog({ rule, agents, teams, projects, me, onClose, onSaved }) {
 export function AssignmentView({ rules, agents, teams, projects, settings, me }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
-  const [notice, setNotice] = useState(null)
   const [editing, setEditing] = useState(null) // a rule, or "new"
-  const [deleting, setDeleting] = useState(null)
+  const { confirm } = useAlert()
   const [reassign, setReassign] = useState({ reassign: settings.reassign, hours: settings.reassignHours })
   const [hoursError, setHoursError] = useState("")
   const conditionText = useConditionText()
 
-  const run = (fn, ok) =>
+  // ok: the success toast, if any; errors show as a toast too
+  const run = (fn, ok, loading = "Saving…") =>
     startTransition(async () => {
-      const r = await fn()
-      setNotice(r?.error ? { tone: "error", text: r.error } : ok ? { tone: "success", text: ok } : null)
+      await toastAction(fn, { loading, success: ok })
       router.refresh()
     })
+  const remove = async (r) => {
+    if (!(await confirm({ title: `Delete the rule “${r.name}”?`, description: "Leads it already gave out keep their agent; new leads go to the next rule that matches.", confirmLabel: "Delete rule", destructive: true })))
+      return
+    run(() => deleteAssignmentRule(r.id), "Rule deleted.", "Deleting…")
+  }
   const saveReassign = (next) => {
     setReassign(next)
     setHoursError("")
     startTransition(async () => {
-      const r = await saveReassignRule(next)
+      const r = await toastAction(() => saveReassignRule(next), { loading: "Saving…" })
       if (r.fieldErrors) setHoursError(r.fieldErrors.hours ?? "Check the hours.")
-      else if (r.error) setNotice({ tone: "error", text: r.error })
-      else router.refresh()
+      else if (!r.error) router.refresh()
     })
   }
 
@@ -249,7 +255,6 @@ export function AssignmentView({ rules, agents, teams, projects, settings, me })
           </Button>
         }
       />
-      {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
 
       <section className="space-y-3">
         <p className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -293,7 +298,7 @@ export function AssignmentView({ rules, agents, teams, projects, settings, me })
                       { label: "Move up", icon: "arrow-up-line", disabled: i === 0, onClick: () => run(() => moveAssignmentRule(r.id, -1)) },
                       { label: "Move down", icon: "arrow-down-line", disabled: i === rules.length - 1, onClick: () => run(() => moveAssignmentRule(r.id, 1)) },
                       { type: "separator" },
-                      { label: "Delete", icon: "delete-bin-line", variant: "destructive", onClick: () => setDeleting(r) },
+                      { label: "Delete", icon: "delete-bin-line", variant: "destructive", onClick: () => remove(r) },
                     ]}
                     trigger={<IconButton icon="more-2-line" aria-label="Rule actions" tooltip={false} />}
                   />
@@ -310,7 +315,7 @@ export function AssignmentView({ rules, agents, teams, projects, settings, me })
               <p className="font-medium">{rules.length ? "Everything else" : "Every new lead"}</p>
               <p className="text-xs text-muted-foreground">
                 Set in{" "}
-                <Link href="/crm/settings" className="text-primary hover:underline">
+                <Link href="/crm/customize/pipeline" className="text-primary hover:underline">
                   CRM settings
                 </Link>{" "}
                 (Auto-assign new leads)
@@ -371,37 +376,9 @@ export function AssignmentView({ rules, agents, teams, projects, settings, me })
           onClose={() => setEditing(null)}
           onSaved={(text) => {
             setEditing(null)
-            setNotice({ tone: "success", text })
+            toast.success(text)
             router.refresh()
           }}
-        />
-      )}
-      {deleting && (
-        <Dialog
-          open
-          onOpenChange={(o) => !o && setDeleting(null)}
-          className="sm:max-w-md"
-          title={`Delete “${deleting.name}”?`}
-          description="Leads it already gave out keep their agent. New leads go to the next rule that matches."
-          footer={
-            <>
-              <Button variant="outline" onClick={() => setDeleting(null)}>
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                leftIcon="delete-bin-line"
-                loading={pending}
-                onClick={() => {
-                  const id = deleting.id
-                  setDeleting(null)
-                  run(() => deleteAssignmentRule(id), "Rule deleted.")
-                }}
-              >
-                Delete
-              </Button>
-            </>
-          }
         />
       )}
     </div>

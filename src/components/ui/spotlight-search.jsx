@@ -57,7 +57,7 @@ function SpotlightSearch({ onClose, search, placeholder, hint }) {
       onClose()
       router.push(item.href)
     },
-    [router, onClose]
+    [router, onClose],
   )
 
   return (
@@ -112,9 +112,7 @@ function SpotlightSearch({ onClose, search, placeholder, hint }) {
                 <Autocomplete.List className="outline-none">
                   {(group) => (
                     <Autocomplete.Group key={group.value} items={group.items} className="pt-1 not-last:mb-1">
-                      <Autocomplete.GroupLabel className="px-3 pt-1.5 pb-1 text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
-                        {group.value}
-                      </Autocomplete.GroupLabel>
+                      <Autocomplete.GroupLabel className="px-3 pt-1.5 pb-1 text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">{group.value}</Autocomplete.GroupLabel>
                       <Autocomplete.Collection>
                         {(item) => (
                           <Autocomplete.Item
@@ -140,10 +138,16 @@ function SpotlightSearch({ onClose, search, placeholder, hint }) {
               </ScrollView>
 
               <div className="flex items-center justify-between gap-3 border-t bg-muted/40 px-4 py-2.5 text-xs text-muted-foreground">
-                <span id={hintId} className="sr-only">Use arrow keys to move, Enter to open a result, and Escape to close.</span>
+                <span id={hintId} className="sr-only">
+                  Use arrow keys to move, Enter to open a result, and Escape to close.
+                </span>
                 <div className="flex items-center gap-3">
-                  <span className="inline-flex items-center gap-1.5"><kbd className="rounded border bg-background px-1.5 py-0.5 font-mono text-[10px]">↑↓</kbd>Navigate</span>
-                  <span className="inline-flex items-center gap-1.5"><kbd className="rounded border bg-background px-1.5 py-0.5 font-mono text-[10px]">↵</kbd>Open</span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <kbd className="rounded border bg-background px-1.5 py-0.5 font-mono text-[10px]">↑↓</kbd>Navigate
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <kbd className="rounded border bg-background px-1.5 py-0.5 font-mono text-[10px]">↵</kbd>Open
+                  </span>
                 </div>
                 {hint && <span className="hidden sm:inline">{hint}</span>}
               </div>
@@ -162,7 +166,7 @@ export function SpotlightTrigger({ className }) {
   const isMac = useSyncExternalStore(
     () => () => {},
     () => /Mac|iPhone|iPad/.test(navigator.platform),
-    () => false
+    () => false,
   )
   return (
     <button
@@ -171,7 +175,7 @@ export function SpotlightTrigger({ className }) {
       aria-label="Spotlight search"
       className={cn(
         "hidden h-control w-56 cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 text-left text-sm text-muted-foreground shadow-xs outline-none hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring md:inline-flex lg:w-72 dark:bg-input/20",
-        className
+        className,
       )}
     >
       <Icon name="search-line" className="text-base" />

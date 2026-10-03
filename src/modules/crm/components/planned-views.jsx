@@ -8,7 +8,8 @@ import { toHex } from "@/lib/color"
 import { timeAgo } from "@/lib/format"
 import { urlCode } from "@/lib/url"
 import { useList } from "@/modules/lookups/context"
-import { Notice } from "@/modules/users/components/user-parts"
+import { toast } from "sonner"
+import { toastAction } from "@/lib/toast-action"
 import { PageHeader } from "@/components/page-header"
 import { StatTile } from "@/components/stat-tile"
 import { Avatar } from "@/components/ui/avatar"
@@ -38,12 +39,10 @@ const time = (d) => new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Karachi",
 function useActions() {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
-  const [notice, setNotice] = useState(null)
   const [logging, setLogging] = useState(null) // the planned item being marked done
   const act = (a, input, done) =>
     startTransition(async () => {
-      const r = await updatePlannedActivity(a.lead.code, a.id, input)
-      setNotice(r?.error ? { tone: "error", text: r.error } : { tone: "success", text: done })
+      await toastAction(() => updatePlannedActivity(a.lead.code, a.id, input), { loading: "Saving…", success: done })
       router.refresh()
     })
   const logDialog = logging && (
@@ -53,13 +52,13 @@ function useActions() {
       planned={{ id: logging.id, type: logging.type }}
       onClose={() => setLogging(null)}
       onSaved={() => {
-        setNotice({ tone: "success", text: `Saved: ${logging.lead.name}.` })
+        toast.success(`Saved: ${logging.lead.name}.`)
         setLogging(null)
         router.refresh()
       }}
     />
   )
-  return { pending, notice, act, log: setLogging, logDialog }
+  return { pending, act, log: setLogging, logDialog }
 }
 
 // A done (or missed) item: who, when, how it went
@@ -228,7 +227,7 @@ function bucket(at, now) {
 export function FollowUpsView({ items, me, scope, canEdit }) {
   const [now] = useState(() => Date.now())
   const [mine, setMine] = useState(scope === "own" ? "all" : "mine")
-  const { pending, notice, act, log, logDialog } = useActions()
+  const { pending, act, log, logDialog } = useActions()
   const theirs = items.filter((a) => mine === "all" || a.by?.id === me)
   const shown = theirs.filter((a) => a.status === "planned")
   const done = theirs.filter((a) => a.status !== "planned").sort((x, y) => new Date(y.doneAt ?? y.at) - new Date(x.doneAt ?? x.at))
@@ -252,7 +251,6 @@ export function FollowUpsView({ items, me, scope, canEdit }) {
           )
         }
       />
-      {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
       <ScrollView className="min-h-0 flex-1" viewportClassName="space-y-5 pb-2">
         {!shown.length && <EmptyState icon="check-double-line" title={done.length ? "All caught up" : "No follow-ups planned"} text="Plan the next step from a lead's follow-up bar." />}
         {groups
@@ -308,7 +306,7 @@ function ByDayView({ kind, items, projects, canEdit }) {
   const k = BY_DAY[kind]
   const [now] = useState(() => Date.now())
   const [project, setProject] = useState("")
-  const { pending, notice, act, log, logDialog } = useActions()
+  const { pending, act, log, logDialog } = useActions()
   const view = useMemo(() => {
     const inProject = items.filter((v) => !project || v.project?.code === project)
     const upcoming = inProject.filter((v) => v.status === "planned")
@@ -348,7 +346,6 @@ function ByDayView({ kind, items, projects, canEdit }) {
           hint={`${view.missed} no-shows in 30 days`}
         />
       </div>
-      {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
       <ScrollView className="min-h-0 flex-1" viewportClassName="space-y-5 pb-2">
         {!view.days.length && !view.finished.length && <EmptyState icon={k.icon} title={k.empty} text={`Plan ${k.noun} from a lead's follow-up bar.`} />}
         {view.days.map(([day, visits]) => (

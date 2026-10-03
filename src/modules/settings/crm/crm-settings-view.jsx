@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { Notice } from "@/modules/users/components/user-parts"
+import { toastAction } from "@/lib/toast-action"
 import { PageHeader } from "@/components/page-header"
 import { Icon } from "@/components/ui/icon"
 import { NumberInput } from "@/components/ui/number-input"
@@ -31,11 +31,10 @@ function Rule({ icon, title, description, checked, onChange, disabled, children 
   )
 }
 
-// title / description: the page header (Settings › CRM, or CRM › Settings)
+// title / description: the page header (Settings › CRM, or CRM › Customize)
 export function CrmSettingsView({ settings, canEdit, title = "CRM", description = "How your team works leads" }) {
   const router = useRouter()
   const [rules, setRules] = useState({ autoAssign: settings.autoAssign, statusNote: settings.statusNote, stale: settings.stale, staleDays: settings.staleDays })
-  const [notice, setNotice] = useState(null)
   const [error, setError] = useState("")
   const [pending, startTransition] = useTransition()
   const [days, setDays] = useState(settings.staleDays) // typed; saved when committed
@@ -45,18 +44,15 @@ export function CrmSettingsView({ settings, canEdit, title = "CRM", description 
     const before = rules
     const next = { ...rules, ...patch }
     setRules(next)
-    setNotice(null)
     setError("")
     startTransition(async () => {
-      const r = await savePipelineRules(next, changed)
+      const r = await toastAction(() => savePipelineRules(next, changed), { loading: "Saving…", success: "Saved." })
       if (r.fieldErrors) {
         setRules(before)
         setError(r.fieldErrors.staleDays ?? "Check the settings and try again.")
       } else if (r.error) {
         setRules(before)
-        setNotice({ tone: "error", text: r.error })
       } else {
-        setNotice({ tone: "success", text: "Saved." })
         router.refresh()
       }
     })
@@ -65,7 +61,6 @@ export function CrmSettingsView({ settings, canEdit, title = "CRM", description 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       <PageHeader title={title} description={description} />
-      {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
 
       <section>
         <h2 className="text-lg font-semibold tracking-tight">Pipeline rules</h2>
@@ -137,22 +132,16 @@ function LeadScoring({ settings, canEdit }) {
   }
   const [form, setForm] = useState(saved)
   const [errors, setErrors] = useState({})
-  const [notice, setNotice] = useState(null)
   const [pending, startTransition] = useTransition()
   const total = PARTS.reduce((n, p) => n + (Number(form[p.key]) || 0), 0)
   const dirty = JSON.stringify(form) !== JSON.stringify(saved)
 
   const save = (next = form) => {
-    setNotice(null)
     setErrors({})
     startTransition(async () => {
-      const r = await saveLeadScoring(next)
+      const r = await toastAction(() => saveLeadScoring(next), { loading: "Saving…", success: "Saved. Scores update the next time leads are opened." })
       if (r.fieldErrors) setErrors(r.fieldErrors)
-      else if (r.error) setNotice({ tone: "error", text: r.error })
-      else {
-        setNotice({ tone: "success", text: "Saved. Scores update the next time leads are opened." })
-        router.refresh()
-      }
+      else if (!r.error) router.refresh()
     })
   }
   const set = (patch) => setForm((f) => ({ ...f, ...patch }))
@@ -162,11 +151,6 @@ function LeadScoring({ settings, canEdit }) {
     <section>
       <h2 className="text-lg font-semibold tracking-tight">Lead scoring</h2>
       <p className="text-sm text-muted-foreground">A 0–100 score on every lead, from how engaged they are, whether they can afford it, and how serious they are</p>
-      {notice && (
-        <div className="mt-4">
-          <Notice tone={notice.tone}>{notice.text}</Notice>
-        </div>
-      )}
       <div className="mt-4 divide-y rounded-xl border bg-background shadow-xs">
         <Rule
           icon="medal-line"

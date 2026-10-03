@@ -60,19 +60,7 @@ export async function readSession() {
     .where("s.expiresAt", ">", new Date())
     .whereNull("u.deletedAt")
     .where("u.status", "active")
-    .first(
-      "s.id",
-      "s.kind",
-      "s.tenantId",
-      "s.impersonatorUserId",
-      "s.lastSeenAt",
-      "s.expiresAt",
-      "u.id as userId",
-      "u.name",
-      "u.email",
-      "u.avatarUrl",
-      "u.mustChangePassword"
-    )
+    .first("s.id", "s.kind", "s.tenantId", "s.impersonatorUserId", "s.lastSeenAt", "s.expiresAt", "u.id as userId", "u.name", "u.email", "u.avatarUrl", "u.mustChangePassword")
   if (!row) return null
   if (!row.lastSeenAt || Date.now() - row.lastSeenAt.getTime() > TOUCH_MS) {
     await db("sessions").where({ id: row.id }).update({ lastSeenAt: new Date() })
@@ -93,7 +81,10 @@ export async function endSession() {
   const jar = await cookies()
   const token = jar.get(COOKIE())?.value
   if (token) {
-    await authDb()("sessions").where({ tokenHash: hashToken(token) }).whereNull("revokedAt").update({ revokedAt: new Date() })
+    await authDb()("sessions")
+      .where({ tokenHash: hashToken(token) })
+      .whereNull("revokedAt")
+      .update({ revokedAt: new Date() })
   }
   jar.set(COOKIE(), "", { ...cookieOptions(), maxAge: 0 })
 }

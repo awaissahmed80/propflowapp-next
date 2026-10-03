@@ -223,7 +223,7 @@ export async function recordPayment(id, formData) {
   const paidAt = pkStart(v.paidOn)
   if (paidAt > new Date()) return { fieldErrors: { paidOn: "The payment date can't be in the future." } }
 
-  const proofKey = await saveFile({ folder: "payment-proofs", buffer, ext: type.ext })
+  const proofKey = await saveFile({ folder: "payment-proofs", buffer, ext: type.ext, contentType: type.mime })
   const proof = { proofKey, proofName: String(file.name || `proof.${type.ext}`).slice(0, 255), proofType: type.mime, proofSize: buffer.length }
 
   const db = platformDb()

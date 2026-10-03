@@ -21,7 +21,9 @@ export const RESERVED_DB_NAMES = () => [PLATFORM_DB(), AUTH_DB()]
 
 // pf_ + the tenant's permanent code, lowercased: TEN00042 → pf_ten00042
 export function tenantDbName(code) {
-  const clean = String(code).toLowerCase().replace(/[^a-z0-9]/g, "")
+  const clean = String(code)
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
   if (!clean) throw new Error("A tenant code is required for its database name.")
   const name = `${TENANT_PREFIX()}${clean}`
   if (RESERVED_DB_NAMES().includes(name)) throw new Error(`${name} is reserved.`)

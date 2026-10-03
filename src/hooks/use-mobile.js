@@ -11,5 +11,9 @@ const subscribe = (onChange) => {
 
 // Server render assumes desktop; the browser corrects it on hydration
 export function useIsMobile() {
-  return useSyncExternalStore(subscribe, () => window.matchMedia(QUERY).matches, () => false)
+  return useSyncExternalStore(
+    subscribe,
+    () => window.matchMedia(QUERY).matches,
+    () => false,
+  )
 }

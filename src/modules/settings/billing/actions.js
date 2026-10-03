@@ -53,7 +53,7 @@ export async function sendTransferProof(invoiceCode, formData) {
   const pending = await live(db, "invoicePayments").where({ invoiceId: inv.id, status: "pending" }).first("id")
   if (pending) return { error: "We already have a transfer for this invoice and are checking it." }
 
-  const proofKey = await saveFile({ folder: "payment-proofs", buffer, ext: type.ext })
+  const proofKey = await saveFile({ folder: "payment-proofs", buffer, ext: type.ext, contentType: type.mime })
   try {
     await db.transaction(async (trx) => {
       await trx("invoicePayments").insert({

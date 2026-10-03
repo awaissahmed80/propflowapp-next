@@ -153,7 +153,7 @@ export async function resendInvitation(id, { send = true } = {}) {
   const { ctx, error } = await usersAction("create")
   if (error) return { error }
   const invite = await pendingInvite(ctx, id)
-  if (!invite) return { error: "That invitation was already accepted or cancelled." }
+  if (!invite) return { error: "That invitation was already accepted or canceled." }
   const role = await live(ctx.db, "roles").where({ id: invite.roleId }).first("name")
   const link = await issueLink(invite.id)
   if (!send) {
@@ -176,9 +176,9 @@ export async function revokeInvitation(id) {
   const { ctx, error } = await usersAction("create")
   if (error) return { error }
   const invite = await pendingInvite(ctx, id)
-  if (!invite) return { error: "That invitation was already accepted or cancelled." }
+  if (!invite) return { error: "That invitation was already accepted or canceled." }
   await authDb()("invitations").where({ id: invite.id }).update({ revokedAt: new Date(), updatedAt: new Date(), updatedBy: ctx.user.id })
-  await logActivity(ctx.db, { type: "invite", action: "invite.revoked", actorUserId: ctx.user.id, summary: `cancelled the invitation to ${invite.name ?? invite.email}`, subjectType: "invitation", subjectId: invite.id })
+  await logActivity(ctx.db, { type: "invite", action: "invite.revoked", actorUserId: ctx.user.id, summary: `canceled the invitation to ${invite.name ?? invite.email}`, subjectType: "invitation", subjectId: invite.id })
   return { ok: true }
 }
 

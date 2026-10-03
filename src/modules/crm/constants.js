@@ -1,4 +1,4 @@
-import { formatSize } from "@/modules/estate/constants"
+import { formatSize } from "@/modules/portfolio/constants"
 
 // CRM helpers used on the server and in the browser.
 
