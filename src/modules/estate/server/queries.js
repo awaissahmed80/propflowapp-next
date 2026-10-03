@@ -1,220 +1,291 @@
 import "server-only"
 import { live } from "@/server/db/records"
-import { logActivity } from "@/server/tenants/activity"
-import { getLookups } from "@/modules/lookups/server"
-import { assetUrl, coversFor, listAssets } from "@/server/assets"
 import { peopleByIds } from "@/modules/users/server/queries"
-import { summarize } from "../constants"
-import { activeListsByProject } from "./price-list-queries"
+import { assignableAgents } from "@/modules/crm/server/queries"
+import { ledgerFor } from "@/modules/operations/server/ledger"
+import { CHECKLISTS, CLOSED_STATUSES, DOCUMENT_PAPERS, OPEN_STATUSES, mergeSettings } from "../constants"
+import { scoped } from "./context"
 
-// Reads for Estate Management. Money comes back as numbers (decimalNumbers), dates as Date.
+// Reads for Estate Management. Requests only ever come through scoped(), so people see what their
+// role allows. Each request carries its file (booking): unit, buyer, how much is paid and overdue,
+// and its checklist with the automatic steps worked out from live data.
 
-export const ESTATE_LISTS = [
-  "project-type",
-  "project-status",
-  "approval-status",
-  "authority",
-  "phase-stage",
-  "block-category",
-  "unit-type",
-  "unit-status",
-  "feature",
-  "hold-reason",
-  "marla-size",
-  "area-unit",
-  "city",
-  "project-document-type",
-  "development-work",
-  "update-type",
-  "event-type",
-]
-export const estateLists = (ctx) => getLookups(ctx.db, ESTATE_LISTS)
+export const SETTINGS_KEY = "estate_settings"
+const json = (v, fallback) => {
+  if (v == null) return fallback
+  if (typeof v !== "string") return v
+  try {
+    return JSON.parse(v)
+  } catch {
+    return fallback
+  }
+}
+const person = (p) => (p ? { id: p.id, name: p.name, avatarUrl: p.avatarUrl ?? null, phone: p.phone ?? null } : null)
+const maskCnic = (ctx, cnic) => (!cnic ? null : ctx.grant?.("contacts.cnic") ? cnic : cnic.replace(/^(\d{5})-?\d{7}-?(\d)$/, "$1-•••••••-$2"))
 
-// Holds end on their own: units whose hold has run out go back on sale. Runs before reads.
-export async function releaseExpiredHolds(ctx) {
-  const expired = await live(ctx.db, "units").where({ status: "on-hold" }).where("holdExpiresAt", "<=", new Date()).select("id", "code")
-  if (!expired.length) return
-  await ctx
-    .db("units")
-    .whereIn(
-      "id",
-      expired.map((u) => u.id),
+export async function servicesSettings(db) {
+  const row = await db("settings").where({ key: SETTINGS_KEY }).first("value")
+  return mergeSettings(json(row?.value, {}))
+}
+
+// The newest NDC on a file that's still valid → { code, number, issuedAt, validTill } | null
+export async function validNdc(db, bookingId, settings, now = new Date()) {
+  if (!bookingId) return null
+  const rows = await live(db, "serviceRequests").where({ bookingId, type: "ndc", status: "completed" }).orderBy("closedAt", "desc").select("code", "data", "closedAt")
+  for (const r of rows) {
+    const d = json(r.data, {})
+    const issued = d.issuedAt ?? r.closedAt
+    const days = Number(d.validDays ?? settings.ndc.validDays)
+    const till = new Date(new Date(issued).getTime() + days * 86_400_000)
+    if (till > now) return { code: r.code, number: d.number ?? null, issuedAt: issued, validTill: till }
+  }
+  return null
+}
+
+// Requests with their file, unit, buyer and assignee → raw rows
+function base(ctx) {
+  return scoped(ctx, ctx.db("serviceRequests as r").whereNull("r.deletedAt"), "r")
+    .leftJoin("bookings as b", "b.id", "r.bookingId")
+    .leftJoin("units as u", "u.id", ctx.db.raw("coalesce(r.unit_id, b.unit_id)"))
+    .leftJoin("projects as p", "p.id", "u.projectId")
+    .leftJoin("projectPhases as ph", "ph.id", "u.phaseId")
+    .leftJoin("projectBlocks as k", "k.id", "u.blockId")
+    .leftJoin("contacts as c", "c.id", "r.contactId")
+    .select(
+      "r.*",
+      "b.code as bookingCode",
+      "b.netPrice",
+      "b.agreedPrice",
+      "b.status as bookingStatus",
+      "b.stage as bookingStage",
+      "b.nominee",
+      "u.number as unitNumber",
+      "u.type as unitType",
+      "u.sizeValue",
+      "u.sizeUnit",
+      "u.code as unitCode",
+      "k.name as blockName",
+      "p.code as projectCode",
+      "p.name as projectName",
+      "ph.name as phaseName",
+      "ph.status as phaseStatus",
+      "c.code as contactCode",
+      "c.name as contactName",
+      "c.phone as contactPhone",
+      "c.cnic as contactCnic",
     )
-    .update({ status: "available", holdBy: null, holdReason: null, holdExpiresAt: null, updatedAt: new Date() })
-  await logActivity(ctx.db, {
-    type: "estate",
-    action: "unit.hold_expired",
-    summary: `released ${expired.length} expired ${expired.length === 1 ? "hold" : "holds"} (${expired
-      .slice(0, 5)
-      .map((u) => u.code)
-      .join(", ")}${expired.length > 5 ? "…" : ""})`,
+}
+
+// The file's money position for each request's booking → Map(bookingId → summary)
+async function money(db, rows) {
+  const ids = [...new Set(rows.map((r) => r.bookingId).filter(Boolean))]
+  if (!ids.length) return new Map()
+  const bookings = await db("bookings").whereIn("id", ids).select("id", "netPrice", "agreedPrice", "status")
+  return ledgerFor(db, bookings)
+}
+
+// Checklist: manual steps ticked by staff, automatic ones from live data
+function checklist(r, m, ndc) {
+  const ticked = new Set(json(r.steps, []))
+  const fee = json(r.fee, null)
+  const feeDone = !fee?.amount || Boolean(fee.paidAt) || Boolean(fee.waived)
+  return (CHECKLISTS[r.type] ?? []).map((s) => {
+    if (!s.auto) return { ...s, done: ticked.has(s.key), detail: s.key === "supporting" && r.type === "document" ? DOCUMENT_PAPERS[json(r.data, {}).kind] : null }
+    if (s.key === "fee") return { ...s, done: feeDone, detail: fee?.waived ? "Waived" : fee?.paidAt ? `Paid${fee.ref ? ` · ${fee.ref}` : ""}` : fee?.amount ? null : "No fee" }
+    if (s.key === "ndc")
+      return { ...s, done: Boolean(ndc), detail: ndc ? `${ndc.number ?? ndc.code}, valid till ${new Date(ndc.validTill).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : "Needs an NDC first" }
+    if (s.key === "dues") return { ...s, done: (m?.overdueAmount ?? 0) <= 0, detail: m?.overdueAmount > 0 ? `${m.overdueCount} overdue` : null, amount: m?.overdueAmount ?? 0 }
+    if (s.key === "paid") return { ...s, done: m ? m.balance <= 0 : false, amount: m?.balance ?? null }
+    if (s.key === "phase") return { ...s, done: ["possession", "completed"].includes(r.phaseStatus), detail: r.phaseName ?? null }
+    return { ...s, done: false }
   })
 }
 
-const UNIT_FIELDS = ["id", "code", "projectId", "phaseId", "blockId", "number", "type", "category", "sizeValue", "sizeUnit", "areaSqft", "price", "basePrice", "status", "dealerId"]
-
-// Projects with their phase/block counts, unit types and availability
-export async function listProjects(ctx) {
-  await releaseExpiredHolds(ctx)
-  const [projects, phases, blocks, units] = await Promise.all([
-    live(ctx.db, "projects").orderBy("sortOrder").orderBy("name"),
-    live(ctx.db, "projectPhases").select("id", "projectId"),
-    live(ctx.db, "projectBlocks").select("id", "projectId"),
-    live(ctx.db, "units").select(UNIT_FIELDS),
-  ])
-  const covers = await coversFor(
-    ctx.db,
-    "project",
-    projects.map((p) => p.id),
-  )
-  return projects.map((p) => {
-    const mine = units.filter((u) => u.projectId === p.id)
-    return {
-      ...p,
-      coverUrl: covers.get(p.id) ?? null,
-      amenities: p.amenities ?? [],
-      phaseCount: phases.filter((x) => x.projectId === p.id).length,
-      blockCount: blocks.filter((x) => x.projectId === p.id).length,
-      unitTypes: [...new Set(mine.map((u) => u.type))],
-      stats: summarize(mine),
-    }
-  })
-}
-
-// One project by its code (any case), with phases → blocks and their availability, and the unit
-// mix (units grouped by type and size). null when it isn't in this workspace.
-export async function getProject(ctx, code) {
-  await releaseExpiredHolds(ctx)
-  const project = await live(ctx.db, "projects")
-    .where({ code: String(code ?? "").toUpperCase() })
-    .first()
-  if (!project) return null
-  const [phases, blocks, units, assets] = await Promise.all([
-    live(ctx.db, "projectPhases").where({ projectId: project.id }).orderBy("sortOrder").orderBy("id"),
-    live(ctx.db, "projectBlocks").where({ projectId: project.id }).orderBy("sortOrder").orderBy("id"),
-    live(ctx.db, "units").where({ projectId: project.id }).select(UNIT_FIELDS),
-    listAssets(ctx.db, { ownerType: "project", ownerId: project.id }),
-  ])
-  const [progress, updates, events] = await Promise.all([
-    live(ctx.db, "projectProgress").where({ projectId: project.id }).select("phaseId", "work", "percent", "updatedAt", "createdAt"),
-    live(ctx.db, "projectUpdates").where({ projectId: project.id }).orderBy("postedAt", "desc").orderBy("id", "desc").limit(100),
-    live(ctx.db, "projectEvents").where({ projectId: project.id }).orderBy("startsAt"),
-  ])
-  const updateIds = updates.map((u) => u.id)
-  const [photos, authors] = await Promise.all([
-    updateIds.length ? live(ctx.db, "assets").where({ ownerType: "project_update", collection: "images" }).whereIn("ownerId", updateIds).orderBy("sortOrder").select("ownerId", "code", "title") : [],
-    peopleByIds(updates.map((u) => u.createdBy)),
-  ])
-  const mixMap = new Map()
-  for (const u of units) {
-    const key = `${u.type}|${Number(u.sizeValue)}|${u.sizeUnit}`
-    if (!mixMap.has(key)) mixMap.set(key, { key, type: u.type, sizeValue: Number(u.sizeValue), sizeUnit: u.sizeUnit, units: [] })
-    mixMap.get(key).units.push(u)
-  }
-  const sizeOrder = (r) => (r.sizeUnit === "kanal" ? r.sizeValue * 20 : r.sizeValue)
-  const unitMix = [...mixMap.values()]
-    .map(({ units: list, ...r }) => ({ ...r, stats: summarize(list), minPrice: Math.min(...list.map((u) => Number(u.price))), maxPrice: Math.max(...list.map((u) => Number(u.price))) }))
-    .sort((a, b) => a.type.localeCompare(b.type) || sizeOrder(a) - sizeOrder(b))
+function shape(ctx, r, m, people, ndc = null) {
+  const data = json(r.data, {})
+  const steps = checklist(r, m, ndc)
+  const closed = CLOSED_STATUSES.includes(r.status)
   return {
-    ...project,
-    amenities: project.amenities ?? [],
-    images: assets.filter((a) => a.collection === "images"),
-    documents: assets.filter((a) => a.collection === "documents"),
-    coverUrl: assets.find((a) => a.collection === "images" && a.isCover)?.url ?? null,
-    progress: progress.map((r) => ({ phaseId: r.phaseId, work: r.work, percent: r.percent, updatedAt: r.updatedAt ?? r.createdAt })),
-    updates: updates.map((u) => ({
-      code: u.code,
-      type: u.type,
-      title: u.title,
-      body: u.body,
-      phaseId: u.phaseId,
-      changes: u.changes ?? [],
-      postedAt: u.postedAt,
-      author: authors.get(u.createdBy)?.name ?? null,
-      photos: photos.filter((ph) => ph.ownerId === u.id).map((ph) => ({ code: ph.code, title: ph.title, url: assetUrl(ph.code) })),
-    })),
-    events: events.map((e) => ({ code: e.code, type: e.type, title: e.title, startsAt: e.startsAt, endsAt: e.endsAt, venue: e.venue, description: e.description, status: e.status })),
-    stats: summarize(units),
-    onHold: units.filter((u) => u.status === "on-hold").length,
-    phases: phases.map((ph) => {
-      const phUnits = units.filter((u) => u.phaseId === ph.id)
-      return {
-        ...ph,
-        stats: summarize(phUnits),
-        blocks: blocks
-          .filter((b) => b.phaseId === ph.id)
-          .map((b) => {
-            const bUnits = phUnits.filter((u) => u.blockId === b.id)
-            return { ...b, stats: summarize(bUnits), unitTypes: [...new Set(bUnits.map((u) => u.type))], hasUnits: bUnits.length > 0 }
-          }),
-      }
-    }),
-    unitMix,
+    code: r.code,
+    type: r.type,
+    status: r.status,
+    priority: r.priority,
+    channel: r.channel,
+    subject: r.subject,
+    details: r.details ?? "",
+    // The purchaser's and seller's CNICs follow the same masking as contacts
+    data: { ...data, ...(data.to ? { to: { ...data.to, cnic: maskCnic(ctx, data.to.cnic) } } : {}), ...(data.from ? { from: { ...data.from, cnic: maskCnic(ctx, data.from.cnic) } } : {}) },
+    fee: json(r.fee, null),
+    resolution: r.resolution,
+    createdAt: r.createdAt,
+    closedAt: r.closedAt,
+    dueAt: r.dueAt,
+    overdue: !closed && r.dueAt ? new Date(r.dueAt) < new Date() : false,
+    closed,
+    steps,
+    ready: steps.every((s) => s.done),
+    assignee: person(people.get(r.assignedTo)),
+    contact: r.contactCode ? { code: r.contactCode, name: r.contactName, phone: r.contactPhone, cnic: maskCnic(ctx, r.contactCnic) } : null,
+    booking: r.bookingCode
+      ? {
+          code: r.bookingCode,
+          stage: r.bookingStage,
+          status: r.bookingStatus,
+          net: Number(r.netPrice ?? r.agreedPrice ?? 0),
+          received: m?.received ?? 0,
+          balance: m?.balance ?? null,
+          paidPct: m?.paidPct ?? 0,
+          overdueAmount: m?.overdueAmount ?? 0,
+          overdueCount: m?.overdueCount ?? 0,
+          nominee: json(r.nominee, null),
+        }
+      : null,
+    unit: r.unitNumber
+      ? {
+          code: r.unitCode,
+          number: r.unitNumber,
+          type: r.unitType,
+          sizeValue: Number(r.sizeValue),
+          sizeUnit: r.sizeUnit,
+          block: r.blockName,
+          phase: r.phaseName,
+          phaseStatus: r.phaseStatus,
+          project: { code: r.projectCode, name: r.projectName },
+        }
+      : null,
   }
 }
 
-// Every unit with its project, phase, block, dealer and who's holding it
-export async function listInventory(ctx) {
-  await releaseExpiredHolds(ctx)
-  const [units, projects, phases, blocks, dealers] = await Promise.all([
-    live(ctx.db, "units").orderBy("projectId").orderBy("blockId").orderBy("id"),
-    live(ctx.db, "projects").select("id", "code", "name", "color", "marlaSqft", "type"),
-    live(ctx.db, "projectPhases").select("id", "name", "stage"),
-    live(ctx.db, "projectBlocks").select("id", "name", "category"),
-    ctx.db("dealers").select("id", "code", "name", "city"),
-  ])
-  const holders = await peopleByIds(units.map((u) => u.holdBy))
-  const byId = (list) => new Map(list.map((x) => [x.id, x]))
-  const [P, Ph, B, D] = [byId(projects), byId(phases), byId(blocks), byId(dealers)]
-  return units.map((u) => {
-    const p = P.get(u.projectId)
-    const d = D.get(u.dealerId)
-    return {
-      code: u.code,
-      number: u.number,
-      type: u.type,
-      category: u.category,
-      sizeValue: Number(u.sizeValue),
-      sizeUnit: u.sizeUnit,
-      areaSqft: u.areaSqft,
-      street: u.street,
-      dimensions: u.dimensions,
-      floor: u.floor,
-      bedrooms: u.bedrooms,
-      features: u.features ?? [],
-      premiums: u.premiums ?? [],
-      basePrice: Number(u.basePrice),
-      baseRate: Number(u.baseRate) || null,
-      price: Number(u.price),
-      status: u.status,
-      blockReason: u.blockReason,
-      hold: u.status === "on-hold" ? { by: holders.get(u.holdBy)?.name ?? null, byMe: u.holdBy === ctx.user.id, reason: u.holdReason, expiresAt: u.holdExpiresAt } : null,
-      project: p ? { code: p.code, name: p.name, color: p.color, marlaSqft: Number(p.marlaSqft) } : null,
-      phase: Ph.get(u.phaseId) ? { id: u.phaseId, name: Ph.get(u.phaseId).name, stage: Ph.get(u.phaseId).stage } : null,
-      block: B.get(u.blockId) ? { id: u.blockId, name: B.get(u.blockId).name } : null,
-      dealer: d ? { code: d.code, name: d.name, city: d.city } : null,
-    }
-  })
+// Requests for a list (one type, or every type for the Service desk)
+export async function listRequests(ctx, { type = null } = {}) {
+  const q = base(ctx).orderBy("r.createdAt", "desc").limit(3000)
+  if (type) q.where("r.type", type)
+  const rows = await q
+  const [m, people] = await Promise.all([money(ctx.db, rows), peopleByIds(rows.map((r) => r.assignedTo))])
+  return rows.map((r) => shape(ctx, r, m.get(r.bookingId), people))
 }
 
-// Projects → phases → blocks, for adding inventory
-export async function projectTree(ctx) {
-  const [projects, phases, blocks, lists] = await Promise.all([
-    live(ctx.db, "projects").orderBy("name").select("id", "code", "name", "color", "marlaSqft"),
-    live(ctx.db, "projectPhases").orderBy("sortOrder").orderBy("id").select("id", "projectId", "name", "stage"),
-    live(ctx.db, "projectBlocks").orderBy("sortOrder").orderBy("id").select("id", "phaseId", "name", "category"),
-    activeListsByProject(ctx),
+// One request with its timeline, the file's other requests and its NDC
+export async function getRequest(ctx, code) {
+  const r = await base(ctx)
+    .where("r.code", String(code ?? "").toUpperCase())
+    .first()
+  if (!r) return null
+  const settings = await servicesSettings(ctx.db)
+  const [m, events, related, ndc] = await Promise.all([
+    money(ctx.db, [r]),
+    ctx.db("serviceRequestEvents").where({ requestId: r.id }).orderBy("at").orderBy("id"),
+    r.bookingId ? live(ctx.db, "serviceRequests").where({ bookingId: r.bookingId }).whereNot({ id: r.id }).orderBy("createdAt", "desc").limit(10).select("code", "type", "status", "subject", "createdAt") : [],
+    validNdc(ctx.db, r.bookingId, settings),
   ])
-  return projects.map((p) => ({
-    code: p.code,
-    priceList: lists[p.code] ? { version: lists[p.code].version, rates: lists[p.code].rates, premiums: lists[p.code].premiums } : null,
-    name: p.name,
-    color: p.color,
-    marlaSqft: Number(p.marlaSqft),
-    phases: phases
-      .filter((ph) => ph.projectId === p.id)
-      .map((ph) => ({ id: ph.id, name: ph.name, stage: ph.stage, blocks: blocks.filter((b) => b.phaseId === ph.id).map((b) => ({ id: b.id, name: b.name, category: b.category })) })),
+  const people = await peopleByIds([r.assignedTo, ...events.map((e) => e.by)])
+  const openNdc = r.type === "transfer" && r.bookingId ? await live(ctx.db, "serviceRequests").where({ bookingId: r.bookingId, type: "ndc" }).whereIn("status", OPEN_STATUSES).first("code") : null
+  return {
+    ...shape(ctx, r, m.get(r.bookingId), people, ndc),
+    events: events.map((e) => ({ id: e.id, kind: e.kind, text: e.text, at: e.at, by: person(people.get(e.by)) })),
+    related,
+    ndcOnFile: ndc,
+    openNdc: openNdc?.code ?? null,
+    settings,
+  }
+}
+
+// Files a request can be about: every live booking (Care works on all files)
+export async function bookingOptions(ctx) {
+  const rows = await ctx
+    .db("bookings as b")
+    .whereNull("b.deletedAt")
+    .whereNotIn("b.status", ["cancelled", "refunded"])
+    .join("units as u", "u.id", "b.unitId")
+    .join("projects as p", "p.id", "b.projectId")
+    .leftJoin("contacts as c", "c.id", "b.contactId")
+    .orderBy("b.bookedAt", "desc")
+    .limit(5000)
+    .select("b.code", "b.customerName", "c.name as contactName", "c.phone as contactPhone", "u.number as unitNumber", "u.type as unitType", "u.sizeValue", "u.sizeUnit", "p.name as projectName")
+  return rows.map((b) => ({
+    value: b.code,
+    label: `${b.contactName ?? b.customerName} · ${b.projectName} ${b.unitNumber}`,
+    buyer: b.contactName ?? b.customerName,
+    phone: b.contactPhone,
+    unit: { type: b.unitType, sizeValue: Number(b.sizeValue), sizeUnit: b.sizeUnit, number: b.unitNumber },
+    project: b.projectName,
   }))
 }
 
-export const activeDealers = (ctx) => live(ctx.db, "dealers").where({ isActive: true }).orderBy("name").select("code", "name", "city")
+// People requests can be given to
+export const serviceStaff = async (ctx) => (await assignableAgents(ctx)).map((a) => ({ id: a.id, name: a.name, avatarUrl: a.avatarUrl, team: a.team }))
+
+// Fully paid owners in phases open for possession who haven't asked for it yet
+export async function possessionReady(ctx) {
+  const bookings = await ctx
+    .db("bookings as b")
+    .whereNull("b.deletedAt")
+    .whereNotIn("b.status", ["cancelled", "refunded"])
+    .where((q) => q.whereNot("b.stage", "completed").orWhereNull("b.stage"))
+    .join("units as u", "u.id", "b.unitId")
+    .join("projectPhases as ph", "ph.id", "u.phaseId")
+    .join("projects as p", "p.id", "b.projectId")
+    .leftJoin("contacts as c", "c.id", "b.contactId")
+    .whereIn("ph.status", ["possession", "completed"])
+    .whereNotExists((q) => q.select(ctx.db.raw("1")).from("serviceRequests as r").whereColumn("r.bookingId", "b.id").where("r.type", "possession").whereNull("r.deletedAt").whereNot("r.status", "rejected"))
+    .select("b.id", "b.code", "b.netPrice", "b.agreedPrice", "b.status", "b.customerName", "c.name as contactName", "c.phone as contactPhone", "u.number as unitNumber", "p.name as projectName", "ph.name as phaseName")
+  const m = await ledgerFor(ctx.db, bookings)
+  return bookings
+    .filter((b) => (m.get(b.id)?.balance ?? 1) <= 0)
+    .map((b) => ({ code: b.code, buyer: b.contactName ?? b.customerName, phone: b.contactPhone, unit: b.unitNumber, project: b.projectName, phase: b.phaseName }))
+}
+
+// The overview: open, overdue, complaints, transfers and recent work
+export async function serviceOverview(ctx) {
+  const all = await listRequests(ctx)
+  const now = Date.now()
+  const d30 = now - 30 * 86_400_000
+  const open = all.filter((r) => !r.closed)
+  const complaints = all.filter((r) => r.type === "complaint")
+  const closedComplaints = complaints.filter((r) => r.closed && r.closedAt && new Date(r.closedAt) >= d30)
+  const fixHours = closedComplaints.map((r) => (new Date(r.closedAt) - new Date(r.createdAt)) / 3_600_000)
+  const byType = {}
+  for (const r of open) byType[r.type] = (byType[r.type] ?? 0) + 1
+  const byCategory = {}
+  for (const r of complaints.filter((x) => new Date(x.createdAt) >= d30)) byCategory[r.data.category ?? "other"] = (byCategory[r.data.category ?? "other"] ?? 0) + 1
+  const slim = (r) => ({
+    code: r.code,
+    type: r.type,
+    status: r.status,
+    priority: r.priority,
+    subject: r.subject,
+    dueAt: r.dueAt,
+    overdue: r.overdue,
+    closedAt: r.closedAt,
+    createdAt: r.createdAt,
+    contact: r.contact?.name ?? null,
+    unit: r.unit ? `${r.unit.project.name} ${r.unit.number}` : null,
+    assignee: r.assignee,
+  })
+  return {
+    open: open.length,
+    overdue: open.filter((r) => r.overdue).length,
+    openComplaints: complaints.filter((r) => !r.closed).length,
+    urgentComplaints: complaints.filter((r) => !r.closed && ["urgent", "high"].includes(r.priority)).length,
+    transfersOpen: all.filter((r) => r.type === "transfer" && !r.closed).length,
+    transfersDone30: all.filter((r) => r.type === "transfer" && r.status === "completed" && r.closedAt && new Date(r.closedAt) >= d30).length,
+    fixHours: fixHours.length ? Math.round(fixHours.reduce((s, h) => s + h, 0) / fixHours.length) : null,
+    onTimePct: closedComplaints.length ? Math.round((closedComplaints.filter((r) => !r.dueAt || new Date(r.closedAt) <= new Date(r.dueAt)).length / closedComplaints.length) * 100) : null,
+    byType,
+    byCategory,
+    overdueList: open
+      .filter((r) => r.overdue)
+      .sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt))
+      .slice(0, 7)
+      .map(slim),
+    waiting: open
+      .filter((r) => r.status === "awaiting-customer")
+      .slice(0, 7)
+      .map(slim),
+    recent: all
+      .filter((r) => r.closed)
+      .sort((a, b) => new Date(b.closedAt) - new Date(a.closedAt))
+      .slice(0, 5)
+      .map(slim),
+  }
+}

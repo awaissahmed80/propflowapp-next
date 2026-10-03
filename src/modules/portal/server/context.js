@@ -50,7 +50,8 @@ export const getPortal = cache(async () => {
       trialDaysLeft: s.tenant.status === "trial" && s.tenant.trialEndsAt ? Math.max(0, Math.ceil((s.tenant.trialEndsAt - Date.now()) / DAY)) : null,
     },
     // off: features of the app this workspace doesn't have (see portal/features.js)
-    apps: apps.filter((a) => a.alwaysOn || canOpenApp(permissions, a.code)).map(({ offFeatures, ...a }) => ({ ...a, off: cleanOff(a.code, offFeatures) })),
+    // My Desk isn't an app any more: it's the middle of the launcher
+    apps: apps.filter((a) => a.code !== "desk" && (a.alwaysOn || canOpenApp(permissions, a.code))).map(({ offFeatures, ...a }) => ({ ...a, off: cleanOff(a.code, offFeatures) })),
     // Until the owner finishes Get started, the apps stay closed
     setupCompleted: Boolean(setupRow?.value),
     canSetUp: canSetUp(permissions),

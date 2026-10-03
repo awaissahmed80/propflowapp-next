@@ -19,6 +19,6 @@ export async function seed(knex) {
       grants: r.grants ? JSON.stringify(r.grants) : null,
       is_system: Boolean(r.system),
       sort_order: r.code === "owner" ? 10 : r.code === "admin" ? 20 : Math.max(30, (last?.n ?? 0) + 10) + i * 10,
-    }))
+    })),
   )
 }

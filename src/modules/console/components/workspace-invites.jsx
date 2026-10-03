@@ -18,6 +18,8 @@ import { AppFeatures } from "./app-features"
 import { ToggleGroup } from "@/components/ui/toggle-group"
 import { inviteWorkspace, resendWorkspaceInvite, revokeWorkspaceInvite } from "../server/workspace-invites"
 import { LinkSentDialog } from "@/components/link-sent-dialog"
+import { toastAction } from "@/lib/toast-action"
+import { confirm } from "@/components/alert-context"
 import { Notice } from "./parts"
 
 const INVITE_DAYS = 14
@@ -208,17 +210,15 @@ export function PendingWorkspaceInvites({ invites, manage }) {
   const router = useRouter()
   const [open, setOpen] = useState(true)
   const [dialog, setDialog] = useState(null)
-  const [notice, setNotice] = useState(null)
   const [pending, startTransition] = useTransition()
   if (!invites.length) return null
 
+  // The outcome shows as a toast, or the link dialog after a resend
   const run = (fn, success) =>
     startTransition(async () => {
-      const result = await fn()
-      if (result?.error) setNotice({ tone: "error", text: result.error })
-      else {
+      const result = await toastAction(fn, { loading: "Working on it…", success: success.text })
+      if (!result?.error) {
         if (result?.link) setDialog({ result, email: success.email })
-        setNotice(success.text ? { tone: "success", text: success.text } : null)
         router.refresh()
       }
     })
@@ -232,11 +232,6 @@ export function PendingWorkspaceInvites({ invites, manage }) {
       </button>
       {open && (
         <div className="border-t">
-          {notice && (
-            <div className="px-4 pt-3">
-              <Notice tone={notice.tone}>{notice.text}</Notice>
-            </div>
-          )}
           <ul className="max-h-64 divide-y overflow-y-auto">
             {invites.map((i) => (
               <li key={i.id} className={i.state === "cancelled" ? "flex flex-wrap items-center gap-3 px-4 py-2.5 opacity-70" : "flex flex-wrap items-center gap-3 px-4 py-2.5"}>
@@ -286,7 +281,16 @@ export function PendingWorkspaceInvites({ invites, manage }) {
                         variant="ghost"
                         leftIcon="close-line"
                         disabled={pending}
-                        onClick={() => run(() => revokeWorkspaceInvite(i.id), { text: `Invitation to ${i.email} cancelled. Its link no longer works.` })}
+                        onClick={async () =>
+                          (await confirm({
+                            title: `Cancel the invitation to ${i.email}?`,
+                            description: "The link in their email stops working, so they can't set up the workspace with it.",
+                            confirmLabel: "Cancel invitation",
+                            cancelLabel: "Keep it",
+                            destructive: true,
+                            icon: "mail-close-line",
+                          })) && run(() => revokeWorkspaceInvite(i.id), { text: `Invitation to ${i.email} canceled. Its link no longer works.` })
+                        }
                       >
                         Cancel
                       </Button>

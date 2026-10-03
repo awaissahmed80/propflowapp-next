@@ -7,68 +7,53 @@
     "callouts": [
       {
         "id": "critical",
-        "x": 74.86,
-        "y": 17.56,
-        "w": 25.14,
-        "h": 32
+        "x": 35.71,
+        "y": 20.78,
+        "w": 62.62,
+        "h": 19.78
       },
       {
         "id": "apps",
-        "x": 1.39,
-        "y": 28.56,
-        "w": 72.22,
-        "h": 29.11
+        "x": 0.56,
+        "y": 19.44,
+        "w": 32.87,
+        "h": 63.94
+      },
+      {
+        "id": "signoff",
+        "x": 67.02,
+        "y": 41,
+        "w": 31.31,
+        "h": 20.89
       }
     ]
   },
-  "estate-overview": {
-    "src": "/images/screens/estate-overview.webp",
-    "srcDark": "/images/screens/estate-overview-dark.webp",
+  "portfolio-overview": {
+    "src": "/images/screens/portfolio-overview.webp",
+    "srcDark": "/images/screens/portfolio-overview-dark.webp",
     "width": 2880,
     "height": 1800,
     "callouts": [
       {
         "id": "stock",
-        "x": 39.1,
-        "y": 17.56,
+        "x": 58.75,
+        "y": 14.67,
         "w": 19.93,
         "h": 12.33
       },
       {
-        "id": "attention",
-        "x": 72.41,
-        "y": 30.78,
-        "w": 25.93,
-        "h": 48.97
+        "id": "approval",
+        "x": 58.02,
+        "y": 32.67,
+        "w": 11.04,
+        "h": 21.11
       },
       {
-        "id": "chart",
-        "x": 19.44,
-        "y": 30.78,
-        "w": 52.41,
-        "h": 48.97
-      }
-    ]
-  },
-  "inventory": {
-    "src": "/images/screens/inventory.webp",
-    "srcDark": "/images/screens/inventory-dark.webp",
-    "width": 2880,
-    "height": 1800,
-    "callouts": [
-      {
-        "id": "premium",
-        "x": 52.78,
-        "y": 25.33,
-        "w": 30.56,
-        "h": 14.89
-      },
-      {
-        "id": "stock",
-        "x": 18.89,
-        "y": 8.22,
-        "w": 21.94,
-        "h": 9.33
+        "id": "projects",
+        "x": 19.79,
+        "y": 33.33,
+        "w": 78.19,
+        "h": 19.78
       }
     ]
   },
@@ -81,23 +66,59 @@
       {
         "id": "approval",
         "x": 24.03,
-        "y": 12,
-        "w": 32.19,
-        "h": 9.33
+        "y": 12.11,
+        "w": 19.44,
+        "h": 12.44
       },
       {
         "id": "availability",
         "x": 72.78,
-        "y": 36,
+        "y": 38,
         "w": 25.56,
-        "h": 17.33
+        "h": 17.56
       },
       {
         "id": "authority",
-        "x": 73.96,
-        "y": 72.78,
-        "w": 23.19,
-        "h": 15.78
+        "x": 73.82,
+        "y": 76.67,
+        "w": 23.47,
+        "h": 12.56
+      },
+      {
+        "id": "phases",
+        "x": 19.44,
+        "y": 44.67,
+        "w": 52.78,
+        "h": 34.22
+      }
+    ]
+  },
+  "inventory": {
+    "src": "/images/screens/inventory.webp",
+    "srcDark": "/images/screens/inventory-dark.webp",
+    "width": 2880,
+    "height": 1800,
+    "callouts": [
+      {
+        "id": "premium",
+        "x": 19.79,
+        "y": 42.83,
+        "w": 78.19,
+        "h": 8.11
+      },
+      {
+        "id": "stock",
+        "x": 61.84,
+        "y": 9.78,
+        "w": 14.28,
+        "h": 4
+      },
+      {
+        "id": "status",
+        "x": 19.44,
+        "y": 14.22,
+        "w": 44.61,
+        "h": 4.67
       }
     ]
   },
@@ -108,33 +129,25 @@
     "height": 1800,
     "callouts": [
       {
-        "id": "versions",
-        "x": 23.82,
-        "y": 31.22,
-        "w": 67.08,
-        "h": 18
-      }
-    ]
-  },
-  "listings": {
-    "src": "/images/screens/listings.webp",
-    "srcDark": "/images/screens/listings-dark.webp",
-    "width": 2880,
-    "height": 1800,
-    "callouts": [
-      {
-        "id": "card",
-        "x": 45.42,
-        "y": 33.33,
-        "w": 27.01,
-        "h": 32.89
+        "id": "plan",
+        "x": 58.89,
+        "y": 38.11,
+        "w": 39.44,
+        "h": 23.78
       },
       {
-        "id": "enquiries",
-        "x": 58.75,
-        "y": 20.89,
-        "w": 19.93,
-        "h": 12.33
+        "id": "header",
+        "x": 24.17,
+        "y": 12.33,
+        "w": 49,
+        "h": 8.89
+      },
+      {
+        "id": "cash",
+        "x": 19.44,
+        "y": 38.11,
+        "w": 39.44,
+        "h": 23.78
       }
     ]
   },
@@ -146,17 +159,17 @@
     "callouts": [
       {
         "id": "card",
-        "x": 20.35,
-        "y": 43.89,
-        "w": 19.31,
-        "h": 18.67
+        "x": 66.18,
+        "y": 20.11,
+        "w": 22.08,
+        "h": 23.08
       },
       {
-        "id": "chips",
-        "x": 19.17,
-        "y": 8.67,
-        "w": 43.47,
-        "h": 12.89
+        "id": "columns",
+        "x": 19.44,
+        "y": 14.89,
+        "w": 80.56,
+        "h": 6.89
       }
     ]
   },
@@ -167,25 +180,25 @@
     "height": 1800,
     "callouts": [
       {
-        "id": "log",
-        "x": 19.44,
-        "y": 21.56,
-        "w": 52.78,
-        "h": 31.78
-      },
-      {
-        "id": "matches",
-        "x": 19.44,
-        "y": 69.11,
-        "w": 52.78,
-        "h": 30.89
+        "id": "score",
+        "x": 63.06,
+        "y": 37.94,
+        "w": 32.64,
+        "h": 47.11
       },
       {
         "id": "header",
-        "x": 19.03,
-        "y": 11.56,
-        "w": 27.92,
-        "h": 10
+        "x": 59.03,
+        "y": 20.78,
+        "w": 38.96,
+        "h": 10.89
+      },
+      {
+        "id": "followups",
+        "x": 44.31,
+        "y": 14.78,
+        "w": 11.67,
+        "h": 51.17
       }
     ]
   },
@@ -196,25 +209,25 @@
     "height": 1800,
     "callouts": [
       {
+        "id": "cpl",
+        "x": 82.33,
+        "y": 21.67,
+        "w": 16,
+        "h": 12.33
+      },
+      {
         "id": "goals",
         "x": 19.44,
-        "y": 40.56,
+        "y": 40.67,
         "w": 26.11,
         "h": 31.33
       },
       {
         "id": "funnel",
         "x": 46.11,
-        "y": 40.56,
+        "y": 40.67,
         "w": 26.11,
         "h": 31.33
-      },
-      {
-        "id": "cpl",
-        "x": 82.33,
-        "y": 21.56,
-        "w": 16,
-        "h": 12.33
       }
     ]
   },
@@ -226,10 +239,17 @@
     "callouts": [
       {
         "id": "phone",
-        "x": 57.85,
-        "y": 14.33,
-        "w": 28.75,
-        "h": 38.44
+        "x": 34.1,
+        "y": 13.67,
+        "w": 28.47,
+        "h": 86.33
+      },
+      {
+        "id": "sections",
+        "x": 0.14,
+        "y": 19.33,
+        "w": 19.65,
+        "h": 68
       }
     ]
   },
@@ -240,18 +260,221 @@
     "height": 1800,
     "callouts": [
       {
+        "id": "chart",
+        "x": 19.44,
+        "y": 39,
+        "w": 78.89,
+        "h": 39.33
+      },
+      {
+        "id": "cpl",
+        "x": 80.21,
+        "y": 79.11,
+        "w": 10.49,
+        "h": 20.28
+      },
+      {
+        "id": "tiles",
+        "x": 19.44,
+        "y": 27.22,
+        "w": 78.89,
+        "h": 10.89
+      }
+    ]
+  },
+  "booking": {
+    "src": "/images/screens/booking.webp",
+    "srcDark": "/images/screens/booking-dark.webp",
+    "width": 2880,
+    "height": 1800,
+    "callouts": [
+      {
+        "id": "progress",
+        "x": 18.89,
+        "y": 21.78,
+        "w": 51.11,
+        "h": 22.06
+      },
+      {
+        "id": "receipts",
+        "x": 19.03,
+        "y": 50,
+        "w": 50.83,
+        "h": 29.78
+      },
+      {
+        "id": "cleared",
+        "x": 71.67,
+        "y": 76.22,
+        "w": 28.33,
+        "h": 6.89
+      }
+    ]
+  },
+  "installments": {
+    "src": "/images/screens/installments.webp",
+    "srcDark": "/images/screens/installments-dark.webp",
+    "width": 2880,
+    "height": 1800,
+    "callouts": [
+      {
         "id": "tiles",
         "x": 39.1,
-        "y": 27.11,
+        "y": 17.56,
+        "w": 59.24,
+        "h": 12.33
+      },
+      {
+        "id": "remind",
+        "x": 85.21,
+        "y": 37.11,
+        "w": 12.22,
+        "h": 5.78
+      },
+      {
+        "id": "overdue",
+        "x": 19.44,
+        "y": 17.56,
         "w": 19.93,
-        "h": 10.89
+        "h": 12.33
+      }
+    ]
+  },
+  "cheques": {
+    "src": "/images/screens/cheques.webp",
+    "srcDark": "/images/screens/cheques-dark.webp",
+    "width": 2880,
+    "height": 1800,
+    "callouts": [
+      {
+        "id": "clearing",
+        "x": 19.44,
+        "y": 17.56,
+        "w": 19.93,
+        "h": 12.33
+      },
+      {
+        "id": "actions",
+        "x": 83.8,
+        "y": 35.56,
+        "w": 13.63,
+        "h": 5.78
+      },
+      {
+        "id": "approval",
+        "x": 82.67,
+        "y": 59.5,
+        "w": 15.73,
+        "h": 8.56
+      }
+    ]
+  },
+  "estate-request": {
+    "src": "/images/screens/estate-request.webp",
+    "srcDark": "/images/screens/estate-request-dark.webp",
+    "width": 2880,
+    "height": 1800,
+    "callouts": [
+      {
+        "id": "checklist",
+        "x": 19.44,
+        "y": 53.44,
+        "w": 52.78,
+        "h": 36.22
+      },
+      {
+        "id": "ndc",
+        "x": 19.93,
+        "y": 69.11,
+        "w": 52.36,
+        "h": 7.56
+      },
+      {
+        "id": "blocker",
+        "x": 19.44,
+        "y": 20.33,
+        "w": 78.89,
+        "h": 4.22
+      }
+    ]
+  },
+  "finance-overview": {
+    "src": "/images/screens/finance-overview.webp",
+    "srcDark": "/images/screens/finance-overview-dark.webp",
+    "width": 2880,
+    "height": 1800,
+    "callouts": [
+      {
+        "id": "tiles",
+        "x": 19.44,
+        "y": 24.22,
+        "w": 78.89,
+        "h": 12.33
       },
       {
         "id": "chart",
         "x": 19.44,
-        "y": 38.89,
+        "y": 37.44,
+        "w": 52.41,
+        "h": 40.22
+      },
+      {
+        "id": "approval",
+        "x": 19.44,
+        "y": 17.56,
         "w": 78.89,
-        "h": 42
+        "h": 5.78
+      },
+      {
+        "id": "banks",
+        "x": 72.41,
+        "y": 37.44,
+        "w": 25.93,
+        "h": 40.22
+      }
+    ]
+  },
+  "trial-balance": {
+    "src": "/images/screens/trial-balance.webp",
+    "srcDark": "/images/screens/trial-balance-dark.webp",
+    "width": 2880,
+    "height": 1800,
+    "callouts": [
+      {
+        "id": "totals",
+        "x": 19.44,
+        "y": 27.22,
+        "w": 59.24,
+        "h": 10.89
+      },
+      {
+        "id": "export",
+        "x": 19.44,
+        "y": 20.56,
+        "w": 42.72,
+        "h": 5.78
+      }
+    ]
+  },
+  "approvals": {
+    "src": "/images/screens/approvals.webp",
+    "srcDark": "/images/screens/approvals-dark.webp",
+    "width": 2880,
+    "height": 1800,
+    "callouts": [
+      {
+        "id": "cheque",
+        "x": 16.04,
+        "y": 23.78,
+        "w": 71.53,
+        "h": 25.89
+      },
+      {
+        "id": "refund",
+        "x": 16.32,
+        "y": 52.11,
+        "w": 70.97,
+        "h": 5.33
       }
     ]
   }

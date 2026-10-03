@@ -109,13 +109,11 @@ export function Tour({ steps: allSteps, onClose }) {
 // The launcher tour
 export const LAUNCHER_TOUR = [
   { icon: "hand-heart-line", title: "Welcome to PropFlow", text: "Your workspace is ready. Here's a one-minute look around; you can replay this any time from your account menu." },
-  { target: "desk", icon: "user-smile-line", title: "My Desk", text: "Your own corner: to-dos from every app, approvals waiting for you and what you did recently. Open it for your full day." },
-  { target: "apps", icon: "apps-2-line", title: "Your apps", text: "Everything your plan includes, grouped by department: Estate, CRM, Sales, Finance and more. Click one to open it." },
-  { target: "pinned", icon: "star-line", title: "Pin your favourites", text: "Hover an app and click the star to pin it here, so the apps you use every day are one click away." },
-  { target: "search", icon: "search-line", title: "Find an app", text: "Type to filter your apps, then press Enter to open the first match. Press / from anywhere on this page to jump here." },
+  { target: "desk", icon: "user-smile-line", title: "My Desk", text: "Your own corner: to-dos from every app, requests waiting for your sign-off and what you did recently. It's always here when you come back." },
+  { target: "apps", icon: "apps-2-line", title: "Your apps", text: "Everything your plan includes, grouped by department: Estate, CRM, Operations, Finance and more. Click one to open it." },
   { target: "spotlight", icon: "command-line", title: "Search everything", text: "Press ⌘K (Ctrl K on Windows) anywhere in PropFlow to search apps, and soon your leads, bookings and buyers too." },
-  { target: "critical", icon: "alarm-warning-line", title: "What needs you today", text: "Overdue follow-ups, approvals and anything urgent from every app shows up here." },
-  { target: "getting-started", icon: "rocket-2-line", title: "Finish setting up", text: "What's left to set up for your workspace. Each item opens the right step, and you can replay this tour from here too." },
+  { target: "critical", icon: "alarm-warning-line", title: "What needs you now", text: "Overdue follow-ups, approvals waiting on you and holds about to run out, from every app." },
+  { target: "getting-started", icon: "rocket-2-line", title: "Finish setting up", text: "How much of your workspace setup is done. Continue opens the next step." },
   { target: "inbox", icon: "notification-3-line", title: "Messages & notifications", text: "Chat with your team and see approvals, reminders and updates from your apps." },
   { target: "account", icon: "user-settings-line", title: "Your account", text: "Change the theme, switch workspace, revisit workspace setup, replay this tour, or sign out." },
   { icon: "rocket-2-line", title: "You're all set", text: "Next, invite your team once Users & Teams is available, and start adding your projects." },

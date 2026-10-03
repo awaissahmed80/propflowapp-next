@@ -16,6 +16,6 @@ export const USERS_NAV = [
       { label: "Dealer Accounts", icon: "shake-hands-line", to: "/users/dealers", feature: "dealers", description: "Logins for external dealers, limited to their allocated quota" },
     ],
   },
-  { label: "Setup", items: [{ label: "Lists & Labels", icon: "list-settings-line", to: "/users/lists", description: "Designations, departments and member statuses" }] },
+  { label: "Setup", items: [{ label: "Customize", icon: "equalizer-line", to: "/users/customize", description: "Designations, departments and member statuses" }] },
   { label: "Audit", items: [{ label: "Activity Log", icon: "history-line", to: "/users/activity", description: "Sign-ins, role changes and sensitive actions across the workspace" }] },
 ]

@@ -7,7 +7,7 @@ import { Tooltip } from "@/components/ui/tooltip"
 
 // Lead score (worked out on the server, see crm/server/scoring.js): the card at the top of the
 // lead's Details tab, and the small badge in the leads list. The grade always shows as a letter
-// and word next to its colour.
+// and word next to its color.
 
 const GRADE_TONE = {
   A: { text: "text-emerald-700 dark:text-emerald-400", ring: "stroke-emerald-500", soft: "bg-emerald-500/12" },
@@ -27,6 +27,25 @@ export function ScoreBadge({ score, className }) {
       <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[13px] font-semibold tabular-nums", tone.soft, tone.text, className)}>
         {score.value}
         <span className="text-[11px] opacity-80">{score.grade}</span>
+      </span>
+    </Tooltip>
+  )
+}
+
+// Board cards: a small ring filled to the score, the number inside, grade and label on hover
+export function ScoreRing({ score, className }) {
+  if (!score) return null
+  const r = 15
+  const c = 2 * Math.PI * r
+  const tone = GRADE_TONE[score.grade]
+  return (
+    <Tooltip content={`Lead score ${score.value} · ${score.grade} ${score.label}`}>
+      <span className={cn("relative flex size-9 shrink-0 items-center justify-center", className)} aria-label={`Lead score ${score.value}, ${score.label}`}>
+        <svg viewBox="0 0 36 36" className="absolute inset-0 size-9 -rotate-90" aria-hidden="true">
+          <circle cx="18" cy="18" r={r} fill="none" strokeWidth="3" className="stroke-foreground/10" />
+          <circle cx="18" cy="18" r={r} fill="none" strokeWidth="3" strokeLinecap="round" strokeDasharray={`${(score.value / 100) * c} ${c}`} className={tone.ring} />
+        </svg>
+        <span className={cn("text-[11px] font-bold tabular-nums", tone.text)}>{score.value}</span>
       </span>
     </Tooltip>
   )

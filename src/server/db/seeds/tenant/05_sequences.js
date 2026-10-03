@@ -5,5 +5,8 @@ const SEQUENCES = [
 ]
 
 export async function seed(knex) {
-  await knex("sequences").insert(SEQUENCES.map((s) => ({ ...s, next_value: 1 }))).onConflict("key").ignore()
+  await knex("sequences")
+    .insert(SEQUENCES.map((s) => ({ ...s, next_value: 1 })))
+    .onConflict("key")
+    .ignore()
 }

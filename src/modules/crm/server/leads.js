@@ -5,9 +5,9 @@ import { live } from "@/server/db/records"
 import { nextCode } from "@/server/db/numbering"
 import { logActivity as logToWorkspace } from "@/server/tenants/activity"
 import { getLookups, isLookupValue } from "@/modules/lookups/server"
-import { normalizePkMobile } from "@/lib/phone"
+import { normalizePhone } from "@/lib/phone"
 import { OPEN_STEPS, OUTCOMES, followUpAt } from "../constants"
-import { peopleByIds } from "@/modules/users/server/queries"
+import { listMembers, peopleByIds } from "@/modules/users/server/queries"
 import { crmAction, scoped } from "./context"
 import { crmSettings } from "./settings"
 import { sendWorkspaceMail, smtpReady } from "@/server/mail/workspace-smtp"
@@ -15,19 +15,16 @@ import { storeAsset } from "@/server/assets"
 import { AUDIO_TYPES, VOICE_MAX_BYTES, detectFileType } from "@/server/storage/file-types"
 import { assignableAgents, getLead } from "./queries"
 import { nextInTurn, pickByRules } from "./assignment"
-import { contactOf, ensureContact, linkContact, relinkContact } from "@/modules/contacts/server/links"
+import { canTagLead, isManager, taggable } from "./tagging"
+import { bookingEvent } from "@/modules/operations/server/activity"
+import { routeBooking } from "@/modules/operations/server/assignment"
+import { dealerTerms } from "@/modules/operations/server/commissions"
+import { ensureContact, linkContact, relinkContact } from "@/modules/contacts/server/links"
 
 // Leads: add (with a duplicate check on the mobile), edit, move along the statuses, give to
 // someone, and record what happened (calls, WhatsApp, visits) or what's planned next.
 
 // Pakistani mobiles as +923001234567; overseas numbers as +<country><number>
-function normalizePhone(input) {
-  const pk = normalizePkMobile(input)
-  if (pk) return pk
-  const d = String(input ?? "").replace(/[^\d+]/g, "")
-  const digits = d.replace(/^\+|^00/, "")
-  return /^(\+|00)/.test(d) && /^\d{8,15}$/.test(digits) ? `+${digits}` : null
-}
 
 const optionalText = (max) => z.string().trim().max(max).optional().default("")
 const money = z.preprocess((v) => (v === "" || v == null ? null : Number(v)), z.number().min(0).max(1e11).nullable())
@@ -139,7 +136,7 @@ export async function createLead(input, { force = false } = {}) {
   const c = await columns(ctx, v)
   if (c.fieldErrors) return c
   // Assigning to someone else needs the reassign grant. Nobody picked: the assignment rules
-  // (CRM › Assignment rules), then round-robin when the workspace auto-assigns (Settings › CRM),
+  // (CRM › Customize › Assignment rules), then round-robin when the workspace auto-assigns (Settings › CRM),
   // otherwise the lead is yours.
   if (v.assignedTo && v.assignedTo !== ctx.user.id && !ctx.canReassign) return { fieldErrors: { assignedTo: "Your role can't give leads to other people." } }
   if (!force) {
@@ -223,6 +220,97 @@ export async function setLeadPriority(code, priority) {
   if (lead.archivedAt) return { error: "This lead is archived. Restore it to the pipeline first." }
   if (!isLookupValue((await getLookups(ctx.db, ["lead-priority"]))["lead-priority"], priority)) return { error: "Pick a temperature." }
   await ctx.db("leads").where({ id: lead.id }).update({ priority, updatedAt: new Date(), updatedBy: ctx.user.id })
+  return { ok: true }
+}
+
+// Tagging people on a lead (they see it too). The assignee tags people in their own team; someone
+// who can reassign leads (or sees every lead) tags anyone. Only active staff whose role opens CRM.
+// A colleague's card (the agent avatar on a lead): who they are and how busy → { card } | { error }
+export async function loadAgentCard(userId) {
+  const { ctx, error } = await crmAction("view")
+  if (error) return { error }
+  const id = Number(userId)
+  const m = (await listMembers(ctx)).find((x) => x.id === id)
+  if (!m) return { error: "They're no longer in this workspace." }
+  const endOfToday = new Date(`${new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi" }).format(new Date())}T23:59:59+05:00`)
+  const [open, due, booked] = await Promise.all([
+    live(ctx.db, "leads").where({ assignedTo: id }).whereNull("archivedAt").whereNotIn("status", ["booked", "lost"]).count({ n: "id" }).first(),
+    ctx
+      .db("leadActivities as a")
+      .join("leads as l", "l.id", "a.leadId")
+      .whereNull("a.deletedAt")
+      .whereNull("l.deletedAt")
+      .whereNull("l.archivedAt")
+      .where({ "a.status": "planned", "a.by": id })
+      .where("a.at", "<=", endOfToday)
+      .count({ n: "a.id" })
+      .first(),
+    live(ctx.db, "leads")
+      .where({ assignedTo: id, status: "booked" })
+      .where("closedAt", ">=", new Date(`${new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi" }).format(new Date()).slice(0, 7)}-01T00:00:00+05:00`))
+      .count({ n: "id" })
+      .first(),
+  ])
+  const designation = m.designation ? ((await getLookups(ctx.db, ["designation"])).designation.find((d) => d.value === m.designation)?.label ?? null) : null
+  return {
+    card: {
+      id: m.id,
+      name: m.name,
+      avatarUrl: m.avatarUrl ?? null,
+      role: m.role,
+      designation,
+      team: m.team?.name ?? null,
+      phone: m.phone ?? null,
+      email: m.email ?? null,
+      status: m.status,
+      lastActiveAt: m.lastActiveAt ?? null,
+      open: Number(open?.n ?? 0),
+      dueToday: Number(due?.n ?? 0),
+      bookedThisMonth: Number(booked?.n ?? 0),
+    },
+  }
+}
+
+// The people who can be tagged on this lead, and who already is → { people, note? } | { error }
+export async function loadTagOptions(code) {
+  const { ctx, error } = await crmAction("edit")
+  if (error) return { error }
+  const lead = await leadByCode(ctx, code)
+  if (!lead) return { error: "That lead was removed or isn't yours to see." }
+  if (!canTagLead(ctx, lead)) return { error: "Only whoever has this lead (or a manager) can tag people on it." }
+  const [people, tagged] = await Promise.all([taggable(ctx, lead), live(ctx.db, "leadTags").where({ leadId: lead.id }).select("userId")])
+  const on = new Set(tagged.map((t) => t.userId))
+  return {
+    people: people.map((m) => ({ id: m.id, name: m.name, avatarUrl: m.avatarUrl ?? null, team: m.team?.name ?? null, tagged: on.has(m.id) })),
+    note: !people.length ? (isManager(ctx) ? "Nobody else in the workspace can open CRM yet." : "Nobody else is in your team yet. Ask a manager to add teammates.") : null,
+  }
+}
+
+// Tag (on) or untag someone → { ok } | { error }
+export async function setLeadTag(code, userId, on) {
+  const { ctx, error } = await crmAction("edit")
+  if (error) return { error }
+  const lead = await leadByCode(ctx, code)
+  if (!lead) return { error: "That lead was removed or isn't yours to see." }
+  if (!canTagLead(ctx, lead)) return { error: "Only whoever has this lead (or a manager) can tag people on it." }
+  const id = Number(userId)
+  const existing = await live(ctx.db, "leadTags").where({ leadId: lead.id, userId: id }).first("id")
+  const person = (await listMembers(ctx)).find((m) => m.id === id)
+  const now = new Date()
+  if (on) {
+    if (existing) return { ok: true }
+    if (!(await taggable(ctx, lead)).some((m) => m.id === id)) return { error: "You can't tag that person on this lead." }
+    await ctx.db.transaction(async (trx) => {
+      await trx("leadTags").insert({ leadId: lead.id, userId: id, createdBy: ctx.user.id })
+      await systemNote(trx, ctx, lead.id, `Tagged ${person?.name ?? "someone"}`)
+    })
+  } else {
+    if (!existing) return { ok: true }
+    await ctx.db.transaction(async (trx) => {
+      await trx("leadTags").where({ id: existing.id }).update({ deletedAt: now, deletedBy: ctx.user.id })
+      await systemNote(trx, ctx, lead.id, `Untagged ${person?.name ?? "someone"}`)
+    })
+  }
   return { ok: true }
 }
 
@@ -568,77 +656,6 @@ export async function loadLead(code) {
   return lead ? { lead, emailReady } : { error: "That lead was removed or isn't yours to see." }
 }
 
-// Contact card for the person behind a lead (the info icon in the lead header), matched by
-// mobile across the workspace: every enquiry they've made, how much contact there's been, and
-// whether the number is a registered dealer. Other agents' leads are counted, not shown, the
-// same as the duplicate check.
-export async function loadContactCard(code) {
-  const { ctx, error } = await crmAction("view")
-  if (error) return { error }
-  const lead = await leadByCode(ctx, code)
-  if (!lead) return { error: "That lead was removed or isn't yours to see." }
-
-  const all = await live(ctx.db, "leads")
-    .where({ phone: lead.phone })
-    .orderBy("createdAt")
-    .select("id", "code", "name", "email", "city", "overseas", "whatsapp", "status", "source", "projectId", "assignedTo", "createdAt", "closedAt")
-  const visible = new Set((await scoped(ctx, live(ctx.db, "leads")).where({ phone: lead.phone }).select("code")).map((r) => r.code))
-  const mine = all.filter((l) => visible.has(l.code))
-  const ids = mine.map((l) => l.id)
-
-  const [projects, people, activity, dealer] = await Promise.all([
-    all.some((l) => l.projectId)
-      ? ctx
-          .db("projects")
-          .whereIn("id", [...new Set(all.map((l) => l.projectId).filter(Boolean))])
-          .select("id", "name")
-      : [],
-    peopleByIds(mine.map((l) => l.assignedTo)),
-    ids.length ? live(ctx.db, "leadActivities").whereIn("leadId", ids).whereNot({ type: "system" }).select("type", "status", "at", "doneAt", "projectId") : [],
-    live(ctx.db, "dealers").where({ phone: lead.phone }).first("name", "isActive"),
-  ])
-  const done = activity.filter((a) => a.status === "done")
-  const count = (type) => done.filter((a) => a.type === type).length
-  const last = done.reduce((t, a) => Math.max(t, new Date(a.doneAt ?? a.at).getTime()), 0)
-  const pick = (key) => [...all].reverse().find((l) => l[key])?.[key] ?? null // newest known value
-
-  const contactId = await contactOf(ctx.db, "lead", lead.id)
-  return {
-    card: {
-      contactCode: contactId ? ((await live(ctx.db, "contacts").where({ id: contactId }).first("code"))?.code ?? null) : null,
-      name: lead.name,
-      phone: lead.phone,
-      whatsapp: lead.whatsapp,
-      email: pick("email"),
-      city: pick("city"),
-      overseas: all.some((l) => l.overseas),
-      since: all[0]?.createdAt ?? lead.createdAt,
-      dealer: dealer ? { name: dealer.name, active: Boolean(dealer.isActive) } : null,
-      enquiries: mine
-        .map((l) => ({
-          code: l.code,
-          current: l.code === lead.code,
-          status: l.status,
-          source: l.source,
-          project: projects.find((p) => p.id === l.projectId)?.name ?? null,
-          agent: people.get(l.assignedTo)?.name ?? null,
-          createdAt: l.createdAt,
-        }))
-        .reverse(),
-      hidden: all.length - mine.length,
-      contact: {
-        calls: count("call"),
-        whatsapp: count("whatsapp"),
-        meetings: count("meeting"),
-        visits: count("site-visit"),
-        missed: activity.filter((a) => a.status === "missed").length,
-        planned: activity.filter((a) => a.status === "planned").length,
-        lastAt: last ? new Date(last) : null,
-      },
-    },
-  }
-}
-
 const emailSchema = z.object({
   subject: z.string().trim().min(2, "Add a subject.").max(200),
   message: z.string().trim().min(2, "Write a message.").max(10000),
@@ -704,7 +721,7 @@ export async function createBooking(code, input) {
   const v = parsed.data
   const project = await live(ctx.db, "projects").where({ code: v.projectCode.toUpperCase() }).first("id", "name")
   if (!project) return { fieldErrors: { projectCode: "Pick the project." } }
-  const unit = await live(ctx.db, "units").where({ code: v.unitCode.toUpperCase(), projectId: project.id }).first("id", "code", "number", "status")
+  const unit = await live(ctx.db, "units").where({ code: v.unitCode.toUpperCase(), projectId: project.id }).first("id", "code", "number", "status", "price")
   if (!unit) return { fieldErrors: { unitCode: "Pick a unit in this project." } }
   if (unit.status !== "available") return { fieldErrors: { unitCode: "That unit isn't available any more. Pick another." } }
   const token = v.kind === "token" ? Number(v.tokenAmount || 0) : 0
@@ -739,6 +756,12 @@ export async function createBooking(code, input) {
         installments: 0,
         firstDueDate: v.kind === "token" ? v.tokenDueDate : today,
         status: "current",
+        listPrice: unit.price,
+        netPrice: v.agreedPrice,
+        agentId: lead.assignedTo ?? ctx.user.id,
+        soldBy: lead.assignedTo ?? ctx.user.id,
+        // Sold by a dealer's login: the dealer earns the commission (rate saved on the booking)
+        ...(await dealerTerms(trx, lead.assignedTo ?? ctx.user.id)),
         notes: v.notes || null,
         bookedAt: now,
         createdBy: ctx.user.id,
@@ -746,8 +769,16 @@ export async function createBooking(code, input) {
       // The buyer becomes a customer on the lead's contact
       const contactId = await ensureContact(trx, lead, ctx.user.id)
       await linkContact(trx, contactId, { type: "booking", id: bookingId, role: "customer" }, ctx.user.id)
+      await trx("bookings").where({ id: bookingId }).update({ contactId })
+      await bookingEvent(
+        trx,
+        ctx,
+        bookingId,
+        "created",
+        `Booked from lead ${lead.code}: ${project.name}, unit ${unit.number} at Rs ${new Intl.NumberFormat("en-PK").format(v.agreedPrice)}${token ? `; token Rs ${new Intl.NumberFormat("en-PK").format(token)} due ${v.tokenDueDate}` : ""}`,
+      )
       // Only the token is due from CRM; Sales adds the rest of the plan
-      if (token) await trx("bookingInstallments").insert({ bookingId, number: 0, dueDate: v.tokenDueDate, amount: token, status: "due", createdBy: ctx.user.id })
+      if (token) await trx("bookingInstallments").insert({ bookingId, number: 0, kind: "token", label: "Token", dueDate: v.tokenDueDate, amount: token, status: "due", createdBy: ctx.user.id })
       await trx("units").where({ id: unit.id }).update({ status: "booked", holdBy: null, holdReason: null, holdExpiresAt: null, updatedAt: now, updatedBy: ctx.user.id })
       await trx("leads").where({ id: lead.id }).update({ status: "booked", lossReason: null, closedAt: now, projectId: project.id, updatedAt: now, updatedBy: ctx.user.id })
       // Planned follow-ups aren't needed once it's booked
@@ -761,6 +792,9 @@ export async function createBooking(code, input) {
       else throw err
     })
   if (!bookingCode) return { fieldErrors: { unitCode: "That unit was just booked by someone else. Pick another." } }
+  // Sales › Assignment rules for the stage it starts at
+  const made = await ctx.db("bookings").where({ code: bookingCode }).first("id", "stage")
+  if (made) await routeBooking(ctx, made.id, made.stage)
   await logToWorkspace(ctx.db, { type: "crm", action: "booking.created", actorUserId: ctx.user.id, summary: `booked unit ${unit.number} for ${lead.name} (${bookingCode})` })
   return { ok: true, booking: bookingCode }
 }

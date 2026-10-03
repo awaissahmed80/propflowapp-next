@@ -1,16 +1,19 @@
 // Copy for the marketing home page (propflowapp.com). Pakistan only for now: Marla and Kanal,
-// Lac and Crore, LDA / CDA, files and balloting. Prices are not here: they come from the plans
+// Lac and Crore, LDA / CDA, files and balloting. SEO targets B2B software searches (real estate
+// CRM / ERP in Pakistan, housing society software, files and balloting, installment plans, dealer
+// quotas, NOC tracking, cost per booking), not consumer property searches. Only claim what the
+// product does today. Prices are not here: they come from the plans
 // in the console, so the page always matches what customers are charged.
 
 const APPS = [
-  { name: "Estate Management", icon: "building-2-line", color: "bg-orange-500", text: "Projects, inventory, price lists, resale and rentals", live: true },
-  { name: "CRM", icon: "user-star-line", color: "bg-sky-500", text: "Leads, follow-ups, site visits and pipeline", live: true },
+  { name: "Project Portfolio", icon: "community-line", color: "bg-orange-500", text: "Projects, inventory, price lists, premiums and dealer quotas", live: true },
   { name: "Campaigns", icon: "megaphone-line", color: "bg-rose-500", text: "Campaigns, lead forms, landing pages and cost per lead", live: true },
-  { name: "Contacts", icon: "contacts-book-2-line", color: "bg-sky-600", text: "One directory for buyers, owners, tenants and brokers", live: true },
+  { name: "CRM", icon: "user-star-line", color: "bg-sky-500", text: "Leads, follow-ups, site visits and pipeline", live: true },
+  { name: "Contacts", icon: "contacts-book-2-line", color: "bg-sky-600", text: "One directory for buyers, owners, nominees and brokers", live: true },
   { name: "Users & Teams", icon: "shield-user-line", color: "bg-cyan-600", text: "Teams, roles, permissions and broker logins", live: true },
-  { name: "Sales", icon: "hand-coin-line", color: "bg-blue-600", text: "Reservation, booking, payment schedule and allotment" },
-  { name: "Customer Services", icon: "customer-service-2-line", color: "bg-teal-600", text: "Transfers, handovers and complaints" },
-  { name: "Finance", icon: "bank-line", color: "bg-emerald-600", text: "Installment collection, receipts, cheques and banking" },
+  { name: "Operations", icon: "flow-chart", color: "bg-blue-600", text: "Bookings, installment plans, allotments, KYC, handover and dealer commissions", live: true },
+  { name: "Estate Management", icon: "home-gear-line", color: "bg-teal-600", text: "Transfers, NDC, possession, maintenance and complaints", live: true },
+  { name: "Finance", icon: "bank-line", color: "bg-emerald-600", text: "Receipts, cheques, vouchers, refunds, vendors and your books, posted automatically", live: true },
   { name: "HR & Payroll", icon: "team-line", color: "bg-violet-600", text: "Employees, rosters, attendance and payroll" },
 ]
 
@@ -22,7 +25,9 @@ const TRUST = [
 ]
 
 const NAV = [
+  { href: "#why", label: "Why PropFlow" },
   { href: "#features", label: "Features" },
+  { href: "#builder", label: "Page builder" },
   { href: "#local", label: "Made for Pakistan" },
   { href: "#apps", label: "Apps" },
   { href: "#pricing", label: "Pricing" },
@@ -34,6 +39,7 @@ const BUILT_FOR = [
   { icon: "building-2-line", label: "High-rise apartments" },
   { icon: "store-2-line", label: "Commercial plazas" },
   { icon: "home-8-line", label: "Farmhouse schemes" },
+  { icon: "hammer-line", label: "Builders" },
   { icon: "shake-hands-line", label: "Agencies & dealers" },
 ]
 
@@ -56,6 +62,40 @@ const PAINS = [
     before: "Lakhs spent on ads and expos, and no way to tell which one brought buyers.",
     after: "Spend, leads, site visits and bookings for every campaign and channel, in Rupees.",
   },
+  {
+    icon: "bank-card-2-line",
+    title: "Installments chased from a register",
+    before: "Due dates in a diary, cheques in a drawer, and a bounced cheque found out a month later.",
+    after: "Every buyer's schedule, overdue alerts and a cheque register: cleared or bounced, and the installment is due again.",
+  },
+  {
+    icon: "arrow-left-right-line",
+    title: "Transfers and NDCs that take weeks",
+    before: "Files passed between desks to check dues, papers and fees before anyone signs.",
+    after: "A checklist for every transfer, NDC and possession, with dues checked automatically and the letter printed at the end.",
+  },
+  {
+    icon: "shake-hands-line",
+    title: "Dealers selling stock you don't have",
+    before: "Dealers booking from an old list while the site office has already sold the unit.",
+    after: "Dealer quotas on live inventory, their own login, and commission worked out with tax withheld.",
+  },
+]
+
+// What PropFlow does that general-purpose CRMs and spreadsheets don't (the comparison table)
+const DIFFERENT = [
+  { feature: "Plots, files and units in Marla, Kanal and sq ft", detail: "With your society's own marla size (225 or 272 sq ft)", crm: "no", sheet: "partly" },
+  { feature: "Open files and plot balloting", detail: "Unballoted files and balloted plots in one inventory", crm: "no", sheet: "partly" },
+  { feature: "Token holds that expire on their own", detail: "No plot sold twice, no stock stuck on hold", crm: "no", sheet: "no" },
+  { feature: "Dealer quota management", detail: "Dealers see and sell only their allocated units", crm: "no", sheet: "no" },
+  { feature: "Price lists with premiums, in Lac and Crore", detail: "Corner, park-facing and boulevard premiums; rate per marla", crm: "no", sheet: "partly" },
+  { feature: "Installment plans and cheque clearing", detail: "Down payment, installments, balloon; overdue and defaulter alerts", crm: "no", sheet: "partly" },
+  { feature: "LDA, CDA, RDA and DHA NOC tracking", detail: "Approval status and NOC numbers on every project", crm: "no", sheet: "partly" },
+  { feature: "Cost per lead and cost per booking", detail: "Every lead tagged with its campaign and channel", crm: "partly", sheet: "no" },
+  { feature: "Landing page builder and lead forms", detail: "Templates for launches, expos and overseas Pakistanis", crm: "partly", sheet: "no" },
+  { feature: "Transfers, NDC and possession letters", detail: "Checklists, fees and printed letters, after the sale", crm: "no", sheet: "no" },
+  { feature: "Accounts posted automatically", detail: "Bookings, receipts, cheques, refunds and commissions in the books", crm: "no", sheet: "no" },
+  { feature: "Approvals for money and critical actions", detail: "Discounts, refunds, cancellations and payments signed off", crm: "partly", sheet: "no" },
 ]
 
 const FEATURES = [
@@ -73,31 +113,32 @@ const FEATURES = [
       "Holds with an expiry time and a reason, so stock is never stuck",
     ],
     screen: "project",
-    url: "portal.propflowapp.com/estate/projects/skyline-enclave",
+    url: "portal.propflowapp.com/project-portfolio/projects/ske",
     lenses: [
-      { callout: "approval", label: "Approval status on the project, where buyers ask first", at: { right: "-8%", top: "-10%" }, width: "42%" },
-      { callout: "availability", label: "Live availability by status for the whole project", at: { right: "-8%", top: "34%" }, width: "34%" },
-      { callout: "authority", label: "Your marla size and NOC number", at: { left: "-8%", bottom: "-10%" }, width: "32%" },
+      { callout: "approval", label: "Approval status on the project, where buyers ask first", at: { left: "-8%", top: "-10%" }, width: "34%" },
+      { callout: "availability", label: "Live availability by status for the whole project", at: { right: "-8%", top: "8%" }, width: "34%" },
+      { callout: "authority", label: "Your marla size and NOC number", at: { right: "-8%", bottom: "-10%" }, width: "30%" },
     ],
   },
   {
     id: "price-lists",
     tab: "Pricing",
     icon: "price-tag-3-line",
-    eyebrow: "Price lists & premiums",
+    eyebrow: "Price lists & payment plans",
     title: "Prices that follow your price list, automatically",
-    text: "Base rates per marla or per sq ft, premiums for corner, park-facing, main boulevard and west-open units, and payment plans, all versioned. Draft next year's list, get it approved, and it switches on by itself.",
+    text: "Base rates per marla or per sq ft, premiums for corner, park-facing, main boulevard and west-open units, and payment plans, all versioned. Draft next year's list, get it approved, and apply it to your inventory in one click.",
     points: [
       "Corner, park-facing and boulevard premiums added to every unit's price",
       "Rate per marla shown next to every price, in Lac and Crore",
-      "Cash and 2-, 3- and 4-year plans with down payment, installments and balloon payments",
-      "Price list history: who changed what, and from which date",
+      "Cash and 2-, 3- and 4-year plans with down payment, installments, balloon and on-possession payments",
+      "Versions of every list: who prepared it, who activated it, and from which date",
     ],
-    screen: "inventory",
-    url: "portal.propflowapp.com/estate/inventory",
+    screen: "price-list",
+    url: "portal.propflowapp.com/project-portfolio/price-lists/pl-0002",
     lenses: [
-      { callout: "premium", label: "Premiums and rate per marla on every unit", at: { left: "-8%", top: "26%" }, width: "40%" },
-      { callout: "stock", label: "Units and available stock value across all projects", at: { right: "-8%", top: "-10%" }, width: "32%" },
+      { callout: "plan", label: "Down payment, installments, balloon and possession, at a glance", at: { right: "-8%", top: "-10%" }, width: "40%" },
+      { callout: "header", label: "Versioned lists: drafted, approved and activated", at: { left: "-8%", top: "-12%" }, width: "34%" },
+      { screen: "inventory", callout: "premium", label: "Premiums and rate per marla on every unit", at: { left: "-8%", bottom: "-10%" }, width: "44%" },
     ],
   },
   {
@@ -106,18 +147,18 @@ const FEATURES = [
     icon: "user-star-line",
     eyebrow: "CRM",
     title: "A sales pipeline your agents will actually use",
-    text: "Leads from Facebook, Instagram, your website, walk-ins and dealer referrals land on one board. Agents see who to call next, managers see who is falling behind, and every lead shows matching available units you can hold in one click.",
+    text: "Leads from your ads, website, walk-ins and dealer referrals land on one board. Agents see who to call next, managers see who is falling behind, and every lead is scored on how engaged it is and whether it can afford what's available.",
     points: [
       "Follow-ups, site visits and office meetings with overdue alerts",
       "One contact, many enquiries: a buyer's history across all projects",
-      "Matching plots and files for each lead's size and budget",
+      "A lead score from engagement, budget against your cheapest matching unit, and intent",
       "Team leads see their team; agents see their own leads",
     ],
     screen: "crm-board",
     url: "portal.propflowapp.com/crm/leads",
     lenses: [
-      { callout: "card", label: "Size, project, budget, source and the next call on every card", at: { right: "-7%", top: "12%" }, width: "28%" },
-      { screen: "lead", callout: "header", label: "Status, priority, interest and budget on every lead", at: { left: "-8%", bottom: "-10%" }, width: "38%" },
+      { callout: "card", label: "Size, project, budget, source, score and the next call on every card", at: { right: "-7%", top: "12%" }, width: "28%" },
+      { screen: "lead", callout: "score", label: "Every lead scored: engagement, affordability and intent", at: { left: "-8%", bottom: "-12%" }, width: "34%" },
     ],
   },
   {
@@ -134,7 +175,7 @@ const FEATURES = [
       "Lead-to-booking funnel with the top reasons leads are lost",
     ],
     screen: "campaign",
-    url: "portal.propflowapp.com/campaigns/skyline-enclave-phase-2",
+    url: "portal.propflowapp.com/campaigns/all/cmp-0001",
     lenses: [
       { callout: "cpl", label: "Cost per lead and per booking", at: { right: "-8%", top: "-12%" }, width: "24%" },
       { callout: "goals", label: "Goals, with cost per lead held to target", at: { left: "-8%", bottom: "-14%" }, width: "32%" },
@@ -155,27 +196,73 @@ const FEATURES = [
       "Mobile preview, because most of your buyers are on their phones",
     ],
     screen: "page-editor",
-    url: "portal.propflowapp.com/campaigns/pages/phase-2-launch",
-    lenses: [{ callout: "phone", label: "See it exactly as buyers will on their phones", at: { left: "-8%", top: "10%" }, width: "34%" }],
+    url: "portal.propflowapp.com/campaigns/pages/lp-0001",
+    lenses: [
+      { callout: "phone", label: "See it exactly as buyers will on their phones", at: { right: "-8%", top: "10%" }, width: "30%" },
+      { callout: "sections", label: "Ready-made sections: prices, payment plan, approvals, location", at: { left: "-8%", bottom: "-10%" }, width: "24%" },
+    ],
   },
   {
-    id: "resale",
-    tab: "Resale & rentals",
-    icon: "home-4-line",
-    eyebrow: "Resale & rentals",
-    title: "Resale and rentals, handled too",
-    text: "List owners' plots and houses, track enquiries by portal, and run tenancies with a rent ledger, police verification status and renewals. Owners keep their CNIC, filer status and bank details on file.",
+    id: "operations",
+    tab: "Installments",
+    icon: "calendar-check-line",
+    eyebrow: "Bookings & installments",
+    title: "Every booking, from token to handover",
+    text: "A booking moves from token to KYC, allotment and handover, with its payment plan worked out from your price list. Receipts go to the oldest installment first, cheques wait in clearing, and overdue buyers show up before they become defaulters.",
     points: [
-      "Listings for sale or rent, with owners, demand and mandate",
-      "Enquiries per listing from property portals, social media and walk-ins",
-      "Tenancies with rent due, deposits and yearly increases",
-      "Filer and non-filer owners, NTN and IBAN on record",
+      "Payment schedules with down payment, monthly or quarterly installments and balloon payments",
+      "Receipts by cash, bank transfer, pay order or cheque, each with a printed receipt",
+      "Cheques in clearing: cleared counts the payment, bounced makes the installment due again",
+      "Allotment letters once KYC is in and the down payment is paid, and dealer commission with tax withheld",
     ],
-    screen: "listings",
-    url: "portal.propflowapp.com/estate/listings",
+    screen: "booking",
+    url: "portal.propflowapp.com/operations/bookings/bk-2025-000018",
     lenses: [
-      { callout: "card", label: "Demand, status, portals and new enquiries on every listing", at: { right: "-8%", bottom: "-12%" }, width: "34%" },
-      { callout: "enquiries", label: "Enquiries waiting for a reply", at: { left: "-8%", top: "-6%" }, width: "28%" },
+      { callout: "progress", label: "Where the booking stands, and what's received and still due", at: { right: "-8%", top: "-12%" }, width: "38%" },
+      { screen: "installments", callout: "tiles", label: "Overdue, defaulters and what to collect, across every booking", at: { left: "-8%", bottom: "-12%" }, width: "40%" },
+      { screen: "cheques", callout: "actions", label: "Clear or bounce cheques in one click", at: { right: "-8%", bottom: "-8%" }, width: "26%" },
+    ],
+  },
+  {
+    id: "estate",
+    tab: "Transfers & NDC",
+    icon: "arrow-left-right-line",
+    eyebrow: "Estate Management",
+    title: "Transfers, NDCs and possession without the file chasing",
+    text: "Every transfer, NDC, possession and complaint is a request with an owner, a due date and a checklist. Dues and a valid NDC are checked automatically, fees are recorded once, and the letter is printed when the last box is ticked.",
+    points: [
+      "Transfer checklists: application, CNICs and papers, NDC, fee and biometric verification",
+      "NDCs issued only when the buyer has no dues, with a validity date",
+      "Possession with demarcation and the possession letter",
+      "Transfer, NDC and possession fees posted to your books when they're paid",
+    ],
+    screen: "estate-request",
+    url: "portal.propflowapp.com/estate-management/requests/sr-00065",
+    lenses: [
+      { callout: "blocker", label: "What's still needed before the transfer can be completed", at: { left: "-8%", top: "-12%" }, width: "40%" },
+      { callout: "ndc", label: "A valid NDC on the file, checked automatically", at: { right: "-8%", top: "28%" }, width: "34%" },
+      { callout: "checklist", label: "A checklist for every transfer", at: { left: "-8%", bottom: "-12%" }, width: "32%" },
+    ],
+  },
+  {
+    id: "finance",
+    tab: "Finance",
+    icon: "bank-line",
+    eyebrow: "Finance & accounts",
+    title: "Books that keep themselves in step",
+    text: "Bookings, receipts, cleared and bounced cheques, cancellations, refunds, commissions and service fees post to your accounts as they happen, in double entry. Payments and refunds can wait for an approver, and the trial balance always balances.",
+    points: [
+      "Cash and bank balances, cheques in clearing and what buyers still owe",
+      "Vouchers for payments, receipts, transfers and journals, with approvals",
+      "Vendors and dealers with income tax withheld",
+      "Trial balance, profit & loss, balance sheet, ledgers and receivables aging",
+    ],
+    screen: "finance-overview",
+    url: "portal.propflowapp.com/finance",
+    lenses: [
+      { callout: "tiles", label: "Cash and bank, cheques in clearing and receivables, in Crore", at: { right: "-8%", top: "-12%" }, width: "44%" },
+      { screen: "trial-balance", callout: "totals", label: "Debits and credits that always match", at: { left: "-8%", bottom: "-12%" }, width: "38%" },
+      { screen: "approvals", callout: "cheque", label: "Cheques, refunds and payments signed off before they count", at: { right: "-8%", bottom: "-10%" }, width: "34%" },
     ],
   },
   {
@@ -184,16 +271,19 @@ const FEATURES = [
     icon: "file-chart-line",
     eyebrow: "Reports",
     title: "Reports your MD will actually open",
-    text: "Ready-made reports for inventory, dealers, rentals and campaigns: filtered by project or campaign and exported to Excel or PDF in one click.",
+    text: "Ready-made reports for inventory, dealers, sales, collections, campaigns and accounts: filtered by project or campaign and exported to Excel or PDF in one click.",
     points: [
       "Availability by block, stock by size and premium units",
-      "Dealer quotas, holds about to lapse and rent roll",
-      "Cost per lead, goals and pacing, and how fast agents call new leads",
+      "Dealer quotas and holds about to lapse",
+      "Cost per lead by channel and campaign, and how fast agents call new leads",
       "Excel, PDF and print, with your company name on every page",
     ],
     screen: "report",
-    url: "portal.propflowapp.com/campaigns/reports/follow-up",
-    lenses: [{ callout: "tiles", label: "How fast your team calls new leads", at: { left: "-8%", top: "-8%" }, width: "30%" }],
+    url: "portal.propflowapp.com/campaigns/reports/channels",
+    lenses: [
+      { callout: "cpl", label: "Cost per lead for every channel", at: { right: "-8%", bottom: "-10%" }, width: "22%" },
+      { callout: "tiles", label: "Leads, spend and bookings for the period", at: { left: "-8%", top: "-10%" }, width: "40%" },
+    ],
   },
 ]
 
@@ -202,16 +292,36 @@ const PAKISTAN = [
   { icon: "money-rupee-circle-line", title: "Lac & Crore", text: "Every price, budget and total in the format your buyers use." },
   { icon: "government-line", title: "LDA, CDA, RDA, DHA", text: "Approval status and NOC numbers on every project." },
   { icon: "file-list-3-line", title: "Files & balloting", text: "Open files and balloted plots in the same inventory." },
-  { icon: "lock-line", title: "Token holds", text: "Holds with an expiry and a reason, released automatically." },
+  { icon: "calendar-check-line", title: "Installment plans", text: "Schedules, overdue alerts, cheques in clearing and defaulters." },
+  { icon: "shield-check-line", title: "NDC & transfers", text: "Dues checked, fees taken and letters printed in one flow." },
   { icon: "shake-hands-line", title: "Dealer quotas", text: "Dealers get their own login, limited to their allocated units." },
-  { icon: "plane-line", title: "Overseas Pakistanis", text: "Tagged leads, remote booking pages and roadshow campaigns." },
-  { icon: "whatsapp-line", title: "WhatsApp first", text: "One-tap WhatsApp from every lead, owner and contact." },
+  { icon: "percent-line", title: "Tax withheld", text: "Income tax withheld on dealer commission and vendor payments." },
 ]
 
 const FAQ = [
   {
+    q: "Is PropFlow a real estate CRM or an ERP?",
+    a: "Both. The CRM handles leads, follow-ups and site visits; the rest of PropFlow runs what happens around them: inventory and price lists, bookings and installment plans, transfers and NDCs, and the accounts. You can start with the CRM and add the other apps as you grow.",
+  },
+  {
+    q: "Does it handle open files and plot balloting?",
+    a: "Yes. Unballoted files and balloted plots sit in the same project inventory, in Marla and Kanal with your society's marla size, so a file can be sold, held and transferred like any plot.",
+  },
+  {
+    q: "Can it manage installment plans and cheques?",
+    a: "Yes. Each booking gets its payment plan (down payment, monthly or quarterly installments, balloon payments). Receipts are applied to the oldest installment first, cheques wait in clearing until they clear or bounce, and overdue buyers are flagged as defaulters.",
+  },
+  {
+    q: "Does PropFlow track LDA, CDA and DHA approvals?",
+    a: "Every project keeps its approving authority, approval status and NOC numbers, so your sales team can answer the first question every buyer asks.",
+  },
+  {
+    q: "Does it work with WhatsApp and Facebook leads?",
+    a: "Every lead, buyer and owner is one tap away on WhatsApp. Leads from Facebook and Instagram ads come in through your PropFlow lead forms and landing pages, tagged with the campaign and channel they came from.",
+  },
+  {
     q: "Is PropFlow only for developers?",
-    a: "It's built for developers and housing societies first: projects, inventory, price lists, files and balloting. Real estate agencies and dealers use the same CRM, campaigns, and resale and rentals tools.",
+    a: "It's built for developers and housing societies first: projects, inventory, price lists, files and balloting. Real estate agencies and dealers can use the same CRM, campaigns and landing pages.",
   },
   {
     q: "Can we bring our existing inventory and leads?",
@@ -231,7 +341,7 @@ const FAQ = [
   },
   {
     q: "Which apps are available today?",
-    a: "Estate Management, CRM, Campaigns, Contacts and Users & Teams are live. Sales, Customer Services, Finance and HR & Payroll are coming next.",
+    a: "Project Portfolio, Campaigns, CRM, Operations, Estate Management, Finance, Contacts and Users & Teams are live. HR & Payroll is coming next.",
   },
   {
     q: "Who owns our data?",
@@ -240,29 +350,39 @@ const FAQ = [
 ]
 
 export const CONTENT = {
-  title: "PropFlow · Real estate ERP made for Pakistan",
-  description: "Inventory in Marla and Kanal, price lists and premiums, a CRM for every enquiry and campaigns that show what each booking cost. Built for Pakistani developers, housing societies and agencies.",
+  title: "PropFlow · Real Estate CRM & ERP Software in Pakistan",
+  description: "Real estate CRM and ERP for Pakistani developers and housing societies: Marla & Kanal inventory, files and balloting, installments, dealer quotas.",
   keywords: [
-    "real estate ERP Pakistan",
-    "real estate software Pakistan",
-    "housing society software",
+    "real estate CRM in Pakistan",
+    "real estate ERP software Pakistan",
     "property management software Pakistan",
-    "real estate CRM Pakistan",
-    "plot inventory software",
-    "installment plan software",
-    "real estate developer software",
-    "marla kanal inventory",
+    "housing society management software",
+    "best CRM for builders in Pakistan",
+    "marla kanal CRM software Pakistan",
+    "open file management software",
+    "plot balloting software Pakistan",
+    "lac crore real estate software",
+    "installment plan management software Pakistan",
+    "LDA CDA DHA NOC tracking software",
+    "dealer quota management software",
+    "WhatsApp CRM for real estate Pakistan",
+    "sales pipeline management for real estate developers",
+    "inventory hold management software",
+    "campaign ROI tracking real estate Pakistan",
+    "cost per booking real estate software",
+    "landing page builder for real estate",
+    "cost per lead real estate Pakistan",
   ],
   nav: NAV,
   hero: {
-    eyebrow: "For developers, housing societies and agencies",
-    title: "The real estate ERP,",
+    eyebrow: "Real estate CRM & ERP for developers, builders and housing societies",
+    title: "The real estate CRM and ERP,",
     highlight: "built for Pakistan",
-    text: "PropFlow runs your projects end to end: inventory in Marla and Kanal, price lists and premiums, a CRM for every enquiry, and campaigns that show exactly what each booking cost. All in Lac and Crore.",
+    text: "PropFlow runs your projects from the first enquiry to possession: Marla and Kanal inventory with open files and balloting, a sales pipeline your agents use, installment plans and cheques, dealer quotas, and campaigns that show exactly what each booking cost. All in Lac and Crore.",
     note: "No card needed. For projects in Lahore, Karachi, Islamabad and beyond.",
     lenses: [
       { callout: "stock", label: "Available stock, valued in Crore", at: { right: "-8%", top: "-8%" }, width: "28%" },
-      { callout: "attention", label: "Holds about to lapse, rent overdue and new enquiries", at: { left: "-8%", bottom: "-12%" }, width: "32%" },
+      { callout: "approval", label: "LDA approval or NOC status on every project", at: { left: "-8%", bottom: "-12%" }, width: "22%" },
     ],
   },
   builtFor: BUILT_FOR,
@@ -270,22 +390,35 @@ export const CONTENT = {
     title: "Registers, Excel sheets and WhatsApp groups can only take you so far",
     items: PAINS,
   },
+  builder: {
+    eyebrow: "Landing page builder",
+    title: "A landing page builder for real estate launches, ready in minutes",
+    text: "Pick ready-made sections, write over them in place, drop in your photos and logo, and publish. Every page has a lead form, so enquiries land in your CRM tagged with the campaign that brought them.",
+    points: [
+      { icon: "layout-masonry-line", title: "A library of ready-made sections", text: "Hero, payment plans, amenities, location map, gallery, FAQs and more, each in several layouts." },
+      { icon: "edit-box-line", title: "Edit right on the page", text: "Change text, colors and images where they are, and see it on a phone before you publish." },
+      { icon: "file-list-3-line", title: "Lead forms built in, with captcha", text: "Every page captures enquiries straight into CRM; spam is kept out." },
+      { icon: "line-chart-line", title: "Know what each page brings in", text: "Leads, site visits and bookings per page and campaign, so you can see your cost per booking." },
+    ],
+    screen: "page-editor",
+    url: "portal.propflowapp.com/campaigns/pages/lp-0001",
+    lenses: [{ callout: "phone", label: "Preview it exactly as buyers will see it on their phones", at: { right: "-8%", bottom: "-10%" }, width: "30%" }],
+  },
+  different: {
+    eyebrow: "Only in PropFlow",
+    title: "What general CRMs and spreadsheets can't do for a Pakistani developer",
+    text: "Foreign CRMs track leads. PropFlow also runs the plots, files, installments, dealers and transfers that come after them, and keeps your books in step.",
+    columns: ["PropFlow", "General CRMs", "Excel & WhatsApp"],
+    rows: DIFFERENT,
+  },
   features: FEATURES,
   local: {
     eyebrow: "Made for Pakistan",
-    title: "Speaks the language of your market",
+    title: "Real estate software that speaks Pakistan's market",
     text: "Not a foreign CRM with a Rupee sign bolted on. PropFlow is built around how property is sold here.",
     items: PAKISTAN,
   },
-  apps: APPS.map((a) => ({
-    ...a,
-    text:
-      a.name === "Customer Services"
-        ? "Transfers, NDC, possession and complaints"
-        : a.name === "Sales"
-          ? "Token, booking, installment schedule and allotment"
-          : a.text.replace("brokers", "dealers").replace("broker", "dealer"),
-  })),
+  apps: APPS.map((a) => ({ ...a, text: a.text.replace("brokers", "dealers").replace("broker", "dealer") })),
   trust: TRUST.map((t) => ({ ...t, text: t.text.replace("brokers", "dealers") })),
   faq: FAQ,
   cta: {

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { formatDate, formatPkr } from "@/lib/format"
 import { urlCode } from "@/lib/url"
 import { methodLabel } from "@/components/billing/methods"
+import { toastAction } from "@/lib/toast-action"
 import { Notice } from "@/modules/users/components/user-parts"
 import { InvoiceDocument } from "@/modules/console/components/invoice-document"
 import { AppIcon } from "@/components/app-icon"
@@ -63,7 +64,6 @@ function ChangePlanDialog({ data, onClose, onDone }) {
   const [planCode, setPlanCode] = useState(data.plan?.code ?? data.plans[0]?.code)
   const [cycle, setCycle] = useState(data.tenant.billingCycle)
   const [note, setNote] = useState("")
-  const [error, setError] = useState("")
   const [pending, startTransition] = useTransition()
   const same = planCode === data.plan?.code && cycle === data.tenant.billingCycle
   const priceOf = (p) => (cycle === "yearly" ? p.priceMonthly * data.yearlyMonths : p.priceMonthly)
@@ -86,10 +86,11 @@ function ChangePlanDialog({ data, onClose, onDone }) {
             disabled={same}
             onClick={() =>
               startTransition(async () => {
-                setError("")
-                const r = await requestPlanChange({ planCode, cycle, note })
-                if (r.error) setError(r.error)
-                else onDone(r.code)
+                const r = await toastAction(() => requestPlanChange({ planCode, cycle, note }), {
+                  loading: "Sending your request…",
+                  success: (r) => `Request ${r.code} sent. PropFlow will send the invoice for the new plan shortly.`,
+                })
+                if (!r.error) onDone()
               })
             }
           >
@@ -98,7 +99,6 @@ function ChangePlanDialog({ data, onClose, onDone }) {
         </>
       }
     >
-      {error && <Notice tone="error">{error}</Notice>}
       <ToggleGroup
         value={cycle}
         onChange={(v) => v && setCycle(v)}
@@ -149,20 +149,17 @@ function TransferDialog({ invoice, bank, onClose, onDone }) {
   const [paidOn, setPaidOn] = useState(today)
   const [file, setFile] = useState(null)
   const [errors, setErrors] = useState({})
-  const [error, setError] = useState("")
   const [pending, startTransition] = useTransition()
   const submit = () =>
     startTransition(async () => {
       setErrors({})
-      setError("")
       const fd = new FormData()
       fd.set("reference", reference)
       fd.set("paidOn", paidOn)
       if (file) fd.set("proof", file)
-      const r = await sendTransferProof(invoice.code, fd)
+      const r = await toastAction(() => sendTransferProof(invoice.code, fd), { loading: "Sending your receipt…", success: `Thanks! We'll confirm your transfer for ${invoice.code} within one working day.` })
       if (r.fieldErrors) setErrors(r.fieldErrors)
-      else if (r.error) setError(r.error)
-      else onDone()
+      else if (!r.error) onDone()
     })
   return (
     <Dialog
@@ -182,7 +179,6 @@ function TransferDialog({ invoice, bank, onClose, onDone }) {
         </>
       }
     >
-      {error && <Notice tone="error">{error}</Notice>}
       {bank ? (
         <div className="space-y-2 rounded-lg border bg-muted/30 p-3 text-sm">
           <p className="font-medium">
@@ -245,14 +241,12 @@ function InvoicePreview({ code, onClose }) {
 export function BillingView({ data, workspaceName, canEdit }) {
   const router = useRouter()
   const [dialog, setDialog] = useState(null) // { kind: "plan" } | { kind: "pay", invoice } | { kind: "view", code }
-  const [notice, setNotice] = useState(null)
   const { tenant, plan, price, usage } = data
   const status = STATUS[tenant.status] ?? STATUS.active
   const due = data.invoices.filter((i) => ["issued", "overdue"].includes(i.displayStatus))
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       <PageHeader title="Subscription & Billing" description={`${workspaceName} · plan, usage and invoices`} />
-      {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
       {due.length > 0 && canEdit && (
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
           <Icon name="error-warning-line" className="text-lg text-amber-600 dark:text-amber-400" />
@@ -392,9 +386,8 @@ export function BillingView({ data, workspaceName, canEdit }) {
         <ChangePlanDialog
           data={data}
           onClose={() => setDialog(null)}
-          onDone={(code) => {
+          onDone={() => {
             setDialog(null)
-            setNotice({ tone: "success", text: `Request ${code} sent. PropFlow will send the invoice for the new plan shortly.` })
           }}
         />
       )}
@@ -405,7 +398,6 @@ export function BillingView({ data, workspaceName, canEdit }) {
           onClose={() => setDialog(null)}
           onDone={() => {
             setDialog(null)
-            setNotice({ tone: "success", text: `Thanks! We'll confirm your transfer for ${dialog.invoice.code} within one working day.` })
             router.refresh()
           }}
         />

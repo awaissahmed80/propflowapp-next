@@ -16,7 +16,7 @@ import { Maintenance } from "@/modules/web/components/maintenance"
 import { LegalLink } from "@/modules/web/components/legal"
 import { getSiteSettings } from "@/server/platform-settings"
 
-const OG_IMAGE = { url: "/api/og", width: 1200, height: 630, alt: "PropFlow: real estate ERP made for Pakistan" }
+const OG_IMAGE = { url: "/api/og", width: 1200, height: 630, alt: "PropFlow: real estate CRM & ERP, built for Pakistan" }
 
 export const metadata = {
   title: { absolute: m.title },
@@ -29,8 +29,10 @@ export const metadata = {
 }
 
 // Structured data for search engines: who we are, what PropFlow is, and the FAQ
-function StructuredData() {
+function StructuredData({ pricing }) {
   const home = siteUrl("web")
+  // Plan prices as an offer (Google shows software rich results only with an offer or rating)
+  const prices = pricing.showPrices ? pricing.plans.map((p) => Number(p.monthly)).filter((n) => n > 0) : []
   const data = {
     "@context": "https://schema.org",
     "@graph": [
@@ -46,6 +48,7 @@ function StructuredData() {
         operatingSystem: "Web browser",
         areaServed: "PK",
         publisher: { "@id": `${home}#organization` },
+        ...(prices.length ? { offers: { "@type": "AggregateOffer", priceCurrency: "PKR", lowPrice: Math.min(...prices), highPrice: Math.max(...prices), offerCount: prices.length } } : {}),
       },
       { "@type": "FAQPage", mainEntity: m.faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) },
     ],
@@ -64,7 +67,7 @@ function Section({ id, className, children }) {
 
 function Heading({ eyebrow, title, text, center, dark }) {
   return (
-    <div className={cn("max-w-2xl", center && "mx-auto text-center")}>
+    <div data-reveal className={cn("max-w-2xl", center && "mx-auto text-center")}>
       {eyebrow && <p className={cn("text-sm font-semibold tracking-wide", dark ? "text-brand-bright" : "text-primary")}>{eyebrow}</p>}
       <h2 className="mt-2 text-3xl font-bold tracking-tight text-balance sm:text-4xl">{title}</h2>
       {text && <p className={cn("mt-4 text-lg text-pretty", dark ? "text-slate-300" : "text-muted-foreground")}>{text}</p>}
@@ -94,10 +97,10 @@ function Hero({ trialDays, showPrices, quoteMode }) {
         <p className="mt-5 text-sm text-muted-foreground">{m.hero.note}</p>
       </div>
       <Screen
-        id="estate-overview"
-        alt="PropFlow Estate Management: projects, inventory, bookings and collections at a glance"
+        id="portfolio-overview"
+        alt="PropFlow Project Portfolio: projects, approvals, availability and stock at a glance"
         priority
-        url="portal.propflowapp.com/estate"
+        url="portal.propflowapp.com/project-portfolio"
         className="relative mx-auto mt-20 max-w-5xl md:mb-16"
         lenses={m.hero.lenses}
       />
@@ -124,8 +127,8 @@ function Pains() {
     <Section>
       <Heading center eyebrow="Sound familiar?" title={m.pains.title} />
       <div className="mt-12 grid gap-6 md:grid-cols-3">
-        {m.pains.items.map((p) => (
-          <article key={p.title} className="rounded-2xl border bg-card p-6 shadow-xs">
+        {m.pains.items.map((p, i) => (
+          <article key={p.title} data-reveal style={{ "--delay": `${(i % 3) * 110}ms` }} className="rounded-2xl border bg-card p-6 shadow-xs">
             <span className="flex size-11 items-center justify-center rounded-xl bg-red-500/10 text-xl text-red-600 dark:text-red-400">
               <Icon name={p.icon} />
             </span>
@@ -142,11 +145,111 @@ function Pains() {
   )
 }
 
+// Only in PropFlow: what general CRMs and spreadsheets can't do, row by row
+const MARK = {
+  yes: { icon: "checkbox-circle-fill", tone: "text-emerald-600 dark:text-emerald-400", label: "Yes" },
+  partly: { icon: "indeterminate-circle-line", tone: "text-amber-500", label: "Partly, with workarounds" },
+  no: { icon: "close-circle-line", tone: "text-muted-foreground/60", label: "No" },
+}
+function Mark({ value }) {
+  const m = MARK[value]
+  return (
+    <span className="inline-flex justify-center" title={m.label}>
+      <Icon name={m.icon} className={cn("text-xl", m.tone)} aria-hidden />
+      <span className="sr-only">{m.label}</span>
+    </span>
+  )
+}
+function Different() {
+  const d = m.different
+  return (
+    <Section id="why">
+      <Heading center eyebrow={d.eyebrow} title={d.title} text={d.text} />
+      <div data-reveal className="mt-12 overflow-x-auto rounded-2xl border bg-card shadow-xs">
+        <table className="w-full min-w-[40rem] text-left text-sm">
+          <caption className="sr-only">PropFlow compared with general CRMs and spreadsheets</caption>
+          <thead>
+            <tr className="border-b bg-muted/40">
+              <th scope="col" className="px-5 py-4 font-medium text-muted-foreground">
+                What you need
+              </th>
+              {d.columns.map((c, i) => (
+                <th key={c} scope="col" className={cn("w-32 px-3 py-4 text-center font-semibold", i === 0 && "bg-primary/[0.06] text-primary")}>
+                  {c}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {d.rows.map((r) => (
+              <tr key={r.feature}>
+                <th scope="row" className="px-5 py-3.5 font-normal">
+                  <span className="block font-medium">{r.feature}</span>
+                  <span className="block text-xs text-muted-foreground">{r.detail}</span>
+                </th>
+                <td className="bg-primary/[0.06] px-3 text-center">
+                  <Mark value="yes" />
+                </td>
+                <td className="px-3 text-center">
+                  <Mark value={r.crm} />
+                </td>
+                <td className="px-3 text-center">
+                  <Mark value={r.sheet} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-xs text-muted-foreground">
+        {Object.values(MARK).map((x) => (
+          <span key={x.label} className="inline-flex items-center gap-1.5">
+            <Icon name={x.icon} className={cn("text-base", x.tone)} /> {x.label}
+          </span>
+        ))}
+      </p>
+    </Section>
+  )
+}
+
 function Features() {
   return (
     <Section id="features" className="bg-muted/40">
-      <Heading center eyebrow="Features" title="Everything from launch to booking" text="One system for your projects, prices, sales team and marketing. Pick an area to see how it works." />
+      <Heading
+        center
+        eyebrow="Features"
+        title="One real estate ERP, from the first enquiry to possession"
+        text="One system for your projects, prices, sales pipeline, installments and marketing. Pick an area to see how it works."
+      />
       <FeatureTabs features={m.features} />
+    </Section>
+  )
+}
+
+// The landing page builder, in its own spotlight
+function Builder() {
+  const b = m.builder
+  return (
+    <Section id="builder">
+      <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] lg:items-center">
+        <div>
+          <Heading eyebrow={b.eyebrow} title={b.title} text={b.text} />
+          <ul className="mt-8 space-y-3">
+            {b.points.map((p, i) => (
+              <li key={p.title} data-reveal style={{ "--delay": `${i * 90}ms` }} className="flex gap-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-lg text-primary">
+                  <Icon name={p.icon} />
+                </span>
+                <span>
+                  <span className="block font-semibold">{p.title}</span>
+                  <span className="block text-sm text-muted-foreground">{p.text}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <Screen id={b.screen} alt="PropFlow landing page builder: pick sections, edit in place and publish with a lead form" url={b.url} className="md:mb-20" lenses={b.lenses} />
+      </div>
     </Section>
   )
 }
@@ -157,8 +260,8 @@ function Local() {
     <Section id="local" className="bg-slate-950 text-white dark:bg-slate-900">
       <Heading center dark eyebrow={l.eyebrow} title={l.title} text={l.text} />
       <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {l.items.map((p) => (
-          <div key={p.title} className="rounded-2xl bg-white/5 p-5 ring-1 ring-white/10">
+        {l.items.map((p, i) => (
+          <div key={p.title} data-reveal style={{ "--delay": `${(i % 4) * 90}ms` }} className="rounded-2xl bg-white/5 p-5 ring-1 ring-white/10">
             <Icon name={p.icon} className="text-2xl text-brand-bright" />
             <h3 className="mt-3 font-semibold">{p.title}</h3>
             <p className="mt-1 text-sm text-slate-300">{p.text}</p>
@@ -176,12 +279,12 @@ function Apps() {
         <div>
           <Heading
             eyebrow="One login, every app"
-            title="From the first enquiry to possession"
-            text="Start with inventory, CRM and campaigns. Sales, customer services, finance and HR plug into the same data as you grow, with no double entry between departments."
+            title="One login for every department"
+            text="Start with inventory, CRM and campaigns. Operations, estate management, finance and HR plug into the same data as you grow, with no double entry between departments."
           />
           <ul className="mt-8 grid gap-3 sm:grid-cols-2">
-            {m.apps.map((a) => (
-              <li key={a.name} className="flex gap-3 rounded-xl border bg-card p-3">
+            {m.apps.map((a, i) => (
+              <li key={a.name} data-reveal style={{ "--delay": `${(i % 2) * 90 + Math.floor(i / 2) * 60}ms` }} className="flex gap-3 rounded-xl border bg-card p-3">
                 <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg text-white", a.color)}>
                   <Icon name={a.icon} />
                 </span>
@@ -355,14 +458,16 @@ export default async function HomePage({ searchParams }) {
   const initial = ["trial", "sales", "quote"].includes(request) ? { kind: request, source: "Link" } : null
   return (
     <EnquiryProvider trialDays={pricing.trialDays} signupOpen={site.signupOpen} quote={quoteMode} initial={initial}>
-      <StructuredData />
+      <StructuredData pricing={pricing} />
       <div data-site="web" className="min-h-svh overflow-x-clip bg-background text-foreground">
         <Header nav={nav} showSignIn={site.signInVisible} />
         <main>
           <Hero trialDays={pricing.trialDays} showPrices={pricing.showPrices} quoteMode={quoteMode} />
           <BuiltFor />
           <Pains />
+          <Different />
           <Features />
+          <Builder />
           <Local />
           <Apps />
           <Pricing pricing={pricing} quoteMode={quoteMode} />

@@ -4,7 +4,7 @@ import { datetime, externalId, money, tableDefaults, timestamps, uniqueAlive } f
 // workspace keeps everything else about them here.
 export async function up(knex) {
   // Roles also limit which records people see in an app (scope: { crm: "own" | "team" | "all" })
-  // and what they may do inside it (grants: { "sales.discount": 5, "sales.cancel": true })
+  // and what they may do inside it (grants: { "operations.discount": 5, "operations.cancel": true })
   await knex.schema.alterTable("roles", (t) => {
     t.json("scope").nullable().after("permissions")
     t.json("grants").nullable().after("scope")
@@ -20,7 +20,7 @@ export async function up(knex) {
     externalId(t, "lead_user_id").nullable() // pf_auth users.id
     t.integer("target_bookings").notNullable().defaultTo(0)
     money(t, "target_value").notNullable().defaultTo(0)
-    t.json("project_ids").nullable() // projects they sell, once Estate Management is here
+    t.json("project_ids").nullable() // projects they sell, once Project Portfolio is here
     t.integer("sort_order").notNullable().defaultTo(0)
     timestamps(t, knex)
   })
@@ -56,7 +56,7 @@ export async function up(knex) {
   })
 
   // Pick-list values (designations, departments, statuses…). The lists themselves are defined in
-  // code (src/modules/lookups/catalog.js); the workspace can relabel, recolour, reorder and, on
+  // code (src/modules/lookups/catalog.js); the workspace can relabel, recolor, reorder and, on
   // custom lists, add and switch off values.
   await knex.schema.createTable("lookups", (t) => {
     tableDefaults(t)

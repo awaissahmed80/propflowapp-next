@@ -1,10 +1,10 @@
 import "server-only"
 import { Document, Page, Text, View, renderToBuffer } from "@react-pdf/renderer"
-import { chargeText, isCashPlan, planLength, planSummary, quote, rateBasis, ratePrice, rateSize } from "@/modules/estate/pricing"
+import { chargeText, isCashPlan, planLength, planSummary, quote, rateBasis, ratePrice, rateSize } from "@/modules/portfolio/pricing"
 import { Footer, Letterhead, Table, day, num, pdf, rs } from "./workspace-pdf"
 
 // Price lists and payment schedules as PDFs. Mirror PriceListDocument / ScheduleDocument
-// (modules/estate/components/price-list-document.jsx): change both together.
+// (modules/portfolio/components/price-list-document.jsx): change both together.
 // labels: { type(value), category(value), feature(value), featurePremium(value) }
 
 const STATUS_NOTE = { draft: "Draft · not yet in effect", pending: "Awaiting approval · not yet in effect", archived: "Archived · no longer in effect" }
@@ -26,7 +26,12 @@ function PriceListPdf({ list, brand, labels }) {
 
         <Text style={pdf.h}>Rates</Text>
         <Table
-          cols={[{ header: "Unit", width: "34%" }, { header: "Category", width: "22%" }, { header: "Rate", width: "24%", align: "right" }, { header: "Price", width: "20%", align: "right", style: pdf.bold }]}
+          cols={[
+            { header: "Unit", width: "34%" },
+            { header: "Category", width: "22%" },
+            { header: "Rate", width: "24%", align: "right" },
+            { header: "Price", width: "20%", align: "right", style: pdf.bold },
+          ]}
           rows={rates.map((r) => {
             const price = ratePrice(r, list.project.marlaSqft, labels.m)
             return [`${labels.type(r.type)} · ${rateSize(r, labels.m)}`, labels.category(r.category), `Rs ${num(r.rate)}/${rateBasis(r.type, labels.m) === "marla" ? "marla" : "sq ft"}`, price ? rs(price) : "By size"]
@@ -44,14 +49,29 @@ function PriceListPdf({ list, brand, labels }) {
         {list.plans.length > 0 && (
           <View>
             <Text style={pdf.h}>Payment plans</Text>
-            <Table cols={[{ header: "Plan", width: "26%", style: pdf.bold }, { header: "Terms", width: "58%" }, { header: "Length", width: "16%", align: "right" }]} rows={list.plans.map((p) => [p.name, `${planSummary(p)}${p.note ? `\n${p.note}` : ""}`, isCashPlan(p) ? "—" : planLength(p)])} />
+            <Table
+              cols={[
+                { header: "Plan", width: "26%", style: pdf.bold },
+                { header: "Terms", width: "58%" },
+                { header: "Length", width: "16%", align: "right" },
+              ]}
+              rows={list.plans.map((p) => [p.name, `${planSummary(p)}${p.note ? `\n${p.note}` : ""}`, isCashPlan(p) ? "—" : planLength(p)])}
+            />
           </View>
         )}
 
         {list.charges.length > 0 && (
           <View>
             <Text style={pdf.h}>Other charges</Text>
-            <Table header={false} cols={[{ header: "Charge", width: "40%" }, { header: "Amount", width: "30%" }, { header: "Due", width: "30%", align: "right" }]} rows={list.charges.map((c) => [c.name, chargeText(c), c.due])} />
+            <Table
+              header={false}
+              cols={[
+                { header: "Charge", width: "40%" },
+                { header: "Amount", width: "30%" },
+                { header: "Due", width: "30%", align: "right" },
+              ]}
+              rows={list.charges.map((c) => [c.name, chargeText(c), c.due])}
+            />
           </View>
         )}
 
@@ -111,14 +131,28 @@ function SchedulePdf({ list, unit, input, planKey, start, brand, labels, prepare
 
             <Text style={pdf.h}>Schedule</Text>
             <Table
-              cols={[{ header: "#", width: "6%" }, { header: "Due date", width: "18%" }, { header: "Payment", width: "40%" }, { header: "Amount (Rs)", width: "18%", align: "right" }, { header: "Balance (Rs)", width: "18%", align: "right" }]}
+              cols={[
+                { header: "#", width: "6%" },
+                { header: "Due date", width: "18%" },
+                { header: "Payment", width: "40%" },
+                { header: "Amount (Rs)", width: "18%", align: "right" },
+                { header: "Balance (Rs)", width: "18%", align: "right" },
+              ]}
               rows={q.schedule.rows.map((r) => [String(r.no), day(r.dueDate), r.label, num(r.amount), num(r.balance)])}
             />
 
             {q.charges.length > 0 && (
               <View wrap={false}>
                 <Text style={pdf.h}>Charges payable separately</Text>
-                <Table header={false} cols={[{ header: "Charge", width: "45%" }, { header: "Due", width: "35%" }, { header: "Amount", width: "20%", align: "right" }]} rows={q.charges.map((c) => [c.name, c.due, rs(c.total)])} />
+                <Table
+                  header={false}
+                  cols={[
+                    { header: "Charge", width: "45%" },
+                    { header: "Due", width: "35%" },
+                    { header: "Amount", width: "20%", align: "right" },
+                  ]}
+                  rows={q.charges.map((c) => [c.name, c.due, rs(c.total)])}
+                />
               </View>
             )}
             {list.notes && <Text style={[pdf.muted, { marginTop: 14 }]}>{list.notes}</Text>}

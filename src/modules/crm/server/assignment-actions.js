@@ -7,7 +7,7 @@ import { writeSettings } from "@/modules/portal/server/setup"
 import { crmContext } from "./context"
 import { CRM_SETTINGS, canEditCrmRules } from "./settings"
 
-// CRM › Assignment rules: add, change, reorder, switch on/off and delete rules, and the
+// CRM › Customize › Assignment rules: add, change, reorder, switch on/off and delete rules, and the
 // "not reached in time" setting. Needs rights to change CRM (Setup).
 
 async function editor() {
@@ -81,7 +81,7 @@ export async function setAssignmentRuleActive(id, active) {
   return { ok: true }
 }
 
-// dir: -1 (up) | 1 (down): swaps places with its neighbour
+// dir: -1 (up) | 1 (down): swaps places with its neighbor
 export async function moveAssignmentRule(id, dir) {
   const { ctx, error } = await editor()
   if (error) return { error }

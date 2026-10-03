@@ -25,7 +25,10 @@ async function workspaceFor(userId, preferred) {
   if (preferred) memberships.sort((a, b) => (b.tenantId === preferred) - (a.tenantId === preferred))
   if (!memberships.length) return null
   const open = await platformDb()("tenants")
-    .whereIn("id", memberships.map((m) => m.tenantId))
+    .whereIn(
+      "id",
+      memberships.map((m) => m.tenantId),
+    )
     .whereIn("status", ["trial", "active", "past_due"])
     .whereNull("deletedAt")
     .pluck("id")

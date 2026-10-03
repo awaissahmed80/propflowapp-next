@@ -68,8 +68,7 @@ export function formatAmount(amount, currency = "PKR") {
 }
 
 // 412 KB, 1.9 MB
-export const formatSize = (bytes) =>
-  bytes >= 1_000_000 ? `${(bytes / 1_000_000).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1000))} KB`
+export const formatSize = (bytes) => (bytes >= 1_000_000 ? `${(bytes / 1_000_000).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1000))} KB`)
 
 // "Overdue 3 days", "Today", "Tomorrow", "In 5 days" from a whole-day offset
 export function dueLabel(days) {

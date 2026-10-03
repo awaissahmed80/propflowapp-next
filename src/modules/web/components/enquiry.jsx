@@ -15,7 +15,7 @@ import { track } from "../track"
 // One form for "Talk to sales" and "Start free trial". Any EnquiryButton on the
 // page opens it; submissions land in the console's Sales Enquiries.
 
-const INTERESTS = ["Inventory", "CRM", "Campaigns", "Sales", "Finance", "Resale & rentals"]
+const INTERESTS = ["Inventory", "CRM", "Campaigns", "Sales", "Estate management", "Finance"]
 const TEXT = {
   sales: { title: "Talk to sales", description: "Tell us about your company and we'll prepare a quote.", submit: "Send" },
   trial: {

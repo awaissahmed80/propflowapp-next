@@ -9,7 +9,7 @@ const useMounted = () =>
   useSyncExternalStore(
     () => () => {},
     () => true,
-    () => false
+    () => false,
   )
 
 export function ThemeToggle({ className }) {

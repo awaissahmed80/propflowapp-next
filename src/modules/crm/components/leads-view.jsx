@@ -4,11 +4,12 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useMediaQuery } from "@/hooks/use-media-query"
-import { timeAgo } from "@/lib/format"
+import { formatPkr, timeAgo } from "@/lib/format"
 import { urlCode } from "@/lib/url"
 import { useList } from "@/modules/lookups/context"
 import { LookupSelect } from "@/modules/lookups/components/lookup-select"
-import { Notice } from "@/modules/users/components/user-parts"
+import { toast } from "sonner"
+import { toastAction } from "@/lib/toast-action"
 import { DataTable } from "@/components/data-table"
 import { ActiveFilters, FilterMenu } from "@/components/filter-menu"
 import { PageHeader } from "@/components/page-header"
@@ -20,12 +21,12 @@ import { Input } from "@/components/ui/input"
 import { ScrollView } from "@/components/ui/scroll-view"
 import { ToggleGroup } from "@/components/ui/toggle-group"
 import { Tooltip } from "@/components/ui/tooltip"
-import { OPEN_STEPS, interestText } from "../constants"
+import { OPEN_STEPS, PAYMENT_PLANS, budgetText, interestText } from "../constants"
 import { setLeadStatus } from "../server/leads"
 import { LeadDialog, LogDialog } from "./lead-dialog"
 import { LeadForm } from "./lead-form"
 import { StatusChangeDialog } from "./status-change-dialog"
-import { ScoreBadge } from "./lead-score"
+import { ScoreBadge, ScoreRing } from "./lead-score"
 import { BulkActions } from "./bulk-actions"
 import { AgentChip, LeadStatusBadge, TempIcon, dueText, telHref, whatsappHref } from "./lead-parts"
 
@@ -52,10 +53,122 @@ function QuickContact({ lead, className }) {
   )
 }
 
+// A lead on the board: who and how warm, what they want and can spend, where they came from,
+// then what's next (or how it closed) with Call / WhatsApp on hover and who has it
+function LeadCard({ lead: l, active, draggable, staleLimit, onOpen }) {
+  const types = useList("unit-type")
+  const sources = useList("lead-source")
+  const activities = useList("activity-type")
+  const reasons = useList("loss-reason")
+  const [now] = useState(() => Date.now())
+  const due = dueText(l.next?.at, now)
+  const i = l.interest
+  const want = interestText({ ...i, project: null }, { typeLabel: types.label }).replace(/^—$/, "")
+  const budget = budgetText(i, formatPkr)
+  const plan = PAYMENT_PLANS.find((p) => p.value === i.paymentPlan)?.label
+  const nextType = l.next ? activities.map[l.next.type] : null
+  const closed = l.status === "booked" || l.status === "lost"
+  return (
+    <article
+      draggable={draggable}
+      onDragStart={(e) => e.dataTransfer.setData("text/lead", l.code)}
+      onClick={() => onOpen(l)}
+      aria-current={active ? "true" : undefined}
+      className="group cursor-pointer rounded-lg border bg-background shadow-xs transition hover:border-primary/40 hover:shadow-sm aria-[current=true]:border-primary/60 aria-[current=true]:bg-primary/5"
+    >
+      <div className="space-y-2.5 p-3.5 pb-3">
+        {/* Who */}
+        <div className="flex items-start gap-2">
+          <TempIcon priority={l.priority} className="mt-px" />
+          <div className="min-w-0 flex-1">
+            <p className="flex items-center gap-1 text-[15px] leading-tight font-semibold">
+              <span className="truncate">{l.name}</span>
+              {l.overseas && <Icon name="earth-line" className="shrink-0 text-xs text-muted-foreground" aria-label="Overseas" />}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+              {l.code} · {timeAgo(l.createdAt)}
+            </p>
+          </div>
+          <ScoreRing score={l.score} className="-mt-1 -mr-1" />
+        </div>
+
+        {/* What they want and can spend */}
+        {(i.project || want || budget) && (
+          <div className="space-y-1 text-[13px]">
+            {(i.project || want) && (
+              <p className="flex min-w-0 items-center gap-1.5">
+                {i.project && <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: i.project.color || "#94a3b8" }} aria-hidden />}
+                <span className="truncate">{[i.project?.name, want].filter(Boolean).join(" · ")}</span>
+              </p>
+            )}
+            {budget && (
+              <p className="flex items-center gap-1.5 text-muted-foreground">
+                <Icon name="wallet-3-line" className="shrink-0" />
+                <span className="truncate">{[budget, plan].filter(Boolean).join(" · ")}</span>
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Where from, and whether it's gone quiet */}
+        {(l.source || staleDays(l, staleLimit) > 0) && (
+          <div className="flex flex-wrap items-center gap-1">
+            {l.source && <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{sources.label(l.source)}</span>}
+            <StalePill days={staleDays(l, staleLimit)} />
+          </div>
+        )}
+      </div>
+
+      {/* What's next, or how it closed */}
+      <div className="flex h-11 items-center gap-2 border-t px-3 text-[13px]">
+        {closed ? (
+          <span className={cn("flex min-w-0 items-center gap-1 truncate", l.status === "booked" ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground")}>
+            <Icon name={l.status === "booked" ? "checkbox-circle-line" : "close-circle-line"} className="shrink-0" />
+            <span className="truncate">{l.status === "booked" ? `Booked ${l.closedAt ? timeAgo(l.closedAt) : ""}` : l.lossReason ? reasons.label(l.lossReason) : "Lost"}</span>
+          </span>
+        ) : (
+          <span className={cn("flex min-w-0 items-center gap-1", l.next ? due.tone : "text-muted-foreground")}>
+            <Icon name={nextType?.icon ?? "alarm-line"} className="shrink-0" />
+            <span className="truncate">{l.next ? `${nextType?.label ?? "Follow up"} · ${due.text}` : "No follow-up planned"}</span>
+          </span>
+        )}
+        <span className="ml-auto flex shrink-0 items-center gap-0.5">
+          {!closed && <QuickContact lead={l} className="hidden group-hover:flex group-focus-within:flex max-md:flex [&_a]:size-7" />}
+          {/* Tagged people, overlapping, then the agent */}
+          {l.tags?.length > 0 && (
+            <Tooltip content={`Tagged: ${l.tags.map((t) => t.name).join(", ")}`}>
+              <span className="ml-1 flex -space-x-1.5">
+                {l.tags.slice(0, 2).map((t) => (
+                  <span key={t.id} className="rounded-full ring-2 ring-background">
+                    <Avatar name={t.name} source={t.avatarUrl} size="sm" />
+                  </span>
+                ))}
+                {l.tags.length > 2 && <span className="flex size-6 items-center justify-center rounded-full bg-muted text-[10px] font-semibold ring-2 ring-background">+{l.tags.length - 2}</span>}
+              </span>
+            </Tooltip>
+          )}
+          {l.agent ? (
+            <Tooltip content={`Agent: ${l.agent.name}`}>
+              <span className="ml-1">
+                <Avatar name={l.agent.name} source={l.agent.avatarUrl} size="sm" />
+              </span>
+            </Tooltip>
+          ) : (
+            <Tooltip content="Unassigned">
+              <span className="ml-1 flex size-6 items-center justify-center rounded-full border border-dashed text-muted-foreground">
+                <Icon name="user-line" className="text-xs" />
+              </span>
+            </Tooltip>
+          )}
+        </span>
+      </div>
+    </article>
+  )
+}
+
 // Open leads by status, one column each; drag a card to move it along
 function Board({ leads, onOpen, onMove, canEdit, activeCode, staleLimit }) {
   const statuses = useList("lead-status")
-  const types = useList("unit-type")
   const [over, setOver] = useState(null)
 
   // ← → buttons: one column at a time, shown only while there's more that way
@@ -105,7 +218,7 @@ function Board({ leads, onOpen, onMove, canEdit, activeCode, staleLimit }) {
                   const code = e.dataTransfer.getData("text/lead")
                   if (code) onMove(code, st)
                 }}
-                className={cn("flex h-full w-72 shrink-0 flex-col rounded-xl border bg-muted/30 transition-colors", over === st && "border-primary/50 bg-primary/5")}
+                className={cn("flex h-full w-80 shrink-0 flex-col rounded-xl border bg-muted/30 transition-colors", over === st && "border-primary/50 bg-primary/5")}
               >
                 <header className="flex items-center justify-between px-3 py-2.5">
                   <LeadStatusBadge status={st} className="h-7 px-3 text-sm font-semibold" />
@@ -115,34 +228,10 @@ function Board({ leads, onOpen, onMove, canEdit, activeCode, staleLimit }) {
                   </span>
                 </header>
                 <ScrollView className="min-h-0 flex-1" viewportClassName="flex flex-col gap-2 overscroll-auto px-2 pb-2">
-                  {list.map((l) => {
-                    const due = dueText(l.next?.at)
-                    return (
-                      <article
-                        key={l.code}
-                        draggable={canEdit}
-                        onDragStart={(e) => e.dataTransfer.setData("text/lead", l.code)}
-                        onClick={() => onOpen(l)}
-                        aria-current={l.code === activeCode ? "true" : undefined}
-                        className="group cursor-pointer rounded-lg border bg-background p-3 shadow-xs transition hover:border-primary/40 hover:shadow-sm aria-[current=true]:border-primary/60 aria-[current=true]:bg-primary/5"
-                      >
-                        <div className="flex items-center gap-2">
-                          <TempIcon priority={l.priority} />
-                          <span className="min-w-0 flex-1 truncate text-sm font-medium">{l.name}</span>
-                          <StalePill days={staleDays(l, staleLimit)} />
-                          <QuickContact lead={l} className="opacity-0 transition-opacity group-hover:opacity-100" />
-                        </div>
-                        <p className="mt-1 truncate text-xs text-muted-foreground">{interestText(l.interest, { typeLabel: types.label })}</p>
-                        <div className="mt-2 flex items-center justify-between gap-2 text-xs">
-                          <span className={cn("flex items-center gap-1", due.tone)}>
-                            {l.next && <Icon name="alarm-line" />}
-                            {l.next ? due.text : "No follow-up"}
-                          </span>
-                          {l.agent && <Avatar name={l.agent.name} source={l.agent.avatarUrl} size="sm" />}
-                        </div>
-                      </article>
-                    )
-                  })}
+                  {list.map((l) => (
+                    <LeadCard key={l.code} lead={l} active={l.code === activeCode} draggable={canEdit} staleLimit={staleLimit} onOpen={onOpen} />
+                  ))}
+                  {!list.length && <p className="rounded-lg border border-dashed px-3 py-6 text-center text-xs text-muted-foreground">{canEdit ? "Drop leads here" : "No leads"}</p>}
                 </ScrollView>
               </section>
             )
@@ -153,8 +242,8 @@ function Board({ leads, onOpen, onMove, canEdit, activeCode, staleLimit }) {
   )
 }
 
-// Round ← / → over the board's edge (w-72 column + gap-3 = 300px per step)
-const BOARD_COLUMN_STEP = 300
+// Round ← / → over the board's edge (w-80 column + gap-3 = 332px per step)
+const BOARD_COLUMN_STEP = 332
 function BoardArrow({ dir, onClick }) {
   return (
     <button
@@ -208,7 +297,6 @@ export function LeadsView({ leads, agents, projects, me, access, brand, userName
   const types = useList("unit-type")
   const [q, setQ] = useState("")
   const [filters, setFilters] = useState(EMPTY)
-  const [message, setMessage] = useState(null)
   const [selected, setSelected] = useState(() => new Set()) // ticked lead codes (list only)
   const [, startTransition] = useTransition()
   const tab = ["due", "booked", "lost", "archived"].includes(params.get("tab")) ? params.get("tab") : "open"
@@ -295,8 +383,7 @@ export function LeadsView({ leads, agents, projects, me, access, brand, userName
     if (!extra && access.statusNote) return setMoving({ code, status, name: leads.find((l) => l.code === code)?.name ?? "This lead" })
     if (!extra && status === "lost") return setChanging({ code, status, name: leads.find((l) => l.code === code)?.name ?? "this lead" })
     startTransition(async () => {
-      const r = await setLeadStatus(code, status, extra ?? {})
-      if (r.error) setMessage({ tone: "error", text: r.error })
+      await toastAction(() => setLeadStatus(code, status, extra ?? {}), { loading: "Saving…" })
       setChanging(null)
       router.refresh()
     })
@@ -430,14 +517,11 @@ export function LeadsView({ leads, agents, projects, me, access, brand, userName
           userName={userName}
           onClear={() => setSelected(new Set())}
           onDone={(m) => {
-            setMessage(m)
             if (m.tone === "success") setSelected(new Set())
             router.refresh()
           }}
         />
       )}
-
-      {message && <Notice tone={message.tone}>{message.text}</Notice>}
 
       {leads.length === 0 ? (
         <div className="flex flex-col items-center rounded-xl border border-dashed px-4 py-16 text-center">
@@ -486,7 +570,7 @@ export function LeadsView({ leads, agents, projects, me, access, brand, userName
           onClose={() => setMoving(null)}
           onSaved={() => {
             setMoving(null)
-            setMessage({ tone: "success", text: `${moving.name}: saved, and the status is updated.` })
+            toast.success(`${moving.name}: saved, and the status is updated.`)
             router.refresh()
           }}
         />

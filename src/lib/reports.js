@@ -1,12 +1,12 @@
 import { formatPkr } from "./format"
 
 // Ready-made reports, shared by every app. A report is defined on the server (see e.g.
-// modules/estate/server/reports.js) and arrives in the browser as plain data:
+// modules/portfolio/server/reports.js) and arrives in the browser as plain data:
 //   { id, group, title, description, icon, filters: ["project"],
 //     columns: [{ key, header, type?: "number" | "pkr" | "pct", width? (chars) }] }
 // and its result: { rows: [{ id, [key]: value }], summary: [{ label, value }], chart?, note? }
 // chart: { kind: "bar", categoryKey, valueKey, valueLabel, money?, data }
-//     or { kind: "stacked", categoryKey, series: [{ key, label, color }], data }
+//     or { kind: "stacked" | "bars" | "line", categoryKey, series: [{ key, label, color }], money?, data }
 // The same data drives the table, the chart, the A4 print, the PDF and the Excel file.
 
 const number = (n) => new Intl.NumberFormat("en-PK").format(n)
@@ -28,5 +28,4 @@ export const isNumeric = (col) => ["number", "pkr", "pct"].includes(col.type)
 export const reportFileName = (title) => `${title} ${new Date().toISOString().slice(0, 10)}`.replace(/[\\/:*?"<>|]+/g, "-")
 
 // The query string of a report's filters ({ project: "ske" } → "project=ske")
-export const filterQuery = (values) =>
-  new URLSearchParams(Object.entries(values).filter(([, v]) => v)).toString()
+export const filterQuery = (values) => new URLSearchParams(Object.entries(values).filter(([, v]) => v)).toString()

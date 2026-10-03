@@ -61,8 +61,14 @@ export async function crmAction(action) {
 }
 
 // Limit a leads query to what this person may see. alias: the leads table's name in the query.
+// Besides their role's scope (own / team / all): leads assigned to them and leads they're tagged
+// on. Creating a lead doesn't keep it visible once it's given to someone else (created_by is only
+// the record of who added it).
 export function scoped(ctx, query, alias = "leads") {
   if (ctx.scope === "all") return query
-  if (ctx.scope === "team" && ctx.myTeams.length) return query.where((q) => q.where(`${alias}.assignedTo`, ctx.user.id).orWhereIn(`${alias}.teamId`, ctx.myTeams))
-  return query.where(`${alias}.assignedTo`, ctx.user.id)
+  const me = ctx.user.id
+  return query.where((q) => {
+    q.where(`${alias}.assignedTo`, me).orWhereExists((t) => t.select(ctx.db.raw("1")).from("leadTags as lt").whereColumn("lt.leadId", `${alias}.id`).where("lt.userId", me).whereNull("lt.deletedAt"))
+    if (ctx.scope === "team" && ctx.myTeams.length) q.orWhereIn(`${alias}.teamId`, ctx.myTeams)
+  })
 }

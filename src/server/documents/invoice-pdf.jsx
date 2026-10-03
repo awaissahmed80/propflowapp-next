@@ -63,11 +63,7 @@ function InvoicePdf({ inv, bank }) {
             <Text style={s.muted}>Workspace {inv.tenant.code}</Text>
           </View>
           <View style={{ width: "40%" }}>
-            {[
-              ["Issued", inv.issuedAt ? day(inv.issuedAt) : "Not yet"],
-              ["Due", day(inv.dueAt)],
-              ...(inv.periodStart ? [["Period", `${day(inv.periodStart)} – ${day(inv.periodEnd)}`]] : []),
-            ].map(([k, v]) => (
+            {[["Issued", inv.issuedAt ? day(inv.issuedAt) : "Not yet"], ["Due", day(inv.dueAt)], ...(inv.periodStart ? [["Period", `${day(inv.periodStart)} – ${day(inv.periodEnd)}`]] : [])].map(([k, v]) => (
               <View key={k} style={[s.row, { marginBottom: 3 }]}>
                 <Text style={s.muted}>{k}</Text>
                 <Text>{v}</Text>
@@ -136,7 +132,11 @@ function InvoicePdf({ inv, bank }) {
           </View>
         )}
 
-        <Text fixed style={{ position: "absolute", bottom: 28, left: 45, right: 45, fontSize: 8, color: MUTED, textAlign: "center" }} render={({ pageNumber, totalPages }) => `${inv.code} · page ${pageNumber} of ${totalPages}`} />
+        <Text
+          fixed
+          style={{ position: "absolute", bottom: 28, left: 45, right: 45, fontSize: 8, color: MUTED, textAlign: "center" }}
+          render={({ pageNumber, totalPages }) => `${inv.code} · page ${pageNumber} of ${totalPages}`}
+        />
       </Page>
     </Document>
   )

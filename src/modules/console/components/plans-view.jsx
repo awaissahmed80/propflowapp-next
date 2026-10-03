@@ -19,7 +19,8 @@ import { ScrollView } from "@/components/ui/scroll-view"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { deletePlan, savePlan, setPlanActive } from "../server/actions"
-import { Notice } from "./parts"
+import { toastAction } from "@/lib/toast-action"
+import { useAlert } from "@/components/alert-context"
 
 const toCode = (name) =>
   name
@@ -108,7 +109,6 @@ function PlanDialog({ plan, apps, onClose, onSaved }) {
   }))
   const [codeTouched, setCodeTouched] = useState(!creating)
   const [errors, setErrors] = useState({})
-  const [error, setError] = useState("")
   const [pending, startTransition] = useTransition()
   const set = (key) => (v) => {
     setForm((f) => ({ ...f, [key]: v, ...(key === "name" && !codeTouched ? { code: toCode(v) } : {}) }))
@@ -118,21 +118,24 @@ function PlanDialog({ plan, apps, onClose, onSaved }) {
   const save = (e) => {
     e.preventDefault()
     startTransition(async () => {
-      const result = await savePlan({
-        ...(plan ? { id: plan.id } : { code: form.code }),
-        name: form.name,
-        description: form.description.trim() || null,
-        priceMonthly: form.priceMonthly,
-        maxProjects: form.maxProjects,
-        maxUsers: form.maxUsers,
-        maxDealers: form.maxDealers,
-        isPublic: form.isPublic,
-        apps: form.apps,
-        off: Object.fromEntries(Object.entries(form.off).filter(([app]) => form.apps.includes(app))),
-      })
+      const result = await toastAction(
+        () =>
+          savePlan({
+            ...(plan ? { id: plan.id } : { code: form.code }),
+            name: form.name,
+            description: form.description.trim() || null,
+            priceMonthly: form.priceMonthly,
+            maxProjects: form.maxProjects,
+            maxUsers: form.maxUsers,
+            maxDealers: form.maxDealers,
+            isPublic: form.isPublic,
+            apps: form.apps,
+            off: Object.fromEntries(Object.entries(form.off).filter(([app]) => form.apps.includes(app))),
+          }),
+        { loading: "Saving…", success: creating ? `${form.name} added.` : `${form.name} saved.` },
+      )
       if (result.fieldErrors) setErrors(result.fieldErrors)
-      else if (result.error) setError(result.error)
-      else onSaved(creating ? `${form.name} added.` : `${form.name} saved.`)
+      else if (!result.error) onSaved()
     })
   }
 
@@ -159,7 +162,6 @@ function PlanDialog({ plan, apps, onClose, onSaved }) {
         <AppPicker apps={apps} value={form.apps} onChange={set("apps")} off={form.off} onOffChange={set("off")} error={errors.apps} />
 
         <div className="space-y-4">
-          {error && <Notice tone="error">{error}</Notice>}
           <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_10rem]">
             <Input label="Name" autoFocus={creating} value={form.name} onChange={(e) => set("name")(e.target.value)} error={errors.name} />
             <Input
@@ -191,60 +193,50 @@ function PlanDialog({ plan, apps, onClose, onSaved }) {
   )
 }
 
-function ConfirmDelete({ plan, onClose, onDeleted }) {
-  const [error, setError] = useState("")
-  const [pending, startTransition] = useTransition()
-  return (
-    <Dialog
-      open
-      onOpenChange={(o) => !o && onClose()}
-      title={`Delete ${plan.name}?`}
-      description="The plan disappears from the console, website and signup. Plans that workspaces have used can't be deleted; disable them instead."
-      footer={
-        <>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            loading={pending}
-            onClick={() =>
-              startTransition(async () => {
-                const result = await deletePlan(plan.id)
-                if (result.error) setError(result.error)
-                else onDeleted(`${plan.name} deleted.`)
-              })
-            }
-          >
-            Delete plan
-          </Button>
-        </>
-      }
-    >
-      {error && <Notice tone="error">{error}</Notice>}
-    </Dialog>
-  )
-}
-
 export function PlansView({ plans, apps, trialDays, editable }) {
   const router = useRouter()
-  const [dialog, setDialog] = useState(null) // { edit: plan|null } | { delete: plan }
-  const [notice, setNotice] = useState(null)
+  const [dialog, setDialog] = useState(null) // { edit: plan|null }
   const [pending, startTransition] = useTransition()
+  const { confirm } = useAlert()
   // My Desk comes with every plan, so the cards list the rest
   const listed = apps.filter((a) => !a.alwaysOn)
 
-  const done = (text) => {
+  // After a save or delete (the dialogs show their own toasts)
+  const done = () => {
     setDialog(null)
-    setNotice({ tone: "success", text })
     router.refresh()
   }
-  const toggleActive = (p) =>
-    startTransition(async () => {
-      const result = await setPlanActive(p.id, !p.isActive)
-      if (result.error) setNotice({ tone: "error", text: result.error })
-      else done(p.isActive ? `${p.name} disabled. Workspaces already on it keep it.` : `${p.name} is available again.`)
+  const remove = async (p) => {
+    const ok = await confirm({
+      title: `Delete the ${p.name} plan?`,
+      description: "It disappears from the console, website and signup. Plans that workspaces have used can't be deleted; disable them instead.",
+      confirmLabel: "Delete plan",
+      destructive: true,
     })
+    if (!ok) return
+    startTransition(async () => {
+      const result = await toastAction(() => deletePlan(p.id), { loading: "Deleting…", success: `${p.name} deleted.` })
+      if (!result.error) done()
+    })
+  }
+  const toggleActive = async (p) => {
+    if (p.isActive) {
+      const ok = await confirm({
+        title: `Disable the ${p.name} plan?`,
+        description: "New customers can't pick it on the website or at signup. Workspaces already on it keep it.",
+        confirmLabel: "Disable plan",
+        icon: "forbid-line",
+      })
+      if (!ok) return
+    }
+    startTransition(async () => {
+      const result = await toastAction(() => setPlanActive(p.id, !p.isActive), {
+        loading: "Saving…",
+        success: p.isActive ? `${p.name} disabled. Workspaces already on it keep it.` : `${p.name} is available again.`,
+      })
+      if (!result.error) done()
+    })
+  }
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
@@ -259,7 +251,6 @@ export function PlansView({ plans, apps, trialDays, editable }) {
           )
         }
       />
-      {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
       <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
         {plans.map((p) => (
           <article key={p.id} className={cn("flex flex-col rounded-2xl border bg-card p-5 shadow-xs", !p.isActive && "opacity-70")}>
@@ -281,7 +272,7 @@ export function PlansView({ plans, apps, trialDays, editable }) {
                     { label: "Edit plan", icon: "edit-line", onClick: () => setDialog({ edit: p }) },
                     { label: p.isActive ? "Disable" : "Enable", icon: p.isActive ? "forbid-line" : "checkbox-circle-line", onClick: () => toggleActive(p) },
                     { type: "separator" },
-                    { label: "Delete", icon: "delete-bin-line", variant: "destructive", onClick: () => setDialog({ delete: p }) },
+                    { label: "Delete", icon: "delete-bin-line", variant: "destructive", onClick: () => remove(p) },
                   ]}
                   trigger={<Button variant="ghost" size="icon" aria-label={`Options for ${p.name}`} leftIcon="more-2-line" disabled={pending} />}
                 />
@@ -320,7 +311,6 @@ export function PlansView({ plans, apps, trialDays, editable }) {
         ))}
       </div>
       {dialog && "edit" in dialog && <PlanDialog plan={dialog.edit} apps={apps} onClose={() => setDialog(null)} onSaved={done} />}
-      {dialog?.delete && <ConfirmDelete plan={dialog.delete} onClose={() => setDialog(null)} onDeleted={done} />}
     </div>
   )
 }

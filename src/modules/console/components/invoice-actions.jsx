@@ -1,9 +1,11 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useEffect, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { formatAmount } from "@/lib/format"
 import { cn } from "@/lib/utils"
+import { confirm } from "@/components/alert-context"
 import { Button } from "@/components/ui/button"
 import { DatePicker } from "@/components/ui/datetimepicker"
 import { Dialog } from "@/components/ui/dialog"
@@ -179,19 +181,25 @@ export function VoidDialog({ invoice, onClose, onDone }) {
 export function InvoiceActions({ invoice, canManage, saved }) {
   const router = useRouter()
   const [dialog, setDialog] = useState(null)
-  const [notice, setNotice] = useState(saved ? { tone: saved[0], text: saved[1] } : null)
   const [pending, startTransition] = useTransition()
-  const done = (text, tone = "success") => {
+  // saved: [tone, text] after a redirect here (the invoice editor); shown once as a toast
+  const [savedTone, savedText] = saved ?? []
+  useEffect(() => {
+    if (savedText) (savedTone === "error" ? toast.error : toast.success)(savedText, { id: `invoice-saved-${savedText}` })
+  }, [savedTone, savedText])
+  // id: the loading toast to turn into the outcome
+  const done = (text, tone = "success", id) => {
     setDialog(null)
-    setNotice({ tone, text })
+    ;(tone === "error" ? toast.error : toast.success)(text, { id })
     router.refresh()
   }
   const run = (fn, ok) =>
     startTransition(async () => {
+      const id = toast.loading("Sending…")
       const r = await fn()
-      if (r.error) setNotice({ tone: "error", text: r.error })
-      else if (r.emailed === false) done(`${ok.replace(" and emailed", "")}, but the email couldn't be sent: ${r.emailError}`, "error")
-      else done(ok)
+      if (r.error) toast.error(r.error, { id })
+      else if (r.emailed === false) done(`${ok.replace(" and emailed", "")}, but the email couldn't be sent: ${r.emailError}`, "error", id)
+      else done(ok, "success", id)
     })
   const open = ["issued", "overdue"].includes(invoice.status)
 
@@ -199,7 +207,14 @@ export function InvoiceActions({ invoice, canManage, saved }) {
     <div className="flex max-w-xl flex-col items-end gap-3">
       <div className="flex flex-wrap justify-end gap-2">
         {canManage && invoice.status === "draft" && (
-          <Button leftIcon="send-plane-line" loading={pending} onClick={() => run(() => issueInvoice(invoice.id), "Invoice issued and emailed to the workspace.")}>
+          <Button
+            leftIcon="send-plane-line"
+            loading={pending}
+            onClick={async () =>
+              (await confirm({ title: `Issue and email ${invoice.code}?`, description: "The invoice is emailed to the workspace and can't go back to draft.", confirmLabel: "Issue & email", icon: "send-plane-line" })) &&
+              run(() => issueInvoice(invoice.id), "Invoice issued and emailed to the workspace.")
+            }
+          >
             Issue &amp; email
           </Button>
         )}
@@ -225,7 +240,6 @@ export function InvoiceActions({ invoice, canManage, saved }) {
           />
         )}
       </div>
-      {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
       {dialog === "pay" && <PaymentDialog invoice={invoice} onClose={() => setDialog(null)} onDone={done} />}
       {dialog === "void" && <VoidDialog invoice={invoice} onClose={() => setDialog(null)} onDone={done} />}
     </div>

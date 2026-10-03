@@ -2,7 +2,9 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { confirm } from "@/components/alert-context"
 import { DropdownMenu } from "@/components/ui/dropdown-menu"
 import { Icon } from "@/components/ui/icon"
 import { issueInvoice, setInvoiceStatus } from "../server/invoices"
@@ -26,16 +28,35 @@ export function InvoiceStatusMenu({ invoice, canManage, onChanged }) {
       else onChanged(ok)
     })
 
+  const issue = async () => {
+    const ok = await confirm({
+      title: `Issue and email ${invoice.code}?`,
+      description: "The invoice is emailed to the workspace and can't go back to draft.",
+      confirmLabel: "Issue & email",
+      icon: "send-plane-line",
+    })
+    if (ok) run(() => issueInvoice(invoice.id), `${invoice.code} issued and emailed.`)
+  }
+  const reverse = async () => {
+    const ok = await confirm({
+      title: `Reverse the payment on ${invoice.code}?`,
+      description: "The recorded payment is reversed and the invoice is unpaid again.",
+      confirmLabel: "Reverse payment",
+      destructive: true,
+      icon: "arrow-go-back-line",
+    })
+    if (ok) run(() => setInvoiceStatus(invoice.id, "issued"), `${invoice.code} marked unpaid; its payment was reversed.`)
+  }
+
   const s = invoice.status
+
   const items = [
     { type: "label", label: "Change status" },
-    ...(s === "draft" ? [{ label: "Issue & email", icon: "send-plane-line", onClick: () => run(() => issueInvoice(invoice.id), `${invoice.code} issued and emailed.`) }] : []),
+    ...(s === "draft" ? [{ label: "Issue & email", icon: "send-plane-line", onClick: issue }] : []),
     ...(s === "overdue" ? [{ label: "Mark as unpaid", icon: "time-line", onClick: () => run(() => setInvoiceStatus(invoice.id, "issued"), `${invoice.code} marked unpaid.`) }] : []),
     ...(s === "issued" ? [{ label: "Mark as overdue", icon: "alarm-warning-line", onClick: () => run(() => setInvoiceStatus(invoice.id, "overdue"), `${invoice.code} marked overdue.`) }] : []),
     ...(["issued", "overdue"].includes(s) ? [{ label: "Mark as paid…", icon: "checkbox-circle-line", onClick: () => setDialog("pay") }] : []),
-    ...(s === "paid"
-      ? [{ label: "Mark as unpaid (reverse payment)", icon: "arrow-go-back-line", onClick: () => run(() => setInvoiceStatus(invoice.id, "issued"), `${invoice.code} marked unpaid; its payment was reversed.`) }]
-      : []),
+    ...(s === "paid" ? [{ label: "Mark as unpaid (reverse payment)", icon: "arrow-go-back-line", onClick: reverse }] : []),
     ...(s !== "paid" ? [{ type: "separator" }, { label: "Void…", icon: "forbid-line", variant: "destructive", onClick: () => setDialog("void") }] : []),
   ]
 
@@ -80,21 +101,17 @@ export function InvoiceStatusMenu({ invoice, canManage, onChanged }) {
   )
 }
 
-// The status menu on a page: reloads the page's data after a change and shows the outcome
+// The status menu on a page: reloads the page's data after a change and shows the outcome as a toast
 export function InvoiceStatusControl({ invoice, canManage }) {
   const router = useRouter()
-  const [notice, setNotice] = useState(null)
   return (
-    <span className="inline-flex flex-col gap-2">
-      <InvoiceStatusMenu
-        invoice={invoice}
-        canManage={canManage}
-        onChanged={(text, tone = "success") => {
-          setNotice({ tone, text })
-          router.refresh()
-        }}
-      />
-      {notice && <span className={cn("text-xs font-normal", notice.tone === "error" ? "text-destructive" : "text-emerald-700 dark:text-emerald-400")}>{notice.text}</span>}
-    </span>
+    <InvoiceStatusMenu
+      invoice={invoice}
+      canManage={canManage}
+      onChanged={(text, tone = "success") => {
+        ;(tone === "error" ? toast.error : toast.success)(text)
+        router.refresh()
+      }}
+    />
   )
 }

@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react"
 import { toHex } from "@/lib/color"
+import { toastAction } from "@/lib/toast-action"
+import { useAlert } from "@/components/alert-context"
 import { downloadExcel } from "@/lib/export-excel"
 import { formatPkPhone } from "@/lib/phone"
 import { useList } from "@/modules/lookups/context"
@@ -18,26 +20,30 @@ import { formatPkr } from "@/lib/format"
 
 // The bar over the leads table while rows are ticked: assign, status, temperature, archive (or
 // restore, in the Archived tab) and export. Archived leads can only be restored or exported.
-//   picked: the ticked leads (shaped like listLeads); onDone(message): after a change; onClear()
+//   picked: the ticked leads (shaped like listLeads); onDone({ tone, text }): after a change (already shown as a toast); onClear()
 export function BulkActions({ picked, archivedTab, access, agents, me, brand, userName, onDone, onClear }) {
   const statuses = useList("lead-status")
   const priorities = useList("lead-priority")
   const [pending, startTransition] = useTransition()
   const [dialog, setDialog] = useState(null) // { kind: "status", status } | { kind: "archive" } | { kind: "export" }
+  const { confirm } = useAlert()
   const codes = picked.map((l) => l.code)
   const n = picked.length
   const many = `${n} ${n === 1 ? "lead" : "leads"}`
 
   const act = (fn, done) =>
     startTransition(async () => {
-      const r = await fn()
+      const r = await toastAction(fn, { loading: `Updating ${many}…`, success: (x) => done(x?.count ?? n) })
       setDialog(null)
       onDone(r?.error ? { tone: "error", text: r.error } : { tone: "success", text: done(r?.count ?? n) })
     })
   const leadsWord = (c) => `${c} ${c === 1 ? "lead" : "leads"}`
+  // Changes to many leads at once ask first (one lead goes straight through)
+  const sure = (options) => (n > 1 ? confirm(options) : true)
 
-  const pickStatus = (status) => {
+  const pickStatus = async (status) => {
     if (status === "lost" || access.statusNote) return setDialog({ kind: "status", status })
+    if (!(await sure({ title: `Move ${many} to ${statuses.label(status)}?`, description: "Each lead's current status is replaced.", confirmLabel: `Move ${many}`, icon: "flag-line" }))) return
     act(
       () => setLeadsStatus(codes, status),
       (c) => `${leadsWord(c)} moved to ${statuses.label(status)}.`,
@@ -64,7 +70,8 @@ export function BulkActions({ picked, archivedTab, access, agents, me, brand, us
                       key: String(a.id),
                       label: a.id === me ? `${a.name} (me)` : a.name,
                       icon: "user-line",
-                      onClick: () =>
+                      onClick: async () =>
+                        (await sure({ title: `Give ${many} to ${a.name}?`, description: "They're taken off whoever has them now.", confirmLabel: "Reassign", icon: "user-shared-line" })) &&
                         act(
                           () => assignLeads(codes, a.id),
                           () => `${many} given to ${a.name}.`,
@@ -74,7 +81,13 @@ export function BulkActions({ picked, archivedTab, access, agents, me, brand, us
                     {
                       label: "Unassign",
                       icon: "user-unfollow-line",
-                      onClick: () =>
+                      onClick: async () =>
+                        (await sure({
+                          title: `Unassign ${many}?`,
+                          description: "They're taken off their agents and nobody follows them up until they're given to someone.",
+                          confirmLabel: "Unassign",
+                          icon: "user-unfollow-line",
+                        })) &&
                         act(
                           () => assignLeads(codes, null),
                           () => `${many} unassigned.`,
@@ -110,7 +123,8 @@ export function BulkActions({ picked, archivedTab, access, agents, me, brand, us
                     key: o.value,
                     label: o.label,
                     icon: <Icon name={priorities.map[o.value]?.icon ?? "temp-hot-line"} style={{ color: toHex(priorities.map[o.value]?.color) }} />,
-                    onClick: () =>
+                    onClick: async () =>
+                      (await sure({ title: `Set ${many} to ${o.label.toLowerCase()}?`, description: "Their current temperature is replaced.", confirmLabel: "Set temperature", icon: "fire-line" })) &&
                       act(
                         () => setLeadsPriority(codes, o.value),
                         (c) => `${leadsWord(c)} set to ${o.label.toLowerCase()}.`,
@@ -134,9 +148,16 @@ export function BulkActions({ picked, archivedTab, access, agents, me, brand, us
               variant="outline"
               leftIcon="inbox-unarchive-line"
               loading={pending}
-              onClick={() =>
+              onClick={async () =>
+                (await sure({
+                  title: `Restore ${many} to the pipeline?`,
+                  description: "They're back on the board and in the lists, and their follow-ups show as due again.",
+                  confirmLabel: "Restore",
+                  icon: "inbox-unarchive-line",
+                })) &&
                 act(
                   () => archiveLeads(codes, { archive: false }),
+
                   (c) => `${leadsWord(c)} restored to the pipeline.`,
                 )
               }

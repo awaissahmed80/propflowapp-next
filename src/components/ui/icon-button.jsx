@@ -22,25 +22,12 @@ const iconButtonVariants = cva(
       },
     },
     defaultVariants: { variant: "ghost", size: "default" },
-  }
+  },
 )
 
 // Icon-only button. The tooltip comes from `tooltip` or `aria-label`; pass tooltip={false} to skip it.
 // `badge`: number (count, 99+) or true (dot) shown top-right, e.g. unread items.
-function IconButton({
-  icon,
-  tooltip,
-  badge,
-  loading = false,
-  variant,
-  size,
-  className,
-  type = "button",
-  disabled,
-  tooltipSide = "bottom",
-  "aria-label": ariaLabel,
-  ...props
-}) {
+function IconButton({ icon, tooltip, badge, loading = false, variant, size, className, type = "button", disabled, tooltipSide = "bottom", "aria-label": ariaLabel, ...props }) {
   const tip = tooltip === false ? null : (tooltip ?? ariaLabel)
   const showBadge = badge === true || (typeof badge === "number" && badge > 0)
 
@@ -59,7 +46,7 @@ function IconButton({
           aria-hidden
           className={cn(
             "absolute flex items-center justify-center rounded-full bg-destructive font-semibold text-white ring-2 ring-background",
-            badge === true ? "top-1.5 right-1.5 size-2" : "-top-0.5 -right-0.5 h-4 min-w-4 px-1 text-[10px] leading-none tabular-nums"
+            badge === true ? "top-1.5 right-1.5 size-2" : "-top-0.5 -right-0.5 h-4 min-w-4 px-1 text-[10px] leading-none tabular-nums",
           )}
         >
           {badge === true ? null : badge > 99 ? "99+" : badge}

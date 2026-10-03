@@ -1,137 +1,115 @@
-// Estate helpers used on the server and in the browser: sizes in marla / kanal / sq ft, standard
-// plot dimensions, prices with premiums, and labels.
+// Estate Management (Care) rules shared by the server and the browser: request types and their
+// checklists, NDC purposes, record-update fields, default fees and timelines, and how a fee and a
+// due date are worked out.
 
-export const PROJECT_COLORS = ["#0270d2", "#7a4dd8", "#0f9d74", "#d9822b", "#1528a0", "#c2410c", "#0e7490", "#be185d"]
+export const TYPES = ["transfer", "ndc", "possession", "document", "record-update", "complaint"]
+// Types with their own list page (the rest live on the Service desk)
+export const TYPE_PAGES = { transfer: "/estate-management/transfers", ndc: "/estate-management/ndc", possession: "/estate-management/possession", complaint: "/estate-management/complaints" }
+export const OPEN_STATUSES = ["new", "in-progress", "awaiting-customer"]
+export const CLOSED_STATUSES = ["completed", "rejected"]
 
-export const KANAL_MARLA = 20 // 1 kanal = 20 marla
-
-// ---------- measures ----------
-// How units are sized and where they fit come from three Lists & Labels lists the workspace can
-// change: Area units (each counted in marla for land, or sq ft for floor area), Unit types (sized
-// by land or floor area; fit residential, commercial, both, or unballoted files) and Block
-// categories (hold residential, commercial or both). measures(lists) builds the rules from them;
-// without lists it uses the values PropFlow comes with (the plain exports below).
-
-const BUILTIN_UNITS = {
-  marla: { measures: "land", size: 1, short: "Marla" },
-  kanal: { measures: "land", size: 20, short: "Kanal" },
-  acre: { measures: "land", size: 160, short: "Acre" },
-  sqft: { measures: "floor", size: 1, short: "sq ft" },
-  sqyd: { measures: "floor", size: 9, short: "sq yd" },
-  sqm: { measures: "floor", size: 10.7639, short: "m²" },
+// Checklists. auto: worked out from live data (can't be ticked); the rest are ticked by staff.
+export const CHECKLISTS = {
+  transfer: [
+    { key: "application", label: "Transfer application signed by both parties" },
+    { key: "documents", label: "CNICs, photos and the original allotment letter" },
+    { key: "ndc", label: "Valid NDC on the file", auto: true },
+    { key: "fee", label: "Transfer fee", auto: true },
+    { key: "biometric", label: "Biometric verification of both parties" },
+  ],
+  ndc: [
+    { key: "application", label: "NDC application" },
+    { key: "dues", label: "No overdue dues", auto: true },
+    { key: "fee", label: "NDC fee", auto: true },
+  ],
+  possession: [
+    { key: "paid", label: "Paid in full", auto: true },
+    { key: "phase", label: "Phase open for possession", auto: true },
+    { key: "fee", label: "Possession charges", auto: true },
+    { key: "demarcation", label: "Plot demarcated on site" },
+  ],
+  document: [
+    { key: "application", label: "Request application" },
+    { key: "supporting", label: "Supporting papers" },
+    { key: "fee", label: "Document fee", auto: true },
+  ],
+  "record-update": [
+    { key: "application", label: "Request application" },
+    { key: "supporting", label: "Supporting papers (CNIC, affidavit…)" },
+    { key: "verified", label: "Verified by the office" },
+  ],
+  complaint: [],
 }
-const BUILTIN_TYPES = {
-  plot: { measures: "land", fits: "both" },
-  file: { measures: "land", fits: "files" },
-  house: { measures: "land", fits: "residential" },
-  farmhouse: { measures: "land", fits: "residential" },
-  apartment: { measures: "floor", fits: "residential" },
-  shop: { measures: "floor", fits: "commercial" },
-  office: { measures: "floor", fits: "commercial" },
-}
-const BUILTIN_CATEGORIES = { residential: { holds: "residential" }, commercial: { holds: "commercial" } }
 
-const defsFrom = (values, builtin, pick) => {
-  if (!values?.length) return { order: Object.keys(builtin), active: new Set(Object.keys(builtin)), def: builtin }
-  const def = { ...builtin }
-  for (const v of values) def[v.value] = { ...(builtin[v.value] ?? {}), ...pick(v) }
-  return { order: values.map((v) => v.value), active: new Set(values.filter((v) => v.isActive !== false && v.active !== false).map((v) => v.value)), def }
+// Papers needed for each document on request
+export const DOCUMENT_PAPERS = {
+  "duplicate-allotment": "Affidavit on stamp paper, police report (FIR) of the lost letter, newspaper advertisement",
+  statement: "Request from the buyer",
+  "site-plan": "Request from the buyer",
+  "noc-mortgage": "Bank's letter naming the buyer and the file",
 }
 
-// lists: { "area-unit": [...], "unit-type": [...], "block-category": [...] } as lookups give them
-export function measures(lists = {}) {
-  const units = defsFrom(lists["area-unit"], BUILTIN_UNITS, (v) => ({
-    measures: v.meta?.measures ?? BUILTIN_UNITS[v.value]?.measures ?? "floor",
-    size: Number(v.meta?.size) || BUILTIN_UNITS[v.value]?.size || 1,
-    short: v.meta?.short || v.label,
-  }))
-  const types = defsFrom(lists["unit-type"], BUILTIN_TYPES, (v) => ({ measures: v.meta?.measures ?? BUILTIN_TYPES[v.value]?.measures ?? "land", fits: v.meta?.fits ?? BUILTIN_TYPES[v.value]?.fits ?? "both" }))
-  const cats = defsFrom(lists["block-category"], BUILTIN_CATEGORIES, (v) => ({ holds: v.meta?.holds ?? BUILTIN_CATEGORIES[v.value]?.holds ?? "both" }))
-  const unit = (u) => units.def[u] ?? { measures: "floor", size: 1, short: u ?? "" }
+export const NDC_PURPOSES = [
+  { value: "transfer", label: "Transfer to a new owner" },
+  { value: "mortgage", label: "Bank mortgage" },
+  { value: "sale", label: "Sale (open market)" },
+  { value: "record", label: "Owner's record" },
+]
+export const UPDATE_FIELDS = [
+  { value: "nominee", label: "Nominee" },
+  { value: "address", label: "Mailing address" },
+  { value: "phone", label: "Mobile number" },
+  { value: "name", label: "Name correction" },
+]
 
-  const sizedInSqft = (type) => (types.def[type]?.measures ?? "land") === "floor"
-  // Units a type can be sized in (switched-off units are left out, unless nothing else is left)
-  const unitsFor = (type) => {
-    const want = sizedInSqft(type) ? "floor" : "land"
-    const all = units.order.filter((u) => unit(u).measures === want)
-    const on = all.filter((u) => units.active.has(u))
-    return on.length ? on : all
+// Fees (Rs) and timelines per type; a workspace changes them in Customize › Fees & timelines
+export const DEFAULT_SETTINGS = {
+  transfer: { perMarla: 2000, minimum: 25000, flat: 50000, days: 15 }, // per marla for plots/houses/files; flat for apartments, shops, offices
+  ndc: { fee: 5000, days: 3, validDays: 30 },
+  possession: { fee: 15000, days: 30 },
+  document: { fees: { "duplicate-allotment": 10000, statement: 0, "site-plan": 2000, "noc-mortgage": 5000 }, days: 7 },
+  "record-update": { fee: 3000, days: 5 },
+  complaint: { hours: { urgent: 24, high: 48, normal: 72, low: 168 } },
+}
+
+export function mergeSettings(saved = {}) {
+  const out = structuredClone(DEFAULT_SETTINGS)
+  for (const [type, value] of Object.entries(saved ?? {}))
+    if (out[type] && value && typeof value === "object")
+      out[type] = { ...out[type], ...value, ...(value.fees ? { fees: { ...out[type].fees, ...value.fees } } : {}), ...(value.hours ? { hours: { ...out[type].hours, ...value.hours } } : {}) }
+  return out
+}
+
+const FLAT_TYPES = ["apartment", "flat", "shop", "office", "penthouse"]
+
+// The fee for a request when it's made (kept on the request, so later changes don't move it)
+//   unit: { type, sizeValue, sizeUnit } · documentKind for documents
+export function feeFor(settings, type, { unit = null, documentKind = null } = {}) {
+  const s = settings[type]
+  if (!s) return 0
+  if (type === "transfer") {
+    if (!unit) return s.minimum
+    if (FLAT_TYPES.includes(String(unit.type ?? "").toLowerCase())) return s.flat
+    const marla = unit.sizeUnit === "kanal" ? Number(unit.sizeValue) * 20 : unit.sizeUnit === "marla" ? Number(unit.sizeValue) : null
+    return marla ? Math.max(s.minimum, Math.round(marla * s.perMarla)) : s.minimum
   }
-  // Unit types a block can hold: by its category, or files only in an unballoted phase
-  const typesFor = (category, { unballoted = false } = {}) => {
-    const on = types.order.filter((t) => types.active.has(t))
-    if (unballoted) return on.filter((t) => types.def[t]?.fits === "files")
-    const holds = cats.def[category]?.holds ?? "both"
-    return on.filter((t) => {
-      const fits = types.def[t]?.fits ?? "both"
-      if (fits === "files") return false
-      return holds === "both" || fits === "both" || fits === holds
-    })
-  }
-  // Land sizes in marla (null for floor-area units)
-  const sizeInMarla = (value, u) => (unit(u).measures === "land" ? Number(value) * unit(u).size : null)
-  const areaSqft = (value, u, marlaSqft) => {
-    const marla = sizeInMarla(value, u)
-    return Math.round(marla == null ? Number(value) * unit(u).size : marla * Number(marlaSqft))
-  }
-  // "5 Marla", "1 Kanal", "650 sq ft", "120 sq yd"
-  const formatSize = (value, u) => {
-    const n = Number(value)
-    const num = Number.isInteger(n) ? n : n.toFixed(2).replace(/\.?0+$/, "")
-    return `${unit(u).measures === "floor" ? new Intl.NumberFormat("en-PK").format(num) : num} ${unit(u).short}`
-  }
-  const allUnits = units.order
-  return { sizedInSqft, unitsFor, typesFor, sizeInMarla, areaSqft, formatSize, unitShort: (u) => unit(u).short, allUnits, rateBasis: (type) => (sizedInSqft(type) ? "sqft" : "marla") }
+  if (type === "document") return Number(s.fees?.[documentKind] ?? 0)
+  return Number(s.fee ?? 0)
 }
 
-// The values PropFlow comes with, for code that has no lists at hand
-export const builtin = measures()
-export const { sizedInSqft, unitsFor, typesFor, sizeInMarla, areaSqft, formatSize } = builtin
-// Any unit a size may be stored in (custom units included): server checks use the workspace's list
-export const AREA_UNITS = Object.keys(BUILTIN_UNITS)
-export const LAND_UNITS = ["marla", "kanal", "acre"]
-export const FLOOR_UNITS = ["sqft", "sqyd", "sqm"]
-export const SQFT_TYPES = ["apartment", "shop", "office"]
-export const TYPES_FOR = { residential: typesFor("residential"), commercial: typesFor("commercial"), unballoted: typesFor(null, { unballoted: true }) }
-
-// Common plot dimensions (feet) by marla size
-const STANDARD_DIMENSIONS = {
-  225: { 3: "18×37", 4: "20×45", 5: "25×45", 7: "30×52", 8: "30×60", 10: "35×65", 20: "50×90", 40: "75×120" },
-  272.25: { 3: "20×41", 4: "25×44", 5: "30×45", 7: "35×55", 8: "35×62", 10: "40×68", 20: "55×99", 40: "80×136" },
-}
-export const standardDimensions = (marlaSqft, value, unit) => STANDARD_DIMENSIONS[Number(marlaSqft)]?.[sizeInMarla(value, unit)] ?? null
-
-export const round1000 = (n) => Math.round(Number(n) / 1000) * 1000
-
-// Base price from a rate per marla (or per sq ft), then premiums on top, rounded to Rs 1,000
-export function priceFor({ rate, value, unit, marlaSqft, premiums = [], m = builtin }) {
-  const marla = m.sizeInMarla(value, unit)
-  const base = round1000((marla ?? m.areaSqft(value, unit, marlaSqft)) * Number(rate))
-  const pct = premiums.reduce((s, p) => s + Number(p.percent || 0), 0)
-  return { base, price: round1000(base * (1 + pct / 100)) }
+// When a request is due: its type's days, or a complaint's hours for its priority
+export function dueFrom(settings, type, priority, from = new Date()) {
+  const start = new Date(from).getTime()
+  if (type === "complaint") return new Date(start + (settings.complaint.hours[priority] ?? 72) * 3_600_000)
+  return new Date(start + (settings[type]?.days ?? 7) * 86_400_000)
 }
 
-// "Plot 12", "File SKE-F-1001"
-export const unitLabel = (typeLabel, number) => `${typeLabel} ${number}`
-
-// "Block A · Street 2 · Floor 4"
-export function unitPlace(u) {
-  return [u.block?.name, u.street, u.floor != null && u.floor > 0 && u.type !== "shop" ? `Floor ${u.floor}` : null].filter(Boolean).join(" · ")
-}
-
-// Kanal / marla for a project's total area
-export const formatArea = (value, unit) => `${new Intl.NumberFormat("en-PK", { maximumFractionDigits: 2 }).format(value)} ${builtin.unitShort(unit)}`
-
-// Unit counts per status → totals for availability bars
-export function summarize(units) {
-  const counts = { available: 0, "on-hold": 0, booked: 0, sold: 0, blocked: 0 }
-  let totalValue = 0
-  let availableValue = 0
-  for (const u of units) {
-    counts[u.status] = (counts[u.status] ?? 0) + 1
-    totalValue += Number(u.price)
-    if (u.status === "available") availableValue += Number(u.price)
-  }
-  const total = units.length
-  return { counts, total, totalValue, availableValue, soldPct: total ? Math.round(((counts.booked + counts.sold) / total) * 100) : 0 }
+// "Due in 2 days", "3 days late", "Due today"
+export function dueLabel(dueAt, closed = false, now = Date.now()) {
+  if (!dueAt || closed) return null
+  const diff = new Date(dueAt).getTime() - now
+  const hours = Math.round(Math.abs(diff) / 3_600_000)
+  const days = Math.round(Math.abs(diff) / 86_400_000)
+  const span = hours < 24 ? `${Math.max(1, hours)} ${hours === 1 ? "hour" : "hours"}` : `${days} ${days === 1 ? "day" : "days"}`
+  return diff < 0 ? `${span} late` : `Due in ${span}`
 }

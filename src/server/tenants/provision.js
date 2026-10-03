@@ -53,9 +53,7 @@ export async function provisionTenant(tenantId, { finalStatus, company = {} }) {
       await db.destroy()
     }
 
-    await platform("tenants")
-      .where({ id: tenant.id })
-      .update({ status: finalStatus, schemaVersion, seedVersion: schemaVersion, provisionedAt: new Date(), provisioningError: null, updatedAt: new Date() })
+    await platform("tenants").where({ id: tenant.id }).update({ status: finalStatus, schemaVersion, seedVersion: schemaVersion, provisionedAt: new Date(), provisioningError: null, updatedAt: new Date() })
     return { ok: true }
   } catch (err) {
     console.error(`Provisioning ${tenant.code} failed:`, err)

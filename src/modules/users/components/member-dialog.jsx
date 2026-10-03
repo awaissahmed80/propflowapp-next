@@ -19,7 +19,10 @@ import { ACTION_LABELS, actionsIn } from "../permissions"
 import { ACTIVITY_TYPES, lastActive } from "../constants"
 import { removeMember, setMemberStatus, updateMember, updateMemberPhone } from "../server/members"
 import { InlinePhone } from "@/components/inline-phone"
-import { MemberStatusBadge, Notice, RoleBadge, TeamChip } from "./user-parts"
+import { toast } from "sonner"
+import { toastAction } from "@/lib/toast-action"
+import { useAlert } from "@/components/alert-context"
+import { MemberStatusBadge, RoleBadge, TeamChip } from "./user-parts"
 
 const TYPE = Object.fromEntries(ACTIVITY_TYPES.map((t) => [t.value, t]))
 
@@ -46,7 +49,7 @@ function AccessList({ role, apps }) {
   )
 }
 
-// One labelled value in the profile
+// One labeled value in the profile
 function Field({ icon, label, children, className }) {
   return (
     <div className={cn("flex items-start gap-3", className)}>
@@ -286,8 +289,7 @@ export function MemberDialog({ profile, roles, options, lists, allowed, currentU
   const router = useRouter()
   const self = member.id === currentUserId
   const [tab, setTab] = useState("profile")
-  const [message, setMessage] = useState(null) // { tone, text }
-  const [confirmRemove, setConfirmRemove] = useState(false)
+  const { confirm } = useAlert()
   const [pending, startTransition] = useTransition()
   const [now] = useState(() => Date.now())
 
@@ -297,13 +299,10 @@ export function MemberDialog({ profile, roles, options, lists, allowed, currentU
   const roleHint = member.isOwner ? "The owner always has full access." : self ? "You can't change your own role." : member.dealerId ? "Dealer logins always have the Dealer role." : null
 
   // Run an action, show the outcome, reload the page data (the modal stays open)
-  const run = (fn, success, after) =>
+  const run = (fn, success, after, loading = "Working on it…") =>
     startTransition(async () => {
-      setMessage(null)
-      const result = await fn()
-      if (result?.error) setMessage({ tone: "error", text: result.error })
-      else {
-        if (success) setMessage({ tone: "success", text: success })
+      const result = await toastAction(fn, { loading, success: success ?? undefined })
+      if (!result?.error) {
         if (after) after()
         else router.refresh()
       }
@@ -311,53 +310,70 @@ export function MemberDialog({ profile, roles, options, lists, allowed, currentU
 
   // Inline edits on the Profile tab: save one field, keep the rest as stored
   const saveField = async (key, value) => {
-    setMessage(null)
-    const result = await updateMember(member.id, {
-      ...formOf(member),
-      [key]: value ?? "",
-    })
-    if (result?.error || result?.fieldErrors)
-      setMessage({
-        tone: "error",
-        text: result.error ?? Object.values(result.fieldErrors)[0],
+    if (key === "roleId") {
+      const next = options.roles?.find((r) => String(r.id) === String(value))?.name ?? "the new role"
+      const ok = await confirm({
+        title: `Change ${member.name}'s role to ${next}?`,
+        description: "What they can see and do changes the next time they open an app.",
+        confirmLabel: "Change role",
+        icon: "shield-user-line",
       })
-    else {
-      const names = {
-        roleId: "Role",
-        teamId: "Team",
-        designation: "Designation",
-        department: "Department",
-      }
-      setMessage({
-        tone: "success",
-        text: `${names[key]} updated.${key === "roleId" ? " It applies the next time they open an app." : ""}`,
-      })
-      router.refresh()
+      if (!ok) return
     }
+    const names = {
+      roleId: "Role",
+      teamId: "Team",
+      designation: "Designation",
+      department: "Department",
+    }
+    const result = await toastAction(
+      () =>
+        updateMember(member.id, {
+          ...formOf(member),
+          [key]: value ?? "",
+        }),
+      { loading: "Saving…", success: `${names[key]} updated.${key === "roleId" ? " It applies the next time they open an app." : ""}` },
+    )
+    if (result?.fieldErrors) toast.error(Object.values(result.fieldErrors)[0])
+    else if (!result?.error) router.refresh()
   }
 
   // Returns the result so the field can show its own error
   const savePhone = async (phone) => {
-    setMessage(null)
     const result = await updateMemberPhone(member.id, phone)
     if (!result?.error) {
-      setMessage({ tone: "success", text: "Mobile number updated." })
+      toast.success("Mobile number updated.")
       router.refresh()
     }
     return result
   }
 
+  const confirmSuspend = () =>
+    confirm({
+      title: `Suspend ${member.name}?`,
+      description: "They're signed out of this workspace at once and can't sign in until you reactivate them.",
+      confirmLabel: "Suspend",
+      destructive: true,
+      icon: "user-forbid-line",
+    })
+  const remove = async () => {
+    const ok = await confirm({
+      title: `Remove ${member.name} from the workspace?`,
+      description: "They lose access straight away. Their records (leads, bookings, activity) stay and keep their name. You can invite them again later.",
+      confirmLabel: "Remove",
+      destructive: true,
+      icon: "user-unfollow-line",
+    })
+    if (ok) run(() => removeMember(member.id), null, onClose, "Removing…")
+  }
+
   const saveStatus = async (status) => {
-    setMessage(null)
-    const result = await setMemberStatus(member.id, status)
-    if (result?.error) setMessage({ tone: "error", text: result.error })
-    else {
-      setMessage({
-        tone: "success",
-        text: status === "suspended" ? `${member.name} is suspended and signed out of this workspace.` : `${member.name} can sign in again.`,
-      })
-      router.refresh()
-    }
+    if (status === "suspended" && !(await confirmSuspend())) return
+    const result = await toastAction(() => setMemberStatus(member.id, status), {
+      loading: "Saving…",
+      success: status === "suspended" ? `${member.name} is suspended and signed out of this workspace.` : `${member.name} can sign in again.`,
+    })
+    if (!result?.error) router.refresh()
   }
 
   const role = roles.find((r) => r.id === member.roleId)
@@ -377,7 +393,7 @@ export function MemberDialog({ profile, roles, options, lists, allowed, currentU
           variant="outline"
           leftIcon="user-forbid-line"
           disabled={pending}
-          onClick={() => run(() => setMemberStatus(member.id, "suspended"), `${member.name} is suspended and signed out of this workspace.`)}
+          onClick={async () => (await confirmSuspend()) && run(() => setMemberStatus(member.id, "suspended"), `${member.name} is suspended and signed out of this workspace.`)}
         >
           Suspend
         </Button>
@@ -390,7 +406,7 @@ export function MemberDialog({ profile, roles, options, lists, allowed, currentU
               label: "Remove from workspace",
               icon: "user-unfollow-line",
               variant: "destructive",
-              onClick: () => setConfirmRemove(true),
+              onClick: remove,
             },
           ]}
           trigger={<Button variant="ghost" size="smicon" leftIcon="more-2-line" aria-label="More actions" />}
@@ -488,37 +504,8 @@ export function MemberDialog({ profile, roles, options, lists, allowed, currentU
         }
         headerActions={headerActions}
       >
-        {message && <Notice tone={message.tone}>{message.text}</Notice>}
         <Tabs value={tab} onChange={setTab} tabs={tabs} contentClassName="pt-3" />
       </Dialog>
-
-      {confirmRemove && (
-        <Dialog
-          open
-          onOpenChange={(o) => !o && setConfirmRemove(false)}
-          className="sm:max-w-md"
-          title={`Remove ${member.name}?`}
-          description="They lose access to this workspace straight away. Their records (leads, bookings, activity) stay and keep their name. You can invite them again later."
-          footer={
-            <>
-              <Button variant="outline" onClick={() => setConfirmRemove(false)}>
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                leftIcon="user-unfollow-line"
-                loading={pending}
-                onClick={() => {
-                  setConfirmRemove(false)
-                  run(() => removeMember(member.id), null, onClose)
-                }}
-              >
-                Remove
-              </Button>
-            </>
-          }
-        />
-      )}
     </>
   )
 }

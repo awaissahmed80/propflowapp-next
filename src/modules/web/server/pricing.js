@@ -40,7 +40,7 @@ export async function publicPricing({ showPrices = true } = {}) {
         limit(p.maxUsers, "user", "users", "Any team size"),
         p.maxDealers === 0 ? null : limit(p.maxDealers, "dealer login", "dealer logins", "Unlimited dealers"),
       ].filter(Boolean),
-      // "Estate Management (without Resale & rentals)" when the plan leaves features out
+      // "Project Portfolio (without Resale & rentals)" when the plan leaves features out
       features: [...(previous ? [`Everything in ${previous.name}`] : []), ...added.map((a) => (withoutText(a.code, a.offFeatures) ? `${a.name} (${withoutText(a.code, a.offFeatures)})` : a.name))],
       apps: apps.map((a) => a.code),
     }

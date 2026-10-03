@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useState, useTransition } from "react"
 import { cn } from "@/lib/utils"
 import { formatDate, formatPkr, timeAgo } from "@/lib/format"
@@ -266,7 +267,7 @@ function WonForm({ lead, projects, alreadyWon = false, onBack, onDone }) {
 
           <p className="flex items-start gap-2 rounded-lg bg-muted/60 px-3.5 py-2.5 text-[14px] text-muted-foreground">
             <Icon name="information-line" className="mt-0.5 shrink-0" />
-            The payment plan (one payment or installments) is set up in Sales once the booking is made.
+            The payment plan (one payment or installments) is set up in Operations once the booking is made.
           </p>
           <Textarea label="Note" rows={2} placeholder="Optional" value={note} onChange={(e) => setNote(e.target.value)} />
 
@@ -316,7 +317,12 @@ function BookingSummary({ booking: b }) {
           ["Agreed price", formatPkr(b.agreedPrice)],
           ["Token", b.tokenAmount ? formatPkr(b.tokenAmount) : "—"],
           ["Token due", b.tokenDueDate ? formatDate(b.tokenDueDate) : "—"],
-          ["Payment plan", "Set up in Sales"],
+          [
+            "In Operations",
+            <Link key="operations" href={`/operations/bookings/${b.code.toLowerCase()}`} className="text-primary hover:underline">
+              Open booking
+            </Link>,
+          ],
         ].map(([k, v]) => (
           <div key={k} className="flex justify-between gap-3">
             <dt className="text-muted-foreground">{k}</dt>

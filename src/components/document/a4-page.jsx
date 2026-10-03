@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils"
 
 // A printable document shown as an A4 sheet (210 × 297 mm): invoices, receipts, letters,
-// statements. On screen it sits on a grey "desk" like a PDF viewer and grows if the content
+// statements. On screen it sits on a gray "desk" like a PDF viewer and grows if the content
 // runs longer than a page; printing (or Save as PDF) uses A4 with no browser margins, so what's
 // on screen is what comes out. On narrow screens the sheet fits the width instead.
 //   <A4Page><header>…</header>…</A4Page>

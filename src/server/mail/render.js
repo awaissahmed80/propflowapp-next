@@ -42,7 +42,13 @@ const engine = new Liquid({
 })
 
 // "Ahmed Raza Khan" → "Ahmed"
-engine.registerFilter("first_name", (v) => String(v ?? "").trim().split(/\s+/)[0] || v)
+engine.registerFilter(
+  "first_name",
+  (v) =>
+    String(v ?? "")
+      .trim()
+      .split(/\s+/)[0] || v,
+)
 // A date shown in Pakistan time: "1 Oct 2026, 7:05 pm (Pakistan time)"
 engine.registerFilter("pkt_time", (v) => {
   const d = v instanceof Date ? v : new Date(v ?? Date.now())

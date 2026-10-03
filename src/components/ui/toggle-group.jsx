@@ -15,15 +15,7 @@ const ToggleGroupContext = React.createContext({
   orientation: "horizontal",
 })
 
-function BaseToggleGroup({
-  className,
-  variant,
-  size,
-  spacing = 2,
-  orientation = "horizontal",
-  children,
-  ...props
-}) {
+function BaseToggleGroup({ className, variant, size, spacing = 2, orientation = "horizontal", children, ...props }) {
   return (
     <ToggleGroupPrimitive
       data-slot="toggle-group"
@@ -32,27 +24,20 @@ function BaseToggleGroup({
       data-spacing={spacing}
       data-orientation={orientation}
       style={{
-        "--gap": spacing
+        "--gap": spacing,
       }}
       className={cn(
         "group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] rounded-lg data-[size=sm]:rounded-[min(var(--radius-md),10px)] data-vertical:flex-col data-vertical:items-stretch",
-        className
+        className,
       )}
-      {...props}>
-      <ToggleGroupContext.Provider value={{ variant, size, spacing, orientation }}>
-        {children}
-      </ToggleGroupContext.Provider>
+      {...props}
+    >
+      <ToggleGroupContext.Provider value={{ variant, size, spacing, orientation }}>{children}</ToggleGroupContext.Provider>
     </ToggleGroupPrimitive>
-  );
+  )
 }
 
-function ToggleGroupItem({
-  className,
-  children,
-  variant = "default",
-  size = "default",
-  ...props
-}) {
+function ToggleGroupItem({ className, children, variant = "default", size = "default", ...props }) {
   const context = React.useContext(ToggleGroupContext)
 
   return (
@@ -67,12 +52,13 @@ function ToggleGroupItem({
           variant: context.variant || variant,
           size: context.size || size,
         }),
-        className
+        className,
       )}
-      {...props}>
+      {...props}
+    >
       {children}
     </TogglePrimitive>
-  );
+  )
 }
 
 // Single-choice segmented control, same height as other form controls.
@@ -80,13 +66,7 @@ function ToggleGroupItem({
 // responsiveLabels shows labels from xl up and icons only below
 function ToggleGroup({ options = [], value, onChange, iconOnly = false, responsiveLabels = false, className, ...props }) {
   return (
-    <BaseToggleGroup
-      value={[value]}
-      onValueChange={(next) => next.length && onChange?.(next[0])}
-      spacing={0}
-      className={cn("h-control gap-0.5 rounded-md border bg-muted/60 p-0.5", className)}
-      {...props}
-    >
+    <BaseToggleGroup value={[value]} onValueChange={(next) => next.length && onChange?.(next[0])} spacing={0} className={cn("h-control gap-0.5 rounded-md border bg-muted/60 p-0.5", className)} {...props}>
       {options.map((o) => (
         <ToggleGroupItem
           key={o.value}

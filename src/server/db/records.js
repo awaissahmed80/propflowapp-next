@@ -33,10 +33,14 @@ export const update = (db, table, where, changes, userId = null) =>
     .update({ ...changes, updatedAt: db.fn.now(3), updatedBy: userId })
 
 export const softDelete = (db, table, where, userId = null) =>
-  live(db, table).where(where).update({ deletedAt: db.fn.now(3), deletedBy: userId })
+  live(db, table)
+    .where(where)
+    .update({ deletedAt: db.fn.now(3), deletedBy: userId })
 
 export const restore = (db, table, where, userId = null) =>
-  trashed(db, table).where(where).update({ deletedAt: null, deletedBy: null, updatedAt: db.fn.now(3), updatedBy: userId })
+  trashed(db, table)
+    .where(where)
+    .update({ deletedAt: null, deletedBy: null, updatedAt: db.fn.now(3), updatedBy: userId })
 
 // Permanent removal: recycle-bin purge and "delete permanently" only
 export const purge = (db, table, where) => trashed(db, table).where(where).delete()

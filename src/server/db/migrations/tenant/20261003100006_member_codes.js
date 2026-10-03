@@ -7,8 +7,14 @@ export async function up(knex) {
   await knex("sequences").insert({ key: "member", prefix: "MEM", format: "{PREFIX}-{SEQ}", padding: 5, reset: "never", next_value: 1 }).onConflict("key").ignore()
   const rows = await knex("members").orderBy("id").select("id")
   let n = 0
-  for (const r of rows) await knex("members").where({ id: r.id }).update({ code: `MEM-${String(++n).padStart(5, "0")}` })
-  if (n) await knex("sequences").where({ key: "member" }).update({ next_value: n + 1 })
+  for (const r of rows)
+    await knex("members")
+      .where({ id: r.id })
+      .update({ code: `MEM-${String(++n).padStart(5, "0")}` })
+  if (n)
+    await knex("sequences")
+      .where({ key: "member" })
+      .update({ next_value: n + 1 })
   await knex.schema.alterTable("members", (t) => {
     t.string("code", 30).notNullable().alter()
     t.unique(["code"])

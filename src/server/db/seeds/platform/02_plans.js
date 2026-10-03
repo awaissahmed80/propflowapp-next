@@ -2,10 +2,26 @@
 // exist yet, with their apps. Once a plan exists the console owns it (name, price, limits, apps),
 // so nothing here overwrites those edits. My Desk is always on, so it isn't listed here.
 const PLANS = [
-  { code: "starter", name: "Starter", price: 5999, projects: 1, users: 5, dealers: 0, apps: ["estate", "crm", "contacts", "dashboards", "documents", "users", "settings"] },
-  { code: "growth", name: "Growth", price: 14999, projects: 3, users: 15, dealers: 5, apps: ["estate", "crm", "campaigns", "sales", "contacts", "dashboards", "documents", "users", "settings"] },
-  { code: "professional", name: "Professional", price: 34999, projects: 10, users: 40, dealers: null, apps: ["estate", "crm", "campaigns", "sales", "services", "finance", "hr", "contacts", "dashboards", "documents", "users", "settings"] },
-  { code: "enterprise", name: "Enterprise", price: 69999, projects: null, users: null, dealers: null, apps: ["estate", "crm", "campaigns", "sales", "services", "finance", "hr", "contacts", "dashboards", "documents", "users", "settings"] },
+  { code: "starter", name: "Starter", price: 5999, projects: 1, users: 5, dealers: 0, apps: ["portfolio", "crm", "contacts", "dashboards", "documents", "users", "settings"] },
+  { code: "growth", name: "Growth", price: 14999, projects: 3, users: 15, dealers: 5, apps: ["portfolio", "crm", "campaigns", "operations", "contacts", "dashboards", "documents", "users", "settings"] },
+  {
+    code: "professional",
+    name: "Professional",
+    price: 34999,
+    projects: 10,
+    users: 40,
+    dealers: null,
+    apps: ["portfolio", "crm", "campaigns", "operations", "estate", "finance", "hr", "contacts", "dashboards", "documents", "users", "settings"],
+  },
+  {
+    code: "enterprise",
+    name: "Enterprise",
+    price: 69999,
+    projects: null,
+    users: null,
+    dealers: null,
+    apps: ["portfolio", "crm", "campaigns", "operations", "estate", "finance", "hr", "contacts", "dashboards", "documents", "users", "settings"],
+  },
 ]
 
 export async function seed(knex) {
@@ -21,7 +37,7 @@ export async function seed(knex) {
         max_users: p.users,
         max_dealers: p.dealers,
         sort_order: (i + 1) * 10,
-      }))
+      })),
     )
     .onConflict("code")
     .ignore()

@@ -9,6 +9,10 @@ import { formatPkPhone } from "@/lib/phone"
 import { toHex } from "@/lib/color"
 import { useList } from "@/modules/lookups/context"
 import { LookupSelect } from "@/modules/lookups/components/lookup-select"
+import { toast } from "sonner"
+import { toastAction } from "@/lib/toast-action"
+import { confirm } from "@/components/alert-context"
+
 import { Notice } from "@/modules/users/components/user-parts"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -32,6 +36,8 @@ import { LeadForm } from "./lead-form"
 import { ContactCardButton } from "./contact-card"
 import { StatusChangeDialog } from "./status-change-dialog"
 import { DealTab } from "./deal-tab"
+import { LeadTags } from "./lead-tags"
+import { AgentControl } from "./agent-control"
 import { LeadScoreCard } from "./lead-score"
 import { VoiceRecorder } from "./voice-recorder"
 import { VoicePlayer } from "@/components/voice-player"
@@ -43,7 +49,7 @@ import { AgentChip, LeadStatusBadge, StatusMenu, TempMenu, TempPicker, dueText, 
 // Set to true to bring the buttons back.
 const SHOW_LOG_AND_FOLLOW_UP = false
 
-// A colour from a list as text colour on a light tint of itself (icons, chips)
+// A color from a list as text color on a light tint of itself (icons, chips)
 const tint = (hex, amount = 14) => ({ color: hex, backgroundColor: `color-mix(in oklab, ${hex} ${amount}%, transparent)` })
 
 // Quick replies (Lists & Labels): tap one to add its text
@@ -70,7 +76,7 @@ function QuickReplies({ onPick, className }) {
     </div>
   )
 }
-// A borderless pick-one menu: the trigger is the current choice (coloured icon + label + ▾)
+// A borderless pick-one menu: the trigger is the current choice (colored icon + label + ▾)
 //   options: [{ value, label, icon, color }]
 function MenuPick({ value, options, onChange, "aria-label": ariaLabel, align = "start", side = "bottom" }) {
   const current = options.find((o) => o.value === value) ?? options[0]
@@ -115,6 +121,16 @@ function OutcomeCard({ title, type, onType, pending, onSave, onCancel, statusTo,
   const [lossReason, setLossReason] = useState("") // when moving to Lost
   const [nextTime, setNextTime] = useState("11:00") // what time to follow up
   const closing = statusTo === "booked" || statusTo === "lost"
+  // Cancel throws away what's been typed or recorded, so ask first when there's any
+  const cancel = async () => {
+    if (
+      (notes.trim() || voice || outcome) &&
+      !(await confirm({ title: "Discard this update?", description: "What you've written or recorded hasn't been saved.", confirmLabel: "Discard", cancelLabel: "Keep editing", destructive: true }))
+    )
+      return
+    onCancel()
+  }
+
   const dropVoice = () => {
     if (voice) URL.revokeObjectURL(voice.url)
     setVoice(null)
@@ -156,11 +172,11 @@ function OutcomeCard({ title, type, onType, pending, onSave, onCancel, statusTo,
         </div>
       )}
       {/* 1. What was done */}
-      <header className="flex items-center gap-1 pt-2.5 pr-3 pl-5 sm:pl-6">
+      <header className="flex items-center gap-1 px-5 pt-2.5 sm:px-6">
         <span className="text-[13px] font-medium text-muted-foreground">Contacted via</span>
         <MenuPick aria-label="Contacted via" value={current} onChange={onType} options={typeOptions} />
         <span className="flex-1" />
-        <Button size="sm" variant="outline" className="border-destructive/40 text-destructive hover:border-destructive/60 hover:bg-destructive/10 hover:text-destructive dark:border-destructive/40" onClick={onCancel}>
+        <Button size="sm" variant="outline" className="border-destructive/40 text-destructive hover:border-destructive/60 hover:bg-destructive/10 hover:text-destructive dark:border-destructive/40" onClick={cancel}>
           Cancel
         </Button>
         <Button
@@ -371,7 +387,7 @@ export function ArchiveDialog({ name, many = false, pending, onClose, onConfirm 
   )
 }
 
-// Lead details: the score, then everything known about them in labelled groups (two columns
+// Lead details: the score, then everything known about them in labeled groups (two columns
 // when there's room). Empty values show a dash so the layout stays put.
 function Group({ title, icon, children }) {
   return (
@@ -406,7 +422,7 @@ function LeadDetails({ lead, agents, me, access, canEdit, run }) {
         <Group title="Looking for" icon="search-eye-line">
           <Field label="Project">
             {i.project ? (
-              <a href={`/estate/projects/${urlCode(i.project.code)}`} className="font-medium text-primary hover:underline">
+              <a href={`/project-portfolio/projects/${urlCode(i.project.code)}`} className="font-medium text-primary hover:underline">
                 {i.project.name}
               </a>
             ) : null}
@@ -456,6 +472,21 @@ function LeadDetails({ lead, agents, me, access, canEdit, run }) {
               <TempPicker value={lead.priority} disabled={!canEdit} onChange={(v) => run(() => setLeadPriority(lead.code, v))} />
             </div>
           </Field>
+          <Field label="Tagged" wide>
+            <div className="mt-1">
+              <LeadTags lead={lead} run={run} />
+            </div>
+          </Field>
+          <Field label="Created by">
+            {lead.createdBy ? (
+              <span className="flex items-center gap-2">
+                <Avatar name={lead.createdBy.name} source={lead.createdBy.avatarUrl} size="sm" />
+                <span className="min-w-0 truncate">{lead.createdBy.name}</span>
+              </span>
+            ) : (
+              "Website or import"
+            )}
+          </Field>
           <Field label="Added">{formatDateTime(lead.createdAt)}</Field>
           <Field label="Last contact">{lead.lastContactAt ? timeAgo(lead.lastContactAt) : "Not contacted yet"}</Field>
           {lead.closedAt && <Field label={lead.status === "lost" ? "Lost" : "Booked"}>{formatDateTime(lead.closedAt)}</Field>}
@@ -488,7 +519,7 @@ function statusIn(note, statuses) {
   return label ? statuses.options.find((o) => o.label === label)?.value : null
 }
 
-// Small icon on the timeline for a system note: the new status in its colour, or a person icon
+// Small icon on the timeline for a system note: the new status in its color, or a person icon
 function SystemIcon({ note, statuses }) {
   const status = statusIn(note, statuses)
   const color = status ? (toHex(statuses.map[status]?.color) ?? "#94a3b8") : null
@@ -496,11 +527,15 @@ function SystemIcon({ note, statuses }) {
     ? (STATUS_ICONS[status] ?? "flag-line")
     : /^(Given to|Unassigned)/.test(note ?? "")
       ? "user-shared-line"
-      : /^Archived/.test(note ?? "")
-        ? "archive-line"
-        : /^Restored/.test(note ?? "")
-          ? "inbox-unarchive-line"
-          : "git-commit-line"
+      : /^Tagged/.test(note ?? "")
+        ? "user-add-line"
+        : /^Untagged/.test(note ?? "")
+          ? "user-unfollow-line"
+          : /^Archived/.test(note ?? "")
+            ? "archive-line"
+            : /^Restored/.test(note ?? "")
+              ? "inbox-unarchive-line"
+              : "git-commit-line"
   return (
     <span
       className={cn("flex size-5 items-center justify-center rounded-full text-[12px] ring-4 ring-background", !color && "bg-muted text-muted-foreground")}
@@ -579,7 +614,7 @@ function HistoryItem({ a }) {
 
 // The lead window: where it is, what to do next, what happened, and its details
 // The same lead details in three frames:
-//   docked: inline next to the list (wide screens) · modal: a centred dialog (board) · otherwise a sheet
+//   docked: inline next to the list (wide screens) · modal: a centered dialog (board) · otherwise a sheet
 // initialStatusTo: open with the log form set to move the lead there (a board drag when notes are required)
 // initialDeal: "won" | "lost" to open on the Close deal tab at that step (the board's Booked / Lost columns)
 export function LeadDialog({ code, agents, projects, access, me, onClose, onOpenLead, docked = false, modal = false, initialStatusTo = null, initialDeal = null }) {
@@ -591,7 +626,6 @@ export function LeadDialog({ code, agents, projects, access, me, onClose, onOpen
   const unitTypes = useList("unit-type")
   const [lead, setLead] = useState(null)
   const [error, setError] = useState("")
-  const [notice, setNotice] = useState(null)
   const [panel, setPanel] = useState(() => (initialStatusTo ? { kind: "outcome", type: "call", statusTo: initialStatusTo } : null)) // { kind: "outcome", type, plannedId?, statusTo? } | { kind: "plan" }
   const [dialog, setDialog] = useState(null) // "edit" | "email"
   const [emailReady, setEmailReady] = useState(false) // the workspace has email set up
@@ -602,13 +636,6 @@ export function LeadDialog({ code, agents, projects, access, me, onClose, onOpen
   // something new is added, when coming back to this tab, and when the log form opens (it takes
   // room from the bottom, so the latest entries stay in view)
   const scroller = useRef(null)
-  // Success messages ("Saved…", "Email sent…") clear themselves after a few seconds; errors stay
-  useEffect(() => {
-    if (notice?.tone !== "success") return undefined
-    const id = setTimeout(() => setNotice((n) => (n === notice ? null : n)), 4000)
-    return () => clearTimeout(id)
-  }, [notice])
-
   const latest = lead?.history[0]?.id ?? null
   const composing = panel?.kind === "outcome"
   useEffect(() => {
@@ -636,12 +663,11 @@ export function LeadDialog({ code, agents, projects, access, me, onClose, onOpen
   )
   useEffect(() => reload(), [reload])
 
-  const run = (fn, done) =>
+  // msg: the loading and success toasts ({ loading, success }); errors show as a toast too
+  const run = (fn, done, msg = { loading: "Saving…" }) =>
     startTransition(async () => {
-      setNotice(null)
-      const r = await fn()
-      if (r?.error) setNotice({ tone: "error", text: r.error })
-      else {
+      const r = await toastAction(fn, msg)
+      if (!r?.error) {
         done?.(r)
         const fresh = await loadLead(code)
         if (fresh.lead) setLead(fresh.lead)
@@ -659,8 +685,8 @@ export function LeadDialog({ code, agents, projects, access, me, onClose, onOpen
       () => {
         setArchiving(false)
         setPanel(null)
-        setNotice({ tone: "success", text: on ? "Archived. It's out of the pipeline until you restore it." : "Restored to the pipeline." })
       },
+      { loading: on ? "Archiving…" : "Restoring…", success: on ? "Archived. It's out of the pipeline until you restore it." : "Restored to the pipeline." },
     )
   // Every status change by hand: straight away, unless it's Lost (asks why) or the workspace asks
   // for an update with every change (Settings › CRM)
@@ -680,10 +706,8 @@ export function LeadDialog({ code, agents, projects, access, me, onClose, onOpen
     if (!extra.confirmed && st === "lost") return setChanging(st)
     run(
       () => setLeadStatus(lead.code, st, extra),
-      () => {
-        setChanging(null)
-        if (st === "booked") setNotice({ tone: "success", text: "Marked as booked. Well done!" })
-      },
+      () => setChanging(null),
+      { loading: "Saving…", success: st === "booked" ? "Marked as booked. Well done!" : undefined },
     )
   }
   const closed = lead && ["booked", "lost"].includes(lead.status)
@@ -755,6 +779,7 @@ export function LeadDialog({ code, agents, projects, access, me, onClose, onOpen
                 {lead.name}
                 <ContactCardButton code={lead.code} onOpenLead={onOpenLead} onEmail={emailReady && lead.email && canEdit ? () => setDialog("email") : null} />
                 <StatusMenu status={lead.status} badgeClassName="h-7 px-2.5 text-sm" disabled={!canEdit} onPick={(st) => changeStatus(st)} />
+                <AgentControl lead={lead} agents={agents} me={me} canEdit={canEdit} canReassign={access.reassign} run={run} />
               </span>
             ) : (
               "Lead"
@@ -793,10 +818,9 @@ export function LeadDialog({ code, agents, projects, access, me, onClose, onOpen
             </div>
           )}
         </div>
-        <Description className="mt-1">
+        <Description className={cn("mt-1", lead && !lead.city && !lead.overseas && !closed && "sr-only")}>
           {lead
             ? [
-                formatPkPhone(lead.phone),
                 lead.city,
                 lead.overseas && "Overseas",
                 closed && `${lead.status === "booked" ? "Booked" : `Lost${lead.lossReason ? `: ${reasons.label(lead.lossReason)}` : ""}`}${lead.closedAt ? ` ${timeAgo(lead.closedAt)}` : ""}`,
@@ -834,7 +858,6 @@ export function LeadDialog({ code, agents, projects, access, me, onClose, onOpen
           )}
           {lead && (
             <div className="space-y-4">
-              {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
               {archived && (
                 <div className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed bg-muted/40 px-4 py-3">
                   <Icon name="archive-line" className="text-lg text-muted-foreground" />
@@ -865,7 +888,7 @@ export function LeadDialog({ code, agents, projects, access, me, onClose, onOpen
               {/* The tab bar sits above, under the name; the panels scroll with everything else */}
               <TabsContent value="log" className="text-[15px]">
                 <div className="space-y-4">
-                  {/* Next step: a card pinned near the top while the history scrolls, coloured by how soon it's due */}
+                  {/* Next step: a card pinned near the top while the history scrolls, colored by how soon it's due */}
                   {(lead.planned.length > 0 || !closed) && (
                     <NextStepBar
                       lead={lead}
@@ -878,10 +901,8 @@ export function LeadDialog({ code, agents, projects, access, me, onClose, onOpen
                       onPlan={(v, done) =>
                         run(
                           () => planLeadActivity(lead.code, v),
-                          () => {
-                            done()
-                            setNotice({ tone: "success", text: "Follow-up planned." })
-                          },
+                          () => done(),
+                          { loading: "Saving…", success: "Follow-up planned." },
                         )
                       }
                       onAction={(id, v) => run(() => updatePlannedActivity(lead.code, id, v))}
@@ -911,7 +932,7 @@ export function LeadDialog({ code, agents, projects, access, me, onClose, onOpen
                   mode={dealMode}
                   onDone={(message) => {
                     setDealMode("choose")
-                    setNotice({ tone: "success", text: message })
+                    toast.success(message)
                     reload()
                     router.refresh()
                   }}
@@ -929,7 +950,6 @@ export function LeadDialog({ code, agents, projects, access, me, onClose, onOpen
               onClose={() => setDialog(null)}
               onSent={() => {
                 setDialog(null)
-                setNotice({ tone: "success", text: `Email sent to ${lead.email}. It's on the timeline.` })
                 reload()
                 router.refresh()
               }}
@@ -969,9 +989,9 @@ export function LeadDialog({ code, agents, projects, access, me, onClose, onOpen
                       },
                       () => {
                         setPanel(null)
-                        setNotice({ tone: "success", text: v.statusTo ? "Saved, and the status is updated." : v.next ? "Saved, and the next follow-up is planned." : "Saved." })
                         if (v.outcome === "not-interested" && !v.statusTo) changeStatus("lost")
                       },
+                      { loading: "Saving…", success: v.statusTo ? "Saved, and the status is updated." : v.next ? "Saved, and the next follow-up is planned." : "Saved." },
                     )
                   }
                 />
@@ -1036,7 +1056,6 @@ export function LeadDialog({ code, agents, projects, access, me, onClose, onOpen
 function EmailDialog({ lead, onClose, onSent }) {
   const [form, setForm] = useState({ subject: "", message: `Dear ${lead.name.split(" ")[0]},\n\n` })
   const [errors, setErrors] = useState({})
-  const [error, setError] = useState("")
   const [pending, startTransition] = useTransition()
   const set = (patch) => {
     setForm((f) => ({ ...f, ...patch }))
@@ -1044,12 +1063,10 @@ function EmailDialog({ lead, onClose, onSent }) {
   }
   const send = (e) => {
     e.preventDefault()
-    setError("")
     startTransition(async () => {
-      const r = await sendLeadEmail(lead.code, form)
+      const r = await toastAction(() => sendLeadEmail(lead.code, form), { loading: "Sending…", success: `Email sent to ${lead.email}. It's on the timeline.` })
       if (r.fieldErrors) setErrors(r.fieldErrors)
-      else if (r.error) setError(r.error)
-      else onSent()
+      else if (!r.error) onSent()
     })
   }
   return (
@@ -1071,7 +1088,6 @@ function EmailDialog({ lead, onClose, onSent }) {
       }
     >
       <form id="lead-email-form" onSubmit={send} noValidate className="space-y-4 p-px">
-        {error && <Notice tone="error">{error}</Notice>}
         <Input label="Subject" required autoFocus value={form.subject} onChange={(e) => set({ subject: e.target.value })} error={errors.subject} />
         <div>
           <QuickReplies className="mb-2" onPick={(t) => set({ message: addLine(form.message, t) })} />
@@ -1136,11 +1152,11 @@ function dueWhen(at) {
   return `${day ?? `on ${new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Karachi", weekday: "short", day: "numeric", month: "short" }).format(d)}`} at ${time}`
 }
 
-// The next planned step, a slim two-line bar under the tabs, coloured by urgency: Done, or
+// The next planned step, a slim two-line bar under the tabs, colored by urgency: Done, or
 // move / remove it from ⋯
 function NextStepBar({ lead, projects, canEdit, types, followUps, pending, onDone, onPlan, onAction }) {
   const [planning, setPlanning] = useState(false) // "Plan one" turns the bar into the planner
-  // Re-check every minute so "Due in…" and the colour stay current while the panel is open
+  // Re-check every minute so "Due in…" and the color stay current while the panel is open
   const [, tick] = useState(0)
   useEffect(() => {
     const id = setInterval(() => tick((n) => n + 1), 60_000)
@@ -1182,7 +1198,19 @@ function NextStepBar({ lead, projects, canEdit, types, followUps, pending, onDon
     })),
     { type: "separator" },
     ...(a.type === "site-visit" ? [{ label: "Didn't come (no-show)", icon: "user-unfollow-line", onClick: () => onAction(a.id, { action: "missed", notes: "No-show" }) }] : []),
-    { label: "Remove", icon: "delete-bin-6-line", variant: "destructive", onClick: () => onAction(a.id, { action: "cancel" }) },
+    {
+      label: "Remove",
+      icon: "delete-bin-6-line",
+      variant: "destructive",
+      onClick: async () =>
+        (await confirm({
+          title: `Remove the planned ${types.label(a.type).toLowerCase()}?`,
+          description: `It comes off ${lead.name}'s plan and won't show as due.`,
+
+          confirmLabel: "Remove follow-up",
+          destructive: true,
+        })) && onAction(a.id, { action: "cancel" }),
+    },
   ]
   const due = (
     <span className="font-semibold tabular-nums" style={c ? { color: c } : undefined}>
@@ -1193,7 +1221,7 @@ function NextStepBar({ lead, projects, canEdit, types, followUps, pending, onDon
     <div
       className="sticky top-3 z-30 flex items-center gap-3 overflow-hidden rounded-xl border bg-background px-4 py-3 shadow-sm"
       style={{
-        // A coloured outline: the urgency colour when it's due soon or late, else the activity's colour (softer)
+        // A colored outline: the urgency color when it's due soon or late, else the activity's color (softer)
         borderColor: c ? `color-mix(in oklab, ${c} 55%, var(--background))` : `color-mix(in oklab, ${typeColor} 35%, var(--border))`,
         ...(c && { backgroundColor: `color-mix(in oklab, ${c} 7%, var(--background))` }),
       }}

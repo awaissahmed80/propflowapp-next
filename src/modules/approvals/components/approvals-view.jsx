@@ -5,7 +5,7 @@ import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { formatDate, formatPkr, timeAgo } from "@/lib/format"
-import { Notice } from "@/modules/users/components/user-parts"
+import { toastAction } from "@/lib/toast-action"
 import { PageHeader } from "@/components/page-header"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -96,17 +96,15 @@ export function ApprovalsView({ data }) {
   const [busy, setBusy] = useState(null)
   const [rejecting, setRejecting] = useState(null)
   const [note, setNote] = useState("")
-  const [msg, setMsg] = useState(null)
   const [, startTransition] = useTransition()
 
-  const run = (a, fn, done) => {
+  // msg: the loading and success toasts ({ loading, success }); errors show as a toast too
+  const run = (a, fn, msg, done) => {
     setBusy(a.code)
-    setMsg(null)
     startTransition(async () => {
-      const r = await fn()
+      const r = await toastAction(fn, msg)
       setBusy(null)
-      if (r?.error) setMsg({ tone: "error", text: r.error })
-      else {
+      if (!r?.error) {
         done?.(r)
         router.refresh()
       }
@@ -130,7 +128,6 @@ export function ApprovalsView({ data }) {
         }
         description="What you've asked for, and what's waiting for your sign-off."
       />
-      {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
       {list.length ? (
         <ul className="space-y-3">
           {list.map((a) => (
@@ -139,24 +136,12 @@ export function ApprovalsView({ data }) {
               a={a}
               mode={view}
               busy={busy === a.code}
-              onApprove={(x) =>
-                run(
-                  x,
-                  () => decideApproval(x.code, "approved"),
-                  (r) => setMsg({ tone: "success", text: r.message }),
-                )
-              }
+              onApprove={(x) => run(x, () => decideApproval(x.code, "approved"), { loading: "Approving…", success: (r) => r.message })}
               onReject={(x) => {
                 setNote("")
                 setRejecting(x)
               }}
-              onWithdraw={(x) =>
-                run(
-                  x,
-                  () => withdrawApproval(x.code),
-                  () => setMsg({ tone: "success", text: `Withdrawn: ${x.title}.` }),
-                )
-              }
+              onWithdraw={(x) => run(x, () => withdrawApproval(x.code), { loading: "Withdrawing…", success: `Withdrawn: ${x.title}.` })}
             />
           ))}
         </ul>
@@ -186,10 +171,8 @@ export function ApprovalsView({ data }) {
                   run(
                     rejecting,
                     () => decideApproval(rejecting.code, "rejected", note),
-                    (r) => {
-                      setRejecting(null)
-                      setMsg({ tone: "success", text: r.message })
-                    },
+                    { loading: "Sending back…", success: (r) => r.message },
+                    () => setRejecting(null),
                   )
                 }
               >

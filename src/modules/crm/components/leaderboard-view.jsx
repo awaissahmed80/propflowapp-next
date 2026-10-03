@@ -26,7 +26,7 @@ const METRICS = {
   visits: { label: "Site visits", short: "visits", format: (n) => String(n), tie: "booked" },
   touches: { label: "Calls & messages", short: "calls & messages", format: (n) => String(n), tie: "visits" },
 }
-// Gold, silver, bronze, with the place written next to the colour
+// Gold, silver, bronze, with the place written next to the color
 const MEDALS = [
   { ring: "ring-amber-400", tint: "bg-amber-400/15 text-amber-700 dark:text-amber-300", label: "1st" },
   { ring: "ring-slate-300 dark:ring-slate-500", tint: "bg-slate-400/15 text-slate-600 dark:text-slate-300", label: "2nd" },

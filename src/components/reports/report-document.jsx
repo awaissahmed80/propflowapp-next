@@ -6,7 +6,10 @@ import { WorkspaceLetterhead } from "@/components/document/workspace-letterhead"
 // A report on A4 under the workspace letterhead: title, filters, summary and the full table.
 // Mirrors server/documents/report-pdf.jsx; change both together.
 export function ReportDocument({ report, result, brand, generatedBy, generatedAt = new Date() }) {
-  const meta = [result.scope, `Generated ${new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Karachi", dateStyle: "medium", timeStyle: "short" }).format(new Date(generatedAt))}${generatedBy ? ` by ${generatedBy}` : ""}`].filter(Boolean)
+  const meta = [
+    result.scope,
+    `Generated ${new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Karachi", dateStyle: "medium", timeStyle: "short" }).format(new Date(generatedAt))}${generatedBy ? ` by ${generatedBy}` : ""}`,
+  ].filter(Boolean)
   const small = result.columns.length > 7
   return (
     <A4Page label={report.title}>

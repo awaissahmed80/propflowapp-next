@@ -4,6 +4,8 @@ import Link from "next/link"
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { formatAmount } from "@/lib/format"
+import { toastAction } from "@/lib/toast-action"
+import { confirm } from "@/components/alert-context"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -32,28 +34,23 @@ function Notice({ tone = "success", children }) {
   )
 }
 
-// Saves, then refreshes the page data and moves on to `next`
+// Saves behind a loading toast (then the success message, if any, or the error), refreshes the
+// page data and moves on to `next`
 function useSave(next) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [errors, setErrors] = useState({})
-  const [error, setError] = useState("")
-  const [saved, setSaved] = useState("")
   const save = (fn, { stay = false, success = "" } = {}) =>
     startTransition(async () => {
       setErrors({})
-      setError("")
-      setSaved("")
-      const r = await fn()
+      const r = await toastAction(fn, { loading: "Saving…", success: success || undefined })
       if (r?.fieldErrors) setErrors(r.fieldErrors)
-      else if (r?.error) setError(r.error)
-      else {
+      else if (!r?.error) {
         if (!stay && next) router.push(`/setup?step=${next}`)
-        if (success) setSaved(success)
         router.refresh()
       }
     })
-  return { save, pending, errors, error, saved }
+  return { save, pending, errors }
 }
 
 function StepHeader({ step }) {
@@ -84,7 +81,7 @@ export function ProfileStep({ settings, disabled, inSettings = false }) {
     company_secp: settings.company_secp ?? "",
     company_website: settings.company_website ?? "",
   }))
-  const { save, pending, errors, error, saved } = useSave(inSettings ? null : "logo")
+  const { save, pending, errors } = useSave(inSettings ? null : "logo")
   const field = (k, label, props = {}) => <Input label={label} value={form[k]} onChange={(e) => setForm((f) => ({ ...f, [k]: e.target.value }))} error={errors[k]} disabled={disabled} {...props} />
   return (
     <form
@@ -95,8 +92,6 @@ export function ProfileStep({ settings, disabled, inSettings = false }) {
         save(() => saveCompanyProfile(form), { success: inSettings ? "Company profile saved." : "" })
       }}
     >
-      {error && <Notice tone="error">{error}</Notice>}
-      {saved && <Notice>{saved}</Notice>}
       <div className="grid gap-4 sm:grid-cols-2">
         {field("company_name", "Name customers know you by", { required: true, placeholder: "Skyline Developers" })}
         {field("company_legal_name", "Registered name", { required: true, placeholder: "Skyline Developers (Pvt) Ltd", info: "As registered with SECP or the tax office. Printed on receipts and agreements." })}
@@ -124,7 +119,7 @@ export function ProfileStep({ settings, disabled, inSettings = false }) {
 }
 
 export function LogoStep({ logoUrl, disabled, inSettings = false }) {
-  const { save, pending, error } = useSave(null)
+  const { save, pending } = useSave(null)
   const router = useRouter()
   const pick = (file) => {
     if (!file) return
@@ -134,7 +129,6 @@ export function LogoStep({ logoUrl, disabled, inSettings = false }) {
   }
   return (
     <div className="space-y-5">
-      {error && <Notice tone="error">{error}</Notice>}
       <div className="grid gap-5 sm:grid-cols-[14rem_minmax(0,1fr)] sm:items-center">
         <div className="flex h-32 items-center justify-center rounded-xl border bg-white p-4">
           {logoUrl ? (
@@ -155,7 +149,19 @@ export function LogoStep({ logoUrl, disabled, inSettings = false }) {
               <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" disabled={disabled} onChange={(e) => pick(e.target.files?.[0])} />
             </Button>
             {logoUrl && (
-              <Button variant="ghost" leftIcon="delete-bin-line" disabled={disabled || pending} onClick={() => save(() => removeLogo(), { stay: true })}>
+              <Button
+                variant="ghost"
+                leftIcon="delete-bin-line"
+                disabled={disabled || pending}
+                onClick={async () =>
+                  (await confirm({
+                    title: "Remove the company logo?",
+                    description: "It's taken off your documents and the workspace header until you upload a new one.",
+                    confirmLabel: "Remove logo",
+                    destructive: true,
+                  })) && save(() => removeLogo(), { stay: true })
+                }
+              >
                 Remove
               </Button>
             )}
@@ -246,12 +252,11 @@ function AccountsStep({ accounts, disabled }) {
   const router = useRouter()
   const [dialog, setDialog] = useState(null) // "new" | account
   const [cash, setCash] = useState(() => Object.fromEntries(accounts.filter((a) => a.kind === "cash").map((a) => [a.code, a.openingBalance])))
-  const { save, pending, errors, error } = useSave(null)
+  const { save, pending, errors } = useSave(null)
   const banks = accounts.filter((a) => a.kind === "bank")
   const cashAccounts = accounts.filter((a) => a.kind === "cash")
   return (
     <div className="space-y-6">
-      {error && <Notice tone="error">{error}</Notice>}
       <section>
         <div className="mb-3 flex items-center justify-between gap-2">
           <div>
@@ -281,7 +286,15 @@ function AccountsStep({ accounts, disabled }) {
                 </span>
                 <span className="text-sm tabular-nums">{formatAmount(b.openingBalance)}</span>
                 <IconButton icon="edit-line" aria-label={`Edit ${b.name}`} disabled={disabled} onClick={() => setDialog(b)} />
-                <IconButton icon="delete-bin-line" aria-label={`Remove ${b.name}`} disabled={disabled || pending} onClick={() => save(() => removeBankAccount(b.id), { stay: true })} />
+                <IconButton
+                  icon="delete-bin-line"
+                  aria-label={`Remove ${b.name}`}
+                  disabled={disabled || pending}
+                  onClick={async () =>
+                    (await confirm({ title: `Remove the bank account “${b.name}”?`, description: "It's taken off the workspace along with its opening balance.", confirmLabel: "Remove account", destructive: true })) &&
+                    save(() => removeBankAccount(b.id), { stay: true })
+                  }
+                />
               </li>
             ))}
           </ul>
@@ -330,10 +343,9 @@ function AccountsStep({ accounts, disabled }) {
 
 function PreferencesStep({ settings, disabled }) {
   const [form, setForm] = useState({ financial_year_start_month: Number(settings.financial_year_start_month ?? 7), marla_sq_ft: Number(settings.marla_sq_ft ?? 225) })
-  const { save, pending, error } = useSave(null)
+  const { save, pending } = useSave(null)
   return (
     <div className="space-y-5">
-      {error && <Notice tone="error">{error}</Notice>}
       <div className="grid gap-4 sm:grid-cols-2">
         <Select
           label="Financial year starts in"

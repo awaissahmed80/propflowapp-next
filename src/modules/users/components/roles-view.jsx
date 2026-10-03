@@ -9,7 +9,6 @@ import { PageHeader } from "@/components/page-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { BaseCheckbox } from "@/components/ui/checkbox"
-import { Dialog } from "@/components/ui/dialog"
 import { Icon } from "@/components/ui/icon"
 import { Input } from "@/components/ui/input"
 import { ScrollView } from "@/components/ui/scroll-view"
@@ -17,7 +16,9 @@ import { Tabs } from "@/components/ui/tabs"
 import { ACTIONS, ACTION_HINTS, ACTION_LABELS, roleAccess, toMatrix } from "../permissions"
 import { deleteRole, saveRole } from "../server/roles"
 import { RoleAccess } from "./role-access"
-import { Notice } from "./user-parts"
+import { toast } from "sonner"
+import { toastAction } from "@/lib/toast-action"
+import { useAlert } from "@/components/alert-context"
 
 // Apps × actions. Any action implies View; removing View removes everything in that app.
 function Matrix({ apps, value, readOnly, onChange }) {
@@ -92,30 +93,25 @@ function Matrix({ apps, value, readOnly, onChange }) {
   )
 }
 
-function RoleEditor({ role, apps, canEdit, onDuplicate, onDelete, onMessage, busy }) {
+function RoleEditor({ role, apps, canEdit, onDuplicate, onDelete, busy }) {
   const router = useRouter()
   const codes = apps.map((a) => a.code)
   const initial = () => ({ name: role.name, description: role.description ?? "", matrix: toMatrix(role.permissions, codes), access: roleAccess(role) })
   const [draft, setDraft] = useState(initial)
   const [errors, setErrors] = useState({})
   const [pending, startTransition] = useTransition()
+  const { confirm } = useAlert()
   const readOnly = !canEdit || role.system
+
   const dirty = JSON.stringify(draft) !== JSON.stringify(initial())
-  const change = (patch) => {
-    setDraft((d) => ({ ...d, ...patch }))
-    onMessage(null)
-  }
+  const change = (patch) => setDraft((d) => ({ ...d, ...patch }))
 
   const save = () =>
     startTransition(async () => {
       setErrors({})
-      const result = await saveRole(draft, role.id)
+      const result = await toastAction(() => saveRole(draft, role.id), { loading: "Saving…", success: "Saved. People with this role get the new permissions the next time they open an app." })
       if (result.fieldErrors) setErrors(result.fieldErrors)
-      else if (result.error) onMessage({ tone: "error", text: result.error })
-      else {
-        onMessage({ tone: "success", text: "Saved. People with this role get the new permissions the next time they open an app." })
-        router.refresh()
-      }
+      else if (!result.error) router.refresh()
     })
 
   return (
@@ -160,7 +156,14 @@ function RoleEditor({ role, apps, canEdit, onDuplicate, onDelete, onMessage, bus
                 <Button variant="ghost" leftIcon="delete-bin-6-line" className="text-destructive" onClick={() => onDelete(role)}>
                   Delete
                 </Button>
-                <Button variant="outline" disabled={!dirty} onClick={() => setDraft(initial())}>
+                <Button
+                  variant="outline"
+                  disabled={!dirty}
+                  onClick={async () =>
+                    (await confirm({ title: "Discard unsaved changes?", description: `Your changes to the ${role.name} role will be lost.`, confirmLabel: "Discard", cancelLabel: "Keep editing", destructive: true })) &&
+                    setDraft(initial())
+                  }
+                >
                   Discard
                 </Button>
                 <Button leftIcon="save-3-line" loading={pending} disabled={!dirty} onClick={save}>
@@ -210,9 +213,16 @@ function RoleEditor({ role, apps, canEdit, onDuplicate, onDelete, onMessage, bus
 export function RolesView({ roles, apps, canEdit }) {
   const router = useRouter()
   const [selectedId, setSelectedId] = useState(null)
-  const [deleting, setDeleting] = useState(null)
-  const [message, setMessage] = useState(null)
   const [pending, startTransition] = useTransition()
+  const { confirm } = useAlert()
+  const remove = async (r) => {
+    if (!(await confirm({ title: `Delete the ${r.name} role?`, description: "Roles that people still have can't be deleted. This can't be undone.", confirmLabel: "Delete role", destructive: true }))) return
+    startTransition(async () => {
+      const result = await toastAction(() => deleteRole(r.id), { loading: "Deleting…", success: `The ${r.name} role was deleted.` })
+      if (!result.error) setSelectedId(null)
+      router.refresh()
+    })
+  }
   const selected = roles.find((r) => r.id === selectedId) ?? roles.find((r) => !r.system) ?? roles[0]
 
   // Next free name: "Base", "Base 2", …
@@ -224,10 +234,9 @@ export function RolesView({ roles, apps, canEdit }) {
 
   const create = (data) =>
     startTransition(async () => {
-      setMessage(null)
-      const result = await saveRole(data)
-      if (result.error || result.fieldErrors) setMessage({ tone: "error", text: result.error ?? Object.values(result.fieldErrors)[0] })
-      else {
+      const result = await toastAction(() => saveRole(data), { loading: "Creating the role…" })
+      if (result.fieldErrors) toast.error(Object.values(result.fieldErrors)[0])
+      else if (!result.error) {
         setSelectedId(result.id)
         router.refresh()
       }
@@ -246,7 +255,6 @@ export function RolesView({ roles, apps, canEdit }) {
           )
         }
       />
-      {message && <Notice tone={message.tone}>{message.text}</Notice>}
       <div className="grid min-h-0 flex-1 overflow-hidden rounded-xl border bg-background shadow-xs md:grid-cols-[16rem_minmax(0,1fr)]">
         <nav aria-label="Roles" className="border-b md:border-r md:border-b-0">
           <ScrollView className="h-full max-h-60 md:max-h-none" viewportClassName="p-2">
@@ -254,10 +262,7 @@ export function RolesView({ roles, apps, canEdit }) {
               <button
                 key={r.id}
                 type="button"
-                onClick={() => {
-                  setSelectedId(r.id)
-                  setMessage(null)
-                }}
+                onClick={() => setSelectedId(r.id)}
                 aria-current={r.id === selected?.id}
                 className={cn(
                   "flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-left text-sm outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
@@ -284,45 +289,11 @@ export function RolesView({ roles, apps, canEdit }) {
               canEdit={canEdit}
               busy={pending}
               onDuplicate={(role, draft) => create({ name: freeName(`${role.name} (copy)`), description: role.description ?? "", matrix: draft.matrix, access: draft.access })}
-              onDelete={(r) => setDeleting(r)}
-              onMessage={setMessage}
+              onDelete={remove}
             />
           )}
         </section>
       </div>
-
-      {deleting && (
-        <Dialog
-          open
-          onOpenChange={(o) => !o && setDeleting(null)}
-          className="sm:max-w-md"
-          title={`Delete the ${deleting.name} role?`}
-          description="Roles that people still have can't be deleted."
-          footer={
-            <>
-              <Button variant="outline" onClick={() => setDeleting(null)}>
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                leftIcon="delete-bin-6-line"
-                loading={pending}
-                onClick={() =>
-                  startTransition(async () => {
-                    const result = await deleteRole(deleting.id)
-                    setMessage(result.error ? { tone: "error", text: result.error } : { tone: "success", text: `The ${deleting.name} role was deleted.` })
-                    setDeleting(null)
-                    if (!result.error) setSelectedId(null)
-                    router.refresh()
-                  })
-                }
-              >
-                Delete role
-              </Button>
-            </>
-          }
-        />
-      )}
     </div>
   )
 }

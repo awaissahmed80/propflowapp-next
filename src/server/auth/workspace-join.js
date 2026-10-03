@@ -11,12 +11,7 @@ import { INVITE_GONE } from "@/server/auth/console-team"
 // invitation used (claimed first, so a link works once). Returns { user, tenantId } or { error }.
 export async function joinWorkspace(invite, person) {
   const auth = authDb()
-  const claimed = await auth("invitations")
-    .where({ id: invite.id })
-    .whereNull("acceptedAt")
-    .whereNull("revokedAt")
-    .where("expiresAt", ">", new Date())
-    .update({ acceptedAt: new Date() })
+  const claimed = await auth("invitations").where({ id: invite.id }).whereNull("acceptedAt").whereNull("revokedAt").where("expiresAt", ">", new Date()).update({ acceptedAt: new Date() })
   if (!claimed) return { error: INVITE_GONE }
 
   const giveBack = () => auth("invitations").where({ id: invite.id }).update({ acceptedAt: null })

@@ -13,7 +13,8 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { PAYMENT_GATEWAYS } from "../payments"
 import { savePaymentSettings } from "../server/actions"
-import { Notice } from "./parts"
+import { toast } from "sonner"
+import { toastAction } from "@/lib/toast-action"
 
 function BankDetails({ bank, onChange, errors, disabled }) {
   const field = (key, label, props = {}) => <Input label={label} value={bank[key]} disabled={disabled} onChange={(e) => onChange({ ...bank, [key]: e.target.value })} error={errors[key]} {...props} />
@@ -43,7 +44,6 @@ export function PaymentMethodsView({ settings, editable }) {
   const [enabled, setEnabled] = useState(() => Object.fromEntries(settings.methods.map((m) => [m.id, m.enabled])))
   const [bank, setBank] = useState(settings.bank)
   const [errors, setErrors] = useState({})
-  const [notice, setNotice] = useState(null)
   const [pending, startTransition] = useTransition()
   const status = Object.fromEntries(settings.methods.map((m) => [m.id, m]))
   const noneOn = !Object.values(enabled).some(Boolean)
@@ -51,15 +51,14 @@ export function PaymentMethodsView({ settings, editable }) {
   const save = () =>
     startTransition(async () => {
       setErrors({})
-      const result = await savePaymentSettings({ enabled, bank })
+      const result = await toastAction(() => savePaymentSettings({ enabled, bank }), {
+        loading: "Saving…",
+        success: (r) => (r.noneEnabled ? "Saved. No payment method is on, so customers can't pay yet." : "Payment methods saved."),
+      })
       if (result.fieldErrors) {
         setErrors(result.fieldErrors)
-        setNotice({ tone: "error", text: "Fill in the bank details before switching bank transfer on." })
-      } else if (result.error) setNotice({ tone: "error", text: result.error })
-      else {
-        setNotice({ tone: "success", text: result.noneEnabled ? "Saved. No payment method is on, so customers can't pay yet." : "Payment methods saved." })
-        router.refresh()
-      }
+        toast.error("Fill in the bank details before switching bank transfer on.")
+      } else if (!result.error) router.refresh()
     })
 
   return (
@@ -75,8 +74,7 @@ export function PaymentMethodsView({ settings, editable }) {
           )
         }
       />
-      {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
-      {noneOn && !notice && (
+      {noneOn && (
         <p className="flex items-start gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
           <Icon name="error-warning-line" className="mt-0.5" />
           No payment method is on. Trials still work, but customers can&apos;t pay when their trial ends.
@@ -113,15 +111,7 @@ export function PaymentMethodsView({ settings, editable }) {
                     </p>
                   )}
                 </div>
-                <Switch
-                  aria-label={`${g.label} on or off`}
-                  checked={on}
-                  disabled={!editable || !s.configured}
-                  onChange={(v) => {
-                    setEnabled((e) => ({ ...e, [g.id]: v }))
-                    setNotice(null)
-                  }}
-                />
+                <Switch aria-label={`${g.label} on or off`} checked={on} disabled={!editable || !s.configured} onChange={(v) => setEnabled((e) => ({ ...e, [g.id]: v }))} />
               </div>
               {g.manual && (on || bank.iban || bank.bankName) && <BankDetails bank={bank} onChange={setBank} errors={errors} disabled={!editable} />}
             </section>

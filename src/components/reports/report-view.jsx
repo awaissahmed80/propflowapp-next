@@ -17,7 +17,7 @@ import { ReportDocument } from "./report-document"
 // One report: filters (kept in the URL), summary tiles, chart, sortable table, and Print / Export
 // through the print preview (PDF, Excel, print).
 //   report: { id, title, description, icon, filters }; result: runReport(); filters: { key: { label, all, options } }
-//   basePath: "/estate/reports"; pdfBase: "/api/estate/reports"
+//   basePath: "/project-portfolio/reports"; pdfBase: "/api/portfolio/reports"
 export function ReportView({ report, result, filters, basePath, pdfBase, brand, userName }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -55,7 +55,14 @@ export function ReportView({ report, result, filters, basePath, pdfBase, brand, 
             {report.filters
               .filter((k) => filters[k])
               .map((k) => (
-                <Select key={k} aria-label={filters[k].label} triggerClassName="w-56" value={result.values[k] ?? ""} onChange={(v) => setFilter(k, v)} options={[{ value: "", label: filters[k].all }, ...filters[k].options]} />
+                <Select
+                  key={k}
+                  aria-label={filters[k].label}
+                  triggerClassName="w-56"
+                  value={result.values[k] ?? ""}
+                  onChange={(v) => setFilter(k, v)}
+                  options={[{ value: "", label: filters[k].all }, ...filters[k].options]}
+                />
               ))}
             <Button leftIcon="printer-line" disabled={pending} onClick={() => setPreview(true)}>
               Print / export

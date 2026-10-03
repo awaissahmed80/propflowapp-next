@@ -514,7 +514,7 @@ function SidebarNavItem({ item }) {
 }
 
 // groups: [{ label?, items: [{ label, icon, to, end?, badge?, soon?, locked?, lockedReason? }] }]
-//   soon: a "Soon" tag (the page is a ComingSoon placeholder); locked: greyed out with a lock, not a link
+//   soon: a "Soon" tag (the page is a ComingSoon placeholder); locked: grayed out with a lock, not a link
 function Sidebar({ header, groups = [], footer, collapsible = "icon", rail = true, ...props }) {
   return (
     <BaseSidebar collapsible={collapsible} {...props}>

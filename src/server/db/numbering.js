@@ -41,17 +41,28 @@ export function formatCode(seq, value, vars = {}, now = new Date()) {
   })
 }
 
-// Works with or without the camelCase mapping (trx rows may be next_value or nextValue)
+// Works with or without the camelCase mapping (trx rows may be next_value or nextValue). Numbers
+// that restart each year or financial year count per period (sequence_periods), so a record dated
+// in an earlier period continues that period's numbers; `sequences` keeps the latest period's.
 export async function nextCode(trx, key, vars = {}, now = new Date()) {
   const seq = await trx("sequences").where({ key }).forUpdate().first()
   if (!seq) throw new Error(`No numbering sequence "${key}".`)
+  const camel = seq.nextValue !== undefined
+  const next = Number(seq.nextValue ?? seq.next_value)
   const period = currentPeriod(seq.reset, now)
   const stored = seq.period ?? null
-  const next = Number(seq.nextValue ?? seq.next_value)
-  // A new year or financial year starts again from 1
-  const value = period && period !== stored ? 1 : next
-  await trx("sequences")
-    .where({ key })
-    .update({ [seq.nextValue !== undefined ? "nextValue" : "next_value"]: value + 1, period, [seq.nextValue !== undefined ? "updatedAt" : "updated_at"]: trx.fn.now(3) })
+  let value = next
+  if (period) {
+    await trx.raw("insert ignore into sequence_periods (`key`, period, next_value) values (?, ?, ?)", [key, period, period === stored ? next : 1])
+    const [rows] = await trx.raw("select next_value from sequence_periods where `key` = ? and period = ? for update", [key, period])
+    value = Number(rows[0].next_value ?? rows[0].nextValue)
+    await trx.raw("update sequence_periods set next_value = ? where `key` = ? and period = ?", [value + 1, key, period])
+  }
+  // An earlier period's number leaves the current counter alone
+  if (!period || !stored || period >= stored) {
+    await trx("sequences")
+      .where({ key })
+      .update({ [camel ? "nextValue" : "next_value"]: value + 1, period, [camel ? "updatedAt" : "updated_at"]: trx.fn.now(3) })
+  }
   return formatCode(seq, value, vars, now)
 }

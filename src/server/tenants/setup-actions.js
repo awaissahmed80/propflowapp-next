@@ -45,7 +45,11 @@ async function validCompany(input) {
 
 // Live check while typing the short name: { ok } or { error }
 export async function checkSlug(slug) {
-  const problem = await slugUnavailable(String(slug ?? "").trim().toLowerCase())
+  const problem = await slugUnavailable(
+    String(slug ?? "")
+      .trim()
+      .toLowerCase(),
+  )
   return problem ? { error: problem } : { ok: true }
 }
 

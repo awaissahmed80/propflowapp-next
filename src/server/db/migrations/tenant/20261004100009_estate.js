@@ -1,6 +1,6 @@
 import { datetime, externalId, money, tableDefaults, timestamps, uniqueAlive } from "../../columns.js"
 
-// Estate Management: projects (societies, towers, malls) with phases and blocks, and the units
+// Project Portfolio: projects (societies, towers, malls) with phases and blocks, and the units
 // in them (plots, files, houses, apartments, shops, offices, farmhouses). Pick-list values
 // (type, status, authority, feature…) are lookup values; see src/modules/lookups/catalog.js.
 export async function up(knex) {

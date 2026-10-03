@@ -12,7 +12,9 @@ const LEVELS = [
 export async function up(knex) {
   await knex("lookups").where({ list_key: "lead-priority", value: "warm" }).update({ value: "moderate", label: "Moderate" })
   for (const [i, [value, label, color, icon]] of LEVELS.entries())
-    await knex("lookups").where({ list_key: "lead-priority", value }).update({ label, color, icon, sort_order: (i + 1) * 10, is_preselected: value === "moderate" })
+    await knex("lookups")
+      .where({ list_key: "lead-priority", value })
+      .update({ label, color, icon, sort_order: (i + 1) * 10, is_preselected: value === "moderate" })
   await knex("leads").where({ priority: "warm" }).update({ priority: "moderate" })
   await knex.schema.alterTable("leads", (t) => {
     t.string("priority", 20).notNullable().defaultTo("moderate").alter()

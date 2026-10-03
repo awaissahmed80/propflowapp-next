@@ -12,8 +12,8 @@ export function GET() {
         PropFlow
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-        <div style={{ fontSize: 68, fontWeight: 700, lineHeight: 1.1, letterSpacing: -1 }}>Real estate ERP made for Pakistan</div>
-        <div style={{ fontSize: 30, opacity: 0.85, lineHeight: 1.35 }}>Inventory in Marla & Kanal, price lists, CRM, campaigns, bookings and collections.</div>
+        <div style={{ fontSize: 68, fontWeight: 700, lineHeight: 1.1, letterSpacing: -1 }}>Real estate CRM & ERP, built for Pakistan</div>
+        <div style={{ fontSize: 30, opacity: 0.85, lineHeight: 1.35 }}>Marla & Kanal inventory, files and balloting, installments, dealer quotas and cost per booking.</div>
       </div>
       <div style={{ display: "flex", gap: 14, fontSize: 24 }}>
         {["Developers", "Housing societies", "Agencies"].map((t) => (

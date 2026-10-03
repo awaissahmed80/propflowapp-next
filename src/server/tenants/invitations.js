@@ -29,7 +29,7 @@ export async function findWorkspaceInvite(token) {
       "wi.expiresAt",
       "p.name as planName",
       "p.maxProjects",
-      "p.maxUsers"
+      "p.maxUsers",
     )
 }
 

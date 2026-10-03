@@ -2,6 +2,7 @@ import { connection } from "next/server"
 import { siteUrl } from "@/lib/sites"
 import { getSiteSettings } from "@/server/platform-settings"
 import { Analytics } from "@/modules/web/components/analytics"
+import { REVEAL_READY, Reveal } from "@/modules/web/components/reveal"
 
 // The public website (propflowapp.com). Only its pages are indexed: the root layout keeps the
 // portal, sign-in and console out of search engines.
@@ -15,6 +16,9 @@ export default async function WebLayout({ children }) {
   const site = await getSiteSettings()
   return (
     <>
+      {/* Before paint: lets scroll-reveal content start hidden (only with JavaScript) */}
+      <script dangerouslySetInnerHTML={{ __html: REVEAL_READY }} />
+      <Reveal />
       {children}
       {/* Google Analytics only on the website, never in workspaces (console Settings) */}
       {/* The console's ID wins over GA_MEASUREMENT_ID in .env */}

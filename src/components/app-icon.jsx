@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils"
 import { Icon } from "@/components/ui/icon"
 
-// Module colours live here (not in JSON) so Tailwind can see the class names
+// Module colors live here (not in JSON) so Tailwind can see the class names
 const COLORS = {
   indigo: "bg-indigo-500",
   sky: "bg-sky-500",
@@ -33,14 +33,7 @@ const SIZES = {
 
 export function AppIcon({ icon, color, size = "default", className }) {
   return (
-    <span
-      className={cn(
-        "flex shrink-0 items-center justify-center text-white shadow-sm ring-1 ring-black/5 ring-inset",
-        COLORS[color] ?? COLORS.slate,
-        SIZES[size],
-        className
-      )}
-    >
+    <span className={cn("flex shrink-0 items-center justify-center text-white shadow-sm ring-1 ring-black/5 ring-inset", COLORS[color] ?? COLORS.slate, SIZES[size], className)}>
       <Icon name={icon} />
     </span>
   )

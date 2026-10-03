@@ -8,7 +8,9 @@ import { Footer, Letterhead, Table, pdf } from "./workspace-pdf"
 function ReportPdf({ report, result, brand, generatedBy }) {
   const landscape = result.columns.length > 7
   const total = result.columns.reduce((s, c) => s + (c.width ?? 14), 0)
-  const meta = [result.scope, `Generated ${new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Karachi", dateStyle: "medium", timeStyle: "short" }).format(new Date())}${generatedBy ? ` by ${generatedBy}` : ""}`].filter(Boolean).join(" · ")
+  const meta = [result.scope, `Generated ${new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Karachi", dateStyle: "medium", timeStyle: "short" }).format(new Date())}${generatedBy ? ` by ${generatedBy}` : ""}`]
+    .filter(Boolean)
+    .join(" · ")
   return (
     <Document title={report.title} author={brand.name}>
       <Page size="A4" orientation={landscape ? "landscape" : "portrait"} style={[pdf.page, landscape ? { fontSize: 8 } : {}]}>
@@ -24,7 +26,10 @@ function ReportPdf({ report, result, brand, generatedBy }) {
           </View>
         )}
         <View style={{ marginTop: 12 }}>
-          <Table cols={result.columns.map((c) => ({ header: c.header, width: `${((c.width ?? 14) / total) * 100}%`, align: isNumeric(c) ? "right" : "left" }))} rows={result.rows.map((r) => result.columns.map((c) => formatCell(c, r, { print: true })))} />
+          <Table
+            cols={result.columns.map((c) => ({ header: c.header, width: `${((c.width ?? 14) / total) * 100}%`, align: isNumeric(c) ? "right" : "left" }))}
+            rows={result.rows.map((r) => result.columns.map((c) => formatCell(c, r, { print: true })))}
+          />
         </View>
         {result.rows.length === 0 && <Text style={[pdf.muted, { marginTop: 10 }]}>No data for this selection.</Text>}
         {result.note && <Text style={[pdf.muted, { marginTop: 10, fontSize: 8 }]}>{result.note}</Text>}

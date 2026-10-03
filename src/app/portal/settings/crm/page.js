@@ -1,12 +1,6 @@
-import { settingsPage } from "@/modules/settings/context"
-import { crmContext } from "@/modules/crm/server/context"
-import { canEditCrmRules, crmSettings } from "@/modules/crm/server/settings"
-import { CrmSettingsView } from "@/modules/settings/crm/crm-settings-view"
+import { redirect } from "next/navigation"
 
-export const metadata = { title: "CRM" }
-
-// How leads are worked in this workspace (also in CRM › Settings)
-export default async function CrmSettingsPage() {
-  const ctx = await settingsPage("/settings/crm")
-  return <CrmSettingsView settings={await crmSettings(ctx.db)} canEdit={canEditCrmRules(await crmContext("/settings/crm"))} />
+// CRM's settings moved into App Settings, with every other app's
+export default function CrmSettingsPage() {
+  redirect("/settings/apps?section=crm.pipeline")
 }

@@ -16,6 +16,8 @@ import { Select } from "@/components/ui/select"
 import { CONSOLE_AREAS, INVITABLE_ROLES, PLATFORM_ROLES, roleLabel } from "../roles"
 import { changeRole, inviteMember, resendInvite, revokeInvite, setMemberActive } from "../server/team"
 import { LinkSentDialog } from "@/components/link-sent-dialog"
+import { toastAction } from "@/lib/toast-action"
+import { confirm } from "@/components/alert-context"
 import { Notice } from "./parts"
 
 const roleOptions = INVITABLE_ROLES.map((r) => ({ value: r, label: PLATFORM_ROLES[r].label }))
@@ -75,17 +77,15 @@ function InviteDialog({ onClose, onDone }) {
 export function TeamView({ team, invites, currentUserId, manage }) {
   const router = useRouter()
   const [dialog, setDialog] = useState(null) // "invite" | { result, email }
-  const [notice, setNotice] = useState(null)
   const [pending, startTransition] = useTransition()
 
-  // Run an action, then show its outcome and reload the lists
+  // Run an action behind a loading toast, then show its outcome (a toast, or the link dialog
+  // after a resend) and reload the lists
   const run = (fn, success) =>
     startTransition(async () => {
-      const result = await fn()
-      if (result?.error) setNotice({ tone: "error", text: result.error })
-      else {
+      const result = await toastAction(fn, { loading: "Working on it…", success: success.text })
+      if (!result?.error) {
         if (result?.link) setDialog({ result, email: success.email })
-        setNotice(success.text ? { tone: "success", text: success.text } : null)
         router.refresh()
       }
     })
@@ -103,7 +103,6 @@ export function TeamView({ team, invites, currentUserId, manage }) {
           )
         }
       />
-      {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
 
       <div className="grid gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
@@ -134,7 +133,14 @@ export function TeamView({ team, invites, currentUserId, manage }) {
                           triggerClassName="w-36"
                           value={u.role}
                           options={roleOptions}
-                          onChange={(role) => run(() => changeRole(u.id, role), { text: `${u.name} is now ${roleLabel(role)}.` })}
+                          onChange={async (role) =>
+                            (await confirm({
+                              title: `Make ${u.name} ${roleLabel(role)}?`,
+                              description: "What they can see and do in the console changes straight away.",
+                              confirmLabel: "Change role",
+                              icon: "shield-user-line",
+                            })) && run(() => changeRole(u.id, role), { text: `${u.name} is now ${roleLabel(role)}.` })
+                          }
                         />
                         <DropdownMenu
                           align="end"
@@ -144,7 +150,14 @@ export function TeamView({ team, invites, currentUserId, manage }) {
                                   label: "Remove console access",
                                   icon: "user-unfollow-line",
                                   variant: "destructive",
-                                  onClick: () => run(() => setMemberActive(u.id, false), { text: `${u.name} can no longer sign in to the console.` }),
+                                  onClick: async () =>
+                                    (await confirm({
+                                      title: `Remove ${u.name}'s console access?`,
+                                      description: "They're signed out and can't sign in to the console until you restore their access.",
+                                      confirmLabel: "Remove access",
+                                      destructive: true,
+                                      icon: "user-unfollow-line",
+                                    })) && run(() => setMemberActive(u.id, false), { text: `${u.name} can no longer sign in to the console.` }),
                                 }
                               : {
                                   label: "Restore console access",
@@ -191,7 +204,22 @@ export function TeamView({ team, invites, currentUserId, manage }) {
                       >
                         Copy link
                       </Button>
-                      <Button size="sm" variant="ghost" leftIcon="close-line" disabled={pending} onClick={() => run(() => revokeInvite(i.id), { text: `Invitation to ${i.email} cancelled.` })}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        leftIcon="close-line"
+                        disabled={pending}
+                        onClick={async () =>
+                          (await confirm({
+                            title: `Cancel the invitation to ${i.email}?`,
+                            description: "The link in their email stops working. You can invite them again later.",
+                            confirmLabel: "Cancel invitation",
+                            cancelLabel: "Keep it",
+                            destructive: true,
+                            icon: "mail-close-line",
+                          })) && run(() => revokeInvite(i.id), { text: `Invitation to ${i.email} canceled.` })
+                        }
+                      >
                         Cancel
                       </Button>
                     </li>

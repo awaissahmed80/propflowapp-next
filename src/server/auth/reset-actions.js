@@ -85,7 +85,9 @@ export async function verifyResetCode(rawEmail, rawCode) {
   if (!sameHash(row.codeHash, hashOtp(code))) {
     const attempts = row.attempts + 1
     // Too many wrong guesses: this code stops working
-    await db("oneTimeCodes").where({ id: row.id }).update({ attempts, ...(attempts >= MAX_TRIES ? { consumedAt: new Date() } : {}) })
+    await db("oneTimeCodes")
+      .where({ id: row.id })
+      .update({ attempts, ...(attempts >= MAX_TRIES ? { consumedAt: new Date() } : {}) })
     await logAttempt({ userId: row.userId, email, success: false, reason: "reset-bad-code" })
     return { error: attempts >= MAX_TRIES ? "Too many wrong codes. Send a new code to try again." : WRONG_CODE }
   }

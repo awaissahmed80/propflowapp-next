@@ -49,7 +49,13 @@ export async function getLookupLists(db, apps) {
       defaultable: Boolean(l.defaultable),
       valueIsLabel: Boolean(l.valueIsLabel),
       values,
-      customised: JSON.stringify(defaults) !== JSON.stringify(current),
+      customized: JSON.stringify(defaults) !== JSON.stringify(current),
     }
   })
+}
+
+// Just these lists, in this order (a Customize tab) → getLookupLists entries
+export async function getListsByKey(db, keys) {
+  const lists = await getLookupLists(db, null)
+  return keys.map((k) => lists.find((l) => l.key === k)).filter(Boolean)
 }

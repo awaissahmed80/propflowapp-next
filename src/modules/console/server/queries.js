@@ -18,7 +18,7 @@ export async function usersByIds(ids) {
   return new Map(rows.map((u) => [u.id, u]))
 }
 
-// Stable colour for a workspace mark, from its code
+// Stable color for a workspace mark, from its code
 const MARK_COLORS = ["#2a78d6", "#1baf7a", "#c98500", "#e34948", "#4a3aa7", "#2a9fd6", "#1b9f96", "#9085e9"]
 const markColor = (code) => MARK_COLORS[[...code].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % MARK_COLORS.length]
 

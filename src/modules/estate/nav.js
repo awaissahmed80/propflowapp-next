@@ -1,23 +1,28 @@
-// Estate Management sidebar; description is the page subtitle. Resale & Rentals are placeholders
-// (ComingSoon) until they're built.
-export const ESTATE_NAV = [
-  { items: [{ label: "Overview", icon: "dashboard-line", to: "/estate", end: true, description: "Inventory health, availability and pricing across all projects" }] },
+// Estate Management sidebar; description is the page subtitle
+export const SERVICES_NAV = [
   {
-    label: "Development",
     items: [
-      { label: "Projects", icon: "community-line", to: "/estate/projects", description: "Societies, phases and blocks" },
-      { label: "Inventory", icon: "layout-grid-line", to: "/estate/inventory", description: "Plots, files, houses, apartments and shops with live status" },
-      { label: "Price Lists", icon: "price-tag-3-line", to: "/estate/price-lists", feature: "price-lists", description: "Rates, premiums, charges and payment plans, versioned per project" },
+      { label: "Overview", icon: "dashboard-line", to: "/estate-management", end: true, description: "Open requests, overdue items and complaints" },
+      { label: "Service desk", icon: "inbox-line", to: "/estate-management/requests", description: "Every request from buyers and residents" },
     ],
   },
   {
-    label: "Resale & Rentals",
+    label: "Ownership",
     items: [
-      { label: "Listings", icon: "home-4-line", to: "/estate/listings", feature: "resale", description: "Resale and rental stock, portal syndication and enquiries" },
-      { label: "Rentals", icon: "key-2-line", to: "/estate/rentals", feature: "resale", description: "Tenancies, rent schedules and renewals" },
-      { label: "Owners", icon: "contacts-book-2-line", to: "/estate/owners", feature: "resale", description: "Property owners and landlords with their CNIC and documents" },
+      { label: "Transfers", icon: "arrow-left-right-line", to: "/estate-management/transfers", feature: "transfers", description: "Files changing hands: papers, NDC, fee, biometric and the new owner" },
+      { label: "NDC", icon: "shield-check-line", to: "/estate-management/ndc", feature: "ndc-possession", description: "No demand certificates for transfers, mortgages and sales" },
+      { label: "Possession", icon: "key-2-line", to: "/estate-management/possession", feature: "ndc-possession", description: "Demarcation, possession letters and handover" },
     ],
   },
-  { label: "Insights", items: [{ label: "Reports", icon: "bar-chart-2-line", to: "/estate/reports", feature: "reports", description: "Availability, stock, premiums, holds, dealer quotas and current rates" }] },
-  { label: "Setup", items: [{ label: "Lists & Labels", icon: "list-settings-line", to: "/estate/lists", description: "Unit types, statuses, premium features, authorities and other Estate Management choices" }] },
+  {
+    label: "Residents",
+    items: [{ label: "Complaints", icon: "error-warning-line", to: "/estate-management/complaints", feature: "complaints", description: "Maintenance and site complaints, by category and priority" }],
+  },
+  {
+    label: "Setup",
+    items: [{ label: "Customize", icon: "equalizer-line", to: "/estate-management/customize", description: "Fees and timelines per request, and this app's lists & labels" }],
+  },
 ]
+
+// A page's sidebar entry (label, description, feature) by its path
+export const servicesNavItem = (to) => SERVICES_NAV.flatMap((g) => g.items).find((i) => i.to === to)

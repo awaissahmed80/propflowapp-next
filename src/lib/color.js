@@ -1,14 +1,17 @@
-// Colour helpers, safe on the server and in the browser
+// Color helpers, safe on the server and in the browser
 
 // "#ABC", "abc", "#aabbcc" → "#aabbcc"; anything else → null
 export function normalizeHex(input) {
-  const raw = String(input ?? "").trim().replace(/^#/, "").toLowerCase()
+  const raw = String(input ?? "")
+    .trim()
+    .replace(/^#/, "")
+    .toLowerCase()
   if (/^[0-9a-f]{3}$/.test(raw)) return `#${[...raw].map((c) => c + c).join("")}`
   if (/^[0-9a-f]{6}$/.test(raw)) return `#${raw}`
   return null
 }
 
-// White or near-black text, whichever reads better on the colour (WCAG relative luminance)
+// White or near-black text, whichever reads better on the color (WCAG relative luminance)
 export function readableOn(hex) {
   const c = normalizeHex(hex)
   if (!c) return "#ffffff"
@@ -20,7 +23,7 @@ export function readableOn(hex) {
   return l > 0.4 ? "#111827" : "#ffffff"
 }
 
-// Older pick-list colours were names; they map to these hex values
+// Older pick-list colors were names; they map to these hex values
 export const NAMED_COLORS = {
   gray: "#64748b",
   blue: "#3b82f6",
@@ -32,5 +35,5 @@ export const NAMED_COLORS = {
   teal: "#14b8a6",
 }
 
-// A colour name ("green") or hex → hex, or null
+// A color name ("green") or hex → hex, or null
 export const toHex = (color) => NAMED_COLORS[color] ?? normalizeHex(color)

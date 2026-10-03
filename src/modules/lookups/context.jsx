@@ -1,11 +1,11 @@
 "use client"
 
 import { createContext, useContext, useMemo } from "react"
-import { measures } from "@/modules/estate/constants"
+import { measures } from "@/modules/portfolio/constants"
 import { activeOptions, defaultValue, lookupMap } from "./options"
 
 // A workspace's pick-lists for an app's pages, loaded once by the app's layout:
-//   <LookupsProvider lists={await getLookups(db, keys)} app="estate" canAdd={ctx.can("edit")}> … useList("unit-status")
+//   <LookupsProvider lists={await getLookups(db, keys)} app="portfolio" canAdd={ctx.can("edit")}> … useList("unit-status")
 // app / canAdd: which app these pages are, and whether this person may add values to custom
 // lists on the spot (LookupSelect)
 const LookupsContext = createContext({ lists: {}, app: null, canAdd: false })
@@ -25,7 +25,7 @@ export function useList(key) {
 }
 
 // Sizing rules (area units, unit types, block categories) from this workspace's lists; see
-// measures() in modules/estate/constants.js
+// measures() in modules/portfolio/constants.js
 export function useMeasures() {
   const { lists } = useContext(LookupsContext)
   const units = lists["area-unit"]

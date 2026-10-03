@@ -4,12 +4,12 @@ import { APP_FEATURES } from "../portal/features.js"
 // leads. Visitors answer what they need PropFlow to do (NEEDS); each answer maps to the modules
 // behind it, so the console can suggest a plan. Business types preselect their usual needs.
 export const BUSINESS_TYPES = [
-  { value: "developer", label: "Developer", hint: "Housing societies, plots and files", icon: "community-line", modules: ["estate", "crm", "sales", "services", "finance", "campaigns"] },
-  { value: "builder", label: "Builder", hint: "Construction, towers and houses", icon: "building-2-line", modules: ["estate", "sales", "finance", "hr"] },
-  { value: "agency", label: "Real estate agency", hint: "Buying, selling and renting for clients", icon: "store-3-line", modules: ["crm", "estate", "contacts", "campaigns"] },
+  { value: "developer", label: "Developer", hint: "Housing societies, plots and files", icon: "community-line", modules: ["portfolio", "crm", "operations", "estate", "finance", "campaigns"] },
+  { value: "builder", label: "Builder", hint: "Construction, towers and houses", icon: "building-2-line", modules: ["portfolio", "operations", "finance", "hr"] },
+  { value: "agency", label: "Real estate agency", hint: "Buying, selling and renting for clients", icon: "store-3-line", modules: ["crm", "portfolio", "contacts", "campaigns"] },
   { value: "marketing", label: "Marketing agency", hint: "Campaigns and leads for developers", icon: "megaphone-line", modules: ["campaigns", "crm", "dashboards"] },
-  { value: "investor", label: "Investor or landlord", hint: "Your own properties and rentals", icon: "safe-2-line", modules: ["estate", "finance", "documents"] },
-  { value: "other", label: "Something else", hint: "Tell us in your own words", icon: "question-line", modules: ["crm", "estate"] },
+  { value: "investor", label: "Investor or landlord", hint: "Your own properties and rentals", icon: "safe-2-line", modules: ["portfolio", "finance", "documents"] },
+  { value: "other", label: "Something else", hint: "Tell us in your own words", icon: "question-line", modules: ["crm", "portfolio"] },
 ]
 export const businessType = (v) => BUSINESS_TYPES.find((b) => b.value === v) ?? null
 
@@ -37,14 +37,14 @@ export const NEED_GROUPS = [
     question: "What do you need for selling, and after the sale?",
     hint: "Inventory, bookings, installments, transfers and more.",
     needs: [
-      { value: "inventory", label: "Keep plots, files, houses or shops with live availability", icon: "layout-grid-line", features: ["estate.projects"] },
-      { value: "price-lists", label: "Price lists and payment plans", icon: "price-tag-3-line", features: ["estate.price-lists"] },
-      { value: "bookings", label: "Book units and issue allotment letters", icon: "file-paper-2-line", features: ["sales.bookings", "sales.allotments"] },
-      { value: "installment-plans", label: "Installment plans and schedules for buyers", icon: "calendar-check-line", features: ["sales.installments"] },
-      { value: "dealers", label: "Work with dealers: quotas, logins and commissions", icon: "shake-hands-line", features: ["sales.dealers", "users.dealers"] },
-      { value: "rentals", label: "Resale listings and rentals", icon: "key-2-line", features: ["estate.resale"] },
-      { value: "transfers", label: "Ownership transfers, NDC and possession", icon: "arrow-left-right-line", features: ["services.transfers", "services.ndc-possession"] },
-      { value: "complaints", label: "Maintenance requests and complaints", icon: "customer-service-2-line", features: ["services.complaints"] },
+      { value: "inventory", label: "Keep plots, files, houses or shops with live availability", icon: "layout-grid-line", features: ["portfolio.projects"] },
+      { value: "price-lists", label: "Price lists and payment plans", icon: "price-tag-3-line", features: ["portfolio.price-lists"] },
+      { value: "bookings", label: "Book units and issue allotment letters", icon: "file-paper-2-line", features: ["operations.bookings", "operations.allotments"] },
+      { value: "installment-plans", label: "Installment plans and schedules for buyers", icon: "calendar-check-line", features: ["operations.installments"] },
+      { value: "dealers", label: "Work with dealers: quotas, logins and commissions", icon: "shake-hands-line", features: ["operations.dealers", "users.dealers"] },
+      { value: "rentals", label: "Resale listings and rentals", icon: "key-2-line", features: ["portfolio.resale"] },
+      { value: "transfers", label: "Ownership transfers, NDC and possession", icon: "arrow-left-right-line", features: ["estate.transfers", "estate.ndc-possession"] },
+      { value: "complaints", label: "Maintenance requests and complaints", icon: "customer-service-2-line", features: ["estate.complaints"] },
     ],
   },
   {
@@ -53,7 +53,7 @@ export const NEED_GROUPS = [
     hint: "Accounts, collections and your team.",
     needs: [
       { value: "ledgers", label: "Ledgers and vouchers for your accounts", icon: "book-2-line", features: ["finance.ledger"] },
-      { value: "collections", label: "Collect installments with receipts and reminders", icon: "money-dollar-circle-line", features: ["finance.collections", "sales.installments"] },
+      { value: "collections", label: "Collect installments with receipts and reminders", icon: "money-dollar-circle-line", features: ["finance.collections", "operations.installments"] },
       { value: "vendors", label: "Pay contractors and vendors", icon: "bill-line", features: ["finance.vendors"] },
       { value: "staff", label: "Staff records, attendance and leave", icon: "contacts-line", features: ["hr.employees", "hr.attendance", "hr.leave"] },
       { value: "payroll", label: "Payroll, loans and advances", icon: "wallet-3-line", features: ["hr.payroll"] },
@@ -77,7 +77,7 @@ export function packageFor(needs) {
   }
   return { apps, off }
 }
-// The features a set of answers needs ("estate.price-lists"…)
+// The features a set of answers needs ("portfolio.price-lists"…)
 export const featuresFor = (needs) => [...new Set(needs.flatMap((v) => need(v)?.features ?? []))]
 // Apps behind a set of answers
 export const modulesFor = (needs) => packageFor(needs).apps

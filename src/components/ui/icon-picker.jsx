@@ -40,7 +40,11 @@ function Panel({ value, onPick, onClear, allowEmpty }) {
   const categories = useMemo(() => (index ? [...new Set(index.map((i) => i.c))].sort() : []), [index])
   const matches = useMemo(() => {
     if (!index) return []
-    const words = query.toLowerCase().trim().split(/[\s-]+/).filter(Boolean)
+    const words = query
+      .toLowerCase()
+      .trim()
+      .split(/[\s-]+/)
+      .filter(Boolean)
     return index
       .filter((i) => (!category || i.c === category) && words.every((w) => i.n.includes(w) || i.c.toLowerCase().includes(w)))
       .map((i) => (i.s ? `${i.n}-${i.s.includes(style[0]) ? style : i.s.includes("l") ? "line" : "fill"}` : i.n))
@@ -103,7 +107,7 @@ function Panel({ value, onPick, onClear, allowEmpty }) {
                 onClick={() => onPick(name)}
                 className={cn(
                   "flex aspect-square cursor-pointer items-center justify-center rounded-md text-lg outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
-                  name === value && "bg-primary text-primary-foreground hover:bg-primary"
+                  name === value && "bg-primary text-primary-foreground hover:bg-primary",
                 )}
               >
                 <Icon name={name} />
@@ -125,7 +129,8 @@ function Panel({ value, onPick, onClear, allowEmpty }) {
 }
 
 // size "sm" matches small inputs (e.g. inside tables)
-export function IconPicker({ value, onChange, label, error, required = false, disabled, allowEmpty = true, placeholder = "Choose an icon", size = "default", className, "aria-label": ariaLabel }) {
+export function IconPicker({ value, onChange, label, error, required = false, disabled, allowEmpty = true, placeholder = "Choose an icon", size = "default", iconOnly = false, className, "aria-label": ariaLabel }) {
+  // iconOnly: a square button showing just the icon (compact rows)
   const id = useId()
   const [open, setOpen] = useState(false)
   return (
@@ -143,16 +148,22 @@ export function IconPicker({ value, onChange, label, error, required = false, di
           aria-label={ariaLabel ?? (label ? undefined : "Icon")}
           aria-invalid={!!error}
           className={cn(
-            "flex w-full min-w-0 cursor-pointer items-center gap-2 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs transition-[color,box-shadow] outline-0 dark:bg-input/20",
-            size === "sm" ? "h-control-sm" : "h-control",
+            "flex min-w-0 cursor-pointer items-center gap-2 rounded-md border text-sm transition-[color,box-shadow] outline-0",
+            iconOnly
+              ? cn("justify-center border-transparent bg-muted/70 px-0 hover:bg-muted", size === "sm" ? "h-control-sm w-control-sm" : "h-control w-control")
+              : cn("w-full border-input bg-transparent px-3 shadow-xs dark:bg-input/20", size === "sm" ? "h-control-sm" : "h-control"),
             "focus-visible:border-ring focus-visible:ring-[1px] focus-visible:ring-ring/50 data-popup-open:border-ring data-popup-open:ring-[1px] data-popup-open:ring-ring/50",
-            "aria-invalid:border-destructive disabled:cursor-not-allowed disabled:opacity-60"
+            "aria-invalid:border-destructive disabled:cursor-not-allowed disabled:opacity-60",
           )}
         >
           {/* Like an input's start icon, then the name as plain text */}
           <Icon name={value || "question-line"} className={cn("shrink-0 text-base", !value && "text-muted-foreground")} />
-          <span className={cn("min-w-0 flex-1 truncate text-left", !value && "text-muted-foreground")}>{value || placeholder}</span>
-          <Icon name="arrow-down-s-line" className="text-base text-muted-foreground" />
+          {!iconOnly && (
+            <>
+              <span className={cn("min-w-0 flex-1 truncate text-left", !value && "text-muted-foreground")}>{value || placeholder}</span>
+              <Icon name="arrow-down-s-line" className="text-base text-muted-foreground" />
+            </>
+          )}
         </PopoverPrimitive.Trigger>
         <PopoverPrimitive.Portal>
           <PopoverPrimitive.Positioner side="bottom" align="start" sideOffset={6} className="isolate z-50">

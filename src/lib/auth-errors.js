@@ -1,7 +1,7 @@
 // Messages for sign-in problems passed back to a page as ?error=<code> (Google sign-in redirects)
 export const AUTH_ERRORS = {
   "google-off": "Google sign-in isn't set up yet. Use your email and password.",
-  "google-cancelled": "Google sign-in was cancelled.",
+  "google-cancelled": "Google sign-in was canceled.",
   "google-failed": "We couldn't sign you in with Google. Please try again.",
   "google-expired": "That Google sign-in took too long or was already used. Please try again.",
   "google-no-account": "There's no PropFlow account for that Google email. Sign-up is by invitation: ask your company admin, or PropFlow, to invite you.",

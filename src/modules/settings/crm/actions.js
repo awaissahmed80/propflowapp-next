@@ -6,7 +6,7 @@ import { writeSettings } from "@/modules/portal/server/setup"
 import { crmContext } from "@/modules/crm/server/context"
 import { CRM_SETTINGS, canEditCrmRules } from "@/modules/crm/server/settings"
 
-// Used from Settings › CRM and CRM › Settings
+// Used from Settings › CRM and CRM › Customize
 async function rulesEditor() {
   const ctx = await crmContext()
   if (!canEditCrmRules(ctx)) return { error: "Your role can't change CRM settings. Ask an administrator." }

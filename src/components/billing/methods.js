@@ -18,5 +18,4 @@ const OFFLINE = [
   { id: "cheque", label: "Cheque" },
 ]
 
-export const methodLabel = (id, currency = "PKR") =>
-  [...PAYMENT_METHODS[currency], ...PAYMENT_METHODS.PKR, ...OFFLINE].find((m) => m.id === id)?.label ?? id
+export const methodLabel = (id, currency = "PKR") => [...PAYMENT_METHODS[currency], ...PAYMENT_METHODS.PKR, ...OFFLINE].find((m) => m.id === id)?.label ?? id

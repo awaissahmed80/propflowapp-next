@@ -9,14 +9,7 @@ import { Label } from "./label"
 // shadcn/ui InputOTP (base-nova), on the input-otp package. One hidden input drives the
 // slots, so paste, autofill of one-time codes and screen readers all work.
 function InputOTP({ className, containerClassName, ...props }) {
-  return (
-    <OTPInput
-      data-slot="input-otp"
-      containerClassName={cn("flex items-center gap-2 has-disabled:opacity-50", containerClassName)}
-      className={cn("disabled:cursor-not-allowed", className)}
-      {...props}
-    />
-  )
+  return <OTPInput data-slot="input-otp" containerClassName={cn("flex items-center gap-2 has-disabled:opacity-50", containerClassName)} className={cn("disabled:cursor-not-allowed", className)} {...props} />
 }
 
 function InputOTPGroup({ className, ...props }) {
@@ -35,7 +28,7 @@ function InputOTPSlot({ index, masked = false, className, ...props }) {
         "relative flex size-11 items-center justify-center border-y border-r border-input text-lg font-medium shadow-xs transition-all outline-none first:rounded-l-md first:border-l last:rounded-r-md dark:bg-input/30",
         "aria-invalid:border-destructive data-[active=true]:z-10 data-[active=true]:border-ring data-[active=true]:ring-[3px] data-[active=true]:ring-ring/50",
         "data-[active=true]:aria-invalid:border-destructive data-[active=true]:aria-invalid:ring-destructive/20 dark:data-[active=true]:aria-invalid:ring-destructive/40",
-        className
+        className,
       )}
       {...props}
     >
@@ -57,7 +50,7 @@ function InputOTPSeparator(props) {
   )
 }
 
-// Labelled digits-only code field: verification codes (split 3–3 when 6 long) and passcodes
+// Labeled digits-only code field: verification codes (split 3–3 when 6 long) and passcodes
 // (masked). onComplete fires once every slot is filled.
 // fill: label on the left and the boxes stretched to the full width (lines up with buttons below)
 function OtpField({ label, length = 6, value, onChange, onComplete, masked = false, fill = false, error, autoFocus, disabled, className }) {

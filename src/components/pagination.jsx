@@ -16,35 +16,15 @@ export function Pagination({ page, pageSize, total, onPageChange, onPageSizeChan
     <div className="flex flex-col gap-3 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-2 text-muted-foreground">
         <span>Rows per page</span>
-        <Select
-          size="sm"
-          triggerClassName="w-20"
-          value={String(pageSize)}
-          onChange={(v) => onPageSizeChange(Number(v))}
-          options={PAGE_SIZES.map((n) => ({ value: String(n), label: String(n) }))}
-        />
+        <Select size="sm" triggerClassName="w-20" value={String(pageSize)} onChange={(v) => onPageSizeChange(Number(v))} options={PAGE_SIZES.map((n) => ({ value: String(n), label: String(n) }))} />
       </div>
       <div className="flex items-center gap-3">
         <span className="text-muted-foreground tabular-nums">
           {from}–{to} of {total}
         </span>
         <div className="flex gap-1">
-          <Button
-            variant="outline"
-            size="icon"
-            leftIcon="arrow-left-s-line"
-            aria-label="Previous page"
-            disabled={page <= 1}
-            onClick={() => onPageChange(page - 1)}
-          />
-          <Button
-            variant="outline"
-            size="icon"
-            leftIcon="arrow-right-s-line"
-            aria-label="Next page"
-            disabled={page >= pages}
-            onClick={() => onPageChange(page + 1)}
-          />
+          <Button variant="outline" size="icon" leftIcon="arrow-left-s-line" aria-label="Previous page" disabled={page <= 1} onClick={() => onPageChange(page - 1)} />
+          <Button variant="outline" size="icon" leftIcon="arrow-right-s-line" aria-label="Next page" disabled={page >= pages} onClick={() => onPageChange(page + 1)} />
         </div>
       </div>
     </div>

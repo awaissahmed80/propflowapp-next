@@ -25,9 +25,13 @@ export const CRM_NAV = [
   {
     label: "Setup",
     items: [
-      { label: "Assignment rules", icon: "shuffle-line", to: "/crm/assignment", feature: "assignment", setup: true, description: "Who gets which leads: by project, source, city or round-robin" },
-      { label: "Lists & Labels", icon: "list-settings-line", to: "/crm/lists", setup: true, description: "Lead statuses, sources, loss reasons and activity types" },
-      { label: "Settings", icon: "settings-3-line", to: "/crm/settings", setup: true, description: "Pipeline rules and lead scoring" },
+      {
+        label: "Customize",
+        icon: "equalizer-line",
+        to: "/crm/customize",
+        setup: true,
+        description: "Pipeline rules, lead scoring, assignment rules, and lead statuses, sources and other lists",
+      },
     ],
   },
 ]

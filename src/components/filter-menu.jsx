@@ -46,7 +46,7 @@ export function FilterMenu({ groups: allGroups, value, onChange }) {
         label: "Clear all filters",
         icon: "close-circle-line",
         onClick: () => onChange({ ...value, ...Object.fromEntries(groups.map((g) => [g.key, []])) }),
-      }
+      },
     )
   }
 
@@ -59,9 +59,7 @@ export function FilterMenu({ groups: allGroups, value, onChange }) {
       trigger={
         <Button variant="outline" leftIcon="filter-3-line" className="w-28 shrink-0 data-popup-open:bg-accent">
           Filters
-          {count > 0 && (
-            <Badge className="ml-0.5 h-5 min-w-5 rounded-full px-1.5 tabular-nums">{count}</Badge>
-          )}
+          {count > 0 && <Badge className="ml-0.5 h-5 min-w-5 rounded-full px-1.5 tabular-nums">{count}</Badge>}
         </Button>
       }
     />
@@ -75,25 +73,20 @@ export function ActiveFilters({ groups, value, onChange }) {
       group: g,
       value: v,
       label: g.options.find((o) => o.value === v)?.label ?? v,
-    }))
+    })),
   )
   if (chips.length === 0) return null
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {chips.map((chip) => (
-        <span
-          key={`${chip.group.key}-${chip.value}`}
-          className="flex items-center gap-1 rounded-full border bg-background py-0.5 pr-1 pl-2.5 text-xs"
-        >
+        <span key={`${chip.group.key}-${chip.value}`} className="flex items-center gap-1 rounded-full border bg-background py-0.5 pr-1 pl-2.5 text-xs">
           <span className="text-muted-foreground">{chip.group.label}:</span>
           <span className="font-medium">{chip.label}</span>
           <button
             type="button"
             aria-label={`Remove ${chip.group.label} ${chip.label}`}
-            onClick={() =>
-              onChange({ ...value, [chip.group.key]: value[chip.group.key].filter((v) => v !== chip.value) })
-            }
+            onClick={() => onChange({ ...value, [chip.group.key]: value[chip.group.key].filter((v) => v !== chip.value) })}
             className="flex size-4 cursor-pointer items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Icon name="close-line" className="text-xs" />

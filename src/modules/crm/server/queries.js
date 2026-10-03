@@ -6,6 +6,7 @@ import { listMembers, peopleByIds } from "@/modules/users/server/queries"
 import { scoped } from "./context"
 import { priceIndex, scoreLead, scoringActivities } from "./scoring"
 import { crmSettings } from "./settings"
+import { canTagLead } from "./tagging"
 
 // Reads for CRM. Leads only ever come through scoped(), so people see what their role allows.
 
@@ -37,7 +38,7 @@ async function scoringKit(ctx) {
   return { rules, index, lists }
 }
 
-function shapeLead(l, { people, projects, next, score = null }) {
+function shapeLead(l, { people, projects, next, score = null, tags = [] }) {
   return {
     code: l.code,
     name: l.name,
@@ -68,6 +69,8 @@ function shapeLead(l, { people, projects, next, score = null }) {
     lastContactAt: l.lastContactAt,
     closedAt: l.closedAt,
     archivedAt: l.archivedAt ?? null,
+    // Tagged on it besides the agent (they see it too)
+    tags: tags.map((id) => person(people.get(id))).filter(Boolean),
     archivedBy: l.archivedAt ? person(people.get(l.archivedBy)) : null,
     score,
   }
@@ -82,8 +85,9 @@ async function projectsById(ctx) {
 export async function listLeads(ctx) {
   const leads = await scoped(ctx, live(ctx.db, "leads")).orderBy("createdAt", "desc").limit(5000)
   const ids = leads.map((l) => l.id)
+  const allTags = ids.length ? await live(ctx.db, "leadTags").whereIn("leadId", ids).select("leadId", "userId") : []
   const [people, projects, planned, kit] = await Promise.all([
-    peopleByIds(leads.flatMap((l) => [l.assignedTo, l.archivedBy])),
+    peopleByIds([...leads.flatMap((l) => [l.assignedTo, l.archivedBy]), ...allTags.map((t) => t.userId)]),
     projectsById(ctx),
     ids.length ? live(ctx.db, "leadActivities").whereIn("leadId", ids).where({ status: "planned" }).orderBy("at").select("leadId", "at", "type") : [],
     scoringKit(ctx),
@@ -97,7 +101,9 @@ export async function listLeads(ctx) {
     const s = scoreLead(l, acts.get(l.id), kit)
     return { value: s.value, grade: s.grade, label: s.label }
   }
-  return leads.map((l) => shapeLead(l, { people, projects, next: next.get(l.id), score: brief(l) }))
+  const tagsOf = new Map()
+  for (const t of allTags) tagsOf.set(t.leadId, [...(tagsOf.get(t.leadId) ?? []), t.userId])
+  return leads.map((l) => shapeLead(l, { people, projects, next: next.get(l.id), score: brief(l), tags: tagsOf.get(l.id) }))
 }
 
 // One lead (if this person may see it) with its activities, newest first; planned ones apart
@@ -108,7 +114,8 @@ export async function getLead(ctx, code) {
   if (!l) return null
   const [activities, projects, kit] = await Promise.all([live(ctx.db, "leadActivities").where({ leadId: l.id }).orderBy("at", "desc").orderBy("id", "desc"), projectsById(ctx), scoringKit(ctx)])
   const score = kit ? scoreLead(l, (await scoringActivities(ctx.db, [l.id], kit.rules.engagementDays)).get(l.id), kit) : null
-  const people = await peopleByIds([l.assignedTo, l.archivedBy, ...activities.map((a) => a.by)])
+  const tags = (await live(ctx.db, "leadTags").where({ leadId: l.id }).orderBy("id").select("userId")).map((t) => t.userId)
+  const people = await peopleByIds([l.assignedTo, l.archivedBy, l.createdBy, ...tags, ...activities.map((a) => a.by)])
   // Voice notes recorded with activities (assets, served by /api/workspace/files/[code])
   const voices = activities.length
     ? await live(ctx.db, "assets")
@@ -161,7 +168,9 @@ export async function getLead(ctx, code) {
     voice: voiceOf.get(a.id) ?? null,
   })
   return {
-    ...shapeLead(l, { people, projects, next: planned[0], score }),
+    ...shapeLead(l, { people, projects, next: planned[0], score, tags }),
+    createdBy: person(people.get(l.createdBy)),
+    canTag: canTagLead(ctx, l),
     planned: planned.map(shapeActivity),
     // When it actually happened (a completed follow-up keeps its planned time in `at`), newest
     // first, whatever the type; ties keep the order they were recorded in

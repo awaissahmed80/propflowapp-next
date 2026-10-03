@@ -1,7 +1,11 @@
 // Tables and columns are snake_case in MySQL; the app works in camelCase.
 // Knex converts identifiers on the way in and result keys on the way out.
 
-export const toSnake = (s) => s.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/([A-Z])([A-Z][a-z])/g, "$1_$2").toLowerCase()
+export const toSnake = (s) =>
+  s
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/([A-Z])([A-Z][a-z])/g, "$1_$2")
+    .toLowerCase()
 export const toCamel = (s) => s.replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase())
 
 // Deep-convert result rows; Dates, Buffers and other objects are left alone

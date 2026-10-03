@@ -19,7 +19,7 @@ function pakistanNow() {
   }
 }
 
-// The app launcher: greeting, pinned apps, every app the person can open, and what's critical
+// The launcher: apps on the left, My Desk in the middle, what's critical on the right
 export default async function LauncherPage({ searchParams }) {
   const [{ user, role, tenant, apps, setupCompleted, canSetUp }, { tour }] = await Promise.all([getPortal(), searchParams])
   if (!setupCompleted) redirect("/setup")
@@ -28,8 +28,8 @@ export default async function LauncherPage({ searchParams }) {
   const setupSteps = canSetUp ? (await getSetup(session.tenant)).steps : null
   // "Invite your team" for anyone who can open Users & Teams; done once someone else has joined
   const team = apps.some((a) => a.code === "users") ? { done: Number((await authDb()("memberships").where({ tenantId: session.tenant.id }).whereNull("deletedAt").count({ n: "id" }).first()).n) > 1 } : null
-  // My Desk at the top: latest to-dos, approvals waiting and recent activity
-  const desk = apps.some((a) => a.code === "desk") ? await deskSummary(await deskContext("/")) : null
+  // My Desk: to-dos, approvals waiting, recent activity, and the critical ones
+  const desk = await deskSummary(await deskContext("/"))
   const { greeting, today } = pakistanNow()
   // Keyed on the tour flag so "Take the tour" restarts it even when the launcher is already open
   return (

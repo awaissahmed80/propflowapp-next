@@ -1,0 +1,381 @@
+[
+  {
+    "id": "launcher",
+    "path": "/",
+    "callouts": [
+      {
+        "id": "critical",
+        "find": "Needs you now",
+        "within": "section"
+      },
+      {
+        "id": "apps",
+        "find": "Project Portfolio",
+        "within": "a",
+        "to": "Estate Management",
+        "pad": 12
+      },
+      {
+        "id": "signoff",
+        "find": "Waiting for your sign-off",
+        "within": "section"
+      }
+    ]
+  },
+  {
+    "id": "portfolio-overview",
+    "path": "/project-portfolio",
+    "callouts": [
+      {
+        "id": "stock",
+        "find": "Available",
+        "within": ".rounded-xl"
+      },
+      {
+        "id": "approval",
+        "find": "LDA approved",
+        "to": "NOC applied",
+        "pad": 10
+      },
+      {
+        "id": "projects",
+        "find": "Skyline Enclave",
+        "within": "tr",
+        "to": "Skyline Business Square",
+        "toWithin": "tr",
+        "pad": 4
+      }
+    ]
+  },
+  {
+    "id": "project",
+    "path": "/project-portfolio/projects/ske",
+    "callouts": [
+      {
+        "id": "approval",
+        "find": "Skyline Enclave",
+        "within": "h1",
+        "to": "LDA approved",
+        "pad": 14
+      },
+      {
+        "id": "availability",
+        "find": "Availability",
+        "within": ".rounded-xl"
+      },
+      {
+        "id": "authority",
+        "find": "Marla size",
+        "to": "LDA/HS/2019/0442",
+        "pad": 10
+      },
+      {
+        "id": "phases",
+        "find": "Phase 1",
+        "within": ".rounded-xl"
+      }
+    ]
+  },
+  {
+    "id": "inventory",
+    "path": "/project-portfolio/inventory?status=available",
+    "callouts": [
+      {
+        "id": "premium",
+        "find": "House 24",
+        "within": "tr",
+        "pad": 4
+      },
+      {
+        "id": "stock",
+        "find": "169 units",
+        "pad": 10
+      },
+      {
+        "id": "status",
+        "find": "All",
+        "within": "button",
+        "to": "Blocked",
+        "toWithin": "button",
+        "pad": 8
+      }
+    ]
+  },
+  {
+    "id": "price-list",
+    "path": "/project-portfolio/price-lists/pl-0002",
+    "before": "[...document.querySelectorAll('[role=tab],button')].find((b) => b.textContent.trim().startsWith('Payment plans'))?.click()",
+    "callouts": [
+      {
+        "id": "plan",
+        "find": "2-year plan",
+        "within": ".rounded-xl"
+      },
+      {
+        "id": "header",
+        "find": "Skyline Enclave price list 2026",
+        "within": "h1",
+        "to": "Skyline Enclave \u00b7 Effective from",
+        "pad": 12
+      },
+      {
+        "id": "cash",
+        "find": "Cash payment",
+        "within": ".rounded-xl"
+      }
+    ]
+  },
+  {
+    "id": "crm-board",
+    "path": "/crm/leads?view=board",
+    "callouts": [
+      {
+        "id": "card",
+        "find": "Ahmed Khan",
+        "within": "[draggable]"
+      },
+      {
+        "id": "columns",
+        "rect": [288, 142, 1152, 46]
+      }
+    ]
+  },
+  {
+    "id": "lead",
+    "path": "/crm/leads?lead=ld-00426",
+    "before": "[...document.querySelectorAll('[role=tab],button')].find((b) => b.textContent.trim().startsWith('Lead details'))?.click()",
+    "callouts": [
+      {
+        "id": "score",
+        "find": "Lead score",
+        "to": "Pipeline stage, with everything",
+        "pad": 16
+      },
+      {
+        "id": "header",
+        "rect": [858, 195, 545, 82]
+      },
+      {
+        "id": "followups",
+        "find": "Next follow-up",
+        "to": "Overdue 1d",
+        "pad": 8
+      }
+    ]
+  },
+  {
+    "id": "campaign",
+    "path": "/campaigns/all/cmp-0001",
+    "callouts": [
+      {
+        "id": "cpl",
+        "find": "Cost per lead",
+        "within": ".rounded-xl"
+      },
+      {
+        "id": "goals",
+        "find": "Goals",
+        "within": ".rounded-xl"
+      },
+      {
+        "id": "funnel",
+        "find": "Lead to booking",
+        "within": ".rounded-xl"
+      }
+    ]
+  },
+  {
+    "id": "page-editor",
+    "path": "/campaigns/pages/lp-0001",
+    "before": "document.querySelector('button[aria-label=Phone]')?.click()",
+    "wait": 2500,
+    "callouts": [
+      {
+        "id": "phone",
+        "sel": "div.rounded-\\[1\\.75rem\\]",
+        "pad": 10
+      },
+      {
+        "id": "sections",
+        "find": "Top bar",
+        "to": "Add section",
+        "pad": 10
+      }
+    ]
+  },
+  {
+    "id": "report",
+    "path": "/campaigns/reports/channels",
+    "callouts": [
+      {
+        "id": "chart",
+        "find": "Leads by channel",
+        "within": ".rounded-xl"
+      },
+      {
+        "id": "cpl",
+        "find": "Cost / lead",
+        "to": "Rs 20,000",
+        "pad": 10
+      },
+      {
+        "id": "tiles",
+        "find": "Channels",
+        "within": ".rounded-xl",
+        "to": "Bookings",
+        "toWithin": ".rounded-xl"
+      }
+    ]
+  },
+  {
+    "id": "booking",
+    "path": "/operations/bookings/bk-2025-000018",
+    "before": "[...document.querySelectorAll('[role=tab],button')].find((b) => b.textContent.trim().startsWith('Receipts'))?.click()",
+    "callouts": [
+      {
+        "id": "progress",
+        "find": "Net price",
+        "within": ".rounded-xl"
+      },
+      {
+        "id": "receipts",
+        "rect": [282, 458, 716, 252]
+      },
+      {
+        "id": "cleared",
+        "rect": [1040, 694, 392, 46]
+      }
+    ]
+  },
+  {
+    "id": "installments",
+    "path": "/operations/installments",
+    "callouts": [
+      {
+        "id": "tiles",
+        "find": "Defaulters",
+        "within": ".rounded-xl",
+        "to": "To collect now",
+        "toWithin": ".rounded-xl"
+      },
+      {
+        "id": "remind",
+        "find": "Remind",
+        "to": "Receive",
+        "pad": 8
+      },
+      {
+        "id": "overdue",
+        "find": "Overdue",
+        "within": ".rounded-xl"
+      }
+    ]
+  },
+  {
+    "id": "cheques",
+    "path": "/finance/cheques",
+    "callouts": [
+      {
+        "id": "clearing",
+        "find": "In clearing",
+        "within": ".rounded-xl"
+      },
+      {
+        "id": "actions",
+        "find": "Clear",
+        "to": "Bounce",
+        "pad": 8
+      },
+      {
+        "id": "approval",
+        "find": "Waiting for approval",
+        "pad": 10
+      }
+    ]
+  },
+  {
+    "id": "estate-request",
+    "path": "/estate-management/requests/sr-00065",
+    "callouts": [
+      {
+        "id": "checklist",
+        "find": "Checklist",
+        "within": ".rounded-xl"
+      },
+      {
+        "id": "ndc",
+        "rect": [295, 630, 738, 52]
+      },
+      {
+        "id": "blocker",
+        "find": "Before you can complete transfer",
+        "pad": 8
+      }
+    ]
+  },
+  {
+    "id": "finance-overview",
+    "path": "/finance",
+    "callouts": [
+      {
+        "id": "tiles",
+        "find": "Cash & bank",
+        "within": ".rounded-xl",
+        "to": "Owed",
+        "toWithin": ".rounded-xl"
+      },
+      {
+        "id": "chart",
+        "find": "Money in and out, last 6 months",
+        "within": ".rounded-xl"
+      },
+      {
+        "id": "approval",
+        "find": "1 voucher is waiting for approval",
+        "pad": 8
+      },
+      {
+        "id": "banks",
+        "find": "All accounts",
+        "within": ".rounded-xl"
+      }
+    ]
+  },
+  {
+    "id": "trial-balance",
+    "path": "/finance/reports/trial-balance",
+    "callouts": [
+      {
+        "id": "totals",
+        "find": "Total debits",
+        "within": ".rounded-xl",
+        "to": "Difference",
+        "toWithin": ".rounded-xl"
+      },
+      {
+        "id": "export",
+        "find": "Today",
+        "to": "Print / export",
+        "pad": 8
+      }
+    ]
+  },
+  {
+    "id": "approvals",
+    "path": "/approvals",
+    "callouts": [
+      {
+        "id": "cheque",
+        "find": "Cheque status",
+        "to": "Approve",
+        "pad": 14
+      },
+      {
+        "id": "refund",
+        "find": "Booking cancellation",
+        "to": "Rs 98.33 Lac",
+        "pad": 10
+      }
+    ]
+  }
+]

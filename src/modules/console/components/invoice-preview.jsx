@@ -6,7 +6,9 @@ import { Dialog } from "@/components/ui/dialog"
 import { DropdownMenu } from "@/components/ui/dropdown-menu"
 import { Icon } from "@/components/ui/icon"
 import { IconButton } from "@/components/ui/icon-button"
+import { toast } from "sonner"
 import { printPage } from "@/lib/print"
+import { toastAction } from "@/lib/toast-action"
 import { loadInvoice, resendInvoice } from "../server/invoices"
 import { VoidDialog } from "./invoice-actions"
 import { InvoiceDocument } from "./invoice-document"
@@ -33,7 +35,6 @@ export function InvoicePreviewDialog({ code, canEdit, onEdit, onClose }) {
   const router = useRouter()
   const [data, setData] = useState(null)
   const [error, setError] = useState("")
-  const [notice, setNotice] = useState(null)
   const [dialog, setDialog] = useState(null)
   const [pending, startTransition] = useTransition()
 
@@ -48,8 +49,9 @@ export function InvoicePreviewDialog({ code, canEdit, onEdit, onClose }) {
   )
   useEffect(() => reload(), [reload])
 
+  // After a change from the status menu or a dialog: the outcome as a toast, then reload
   const changed = (text, tone = "success") => {
-    setNotice({ tone, text })
+    if (text) (tone === "error" ? toast.error : toast.success)(text)
     reload()
     router.refresh()
   }
@@ -65,8 +67,7 @@ export function InvoicePreviewDialog({ code, canEdit, onEdit, onClose }) {
                 icon: "mail-send-line",
                 onClick: () =>
                   startTransition(async () => {
-                    const r = await resendInvoice(inv.id)
-                    setNotice(r.error ? { tone: "error", text: r.error } : { tone: "success", text: `${inv.code} emailed again.` })
+                    await toastAction(() => resendInvoice(inv.id), { loading: "Sending…", success: `${inv.code} emailed again.` })
                   }),
               },
             ]
@@ -100,11 +101,6 @@ export function InvoicePreviewDialog({ code, canEdit, onEdit, onClose }) {
         )
       }
     >
-      {notice && (
-        <div className="px-4 pt-3 sm:px-6 lg:px-8">
-          <Notice tone={notice.tone}>{notice.text}</Notice>
-        </div>
-      )}
       {error ? (
         <div className="p-4">
           <Notice tone="error">{error}</Notice>

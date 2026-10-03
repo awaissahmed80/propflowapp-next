@@ -4,7 +4,7 @@ import { logActivity as logToWorkspace } from "@/server/tenants/activity"
 import { assignableAgents } from "./queries"
 import { CRM_SETTINGS, crmSettings } from "./settings"
 
-// Who gets a new lead (CRM › Assignment rules). Rules are checked in order; the first active
+// Who gets a new lead (CRM › Customize › Assignment rules). Rules are checked in order; the first active
 // rule whose conditions all match decides: one agent, round-robin within a team, or round-robin
 // among chosen agents. Only active agents (not dealer logins) can be picked; a rule with nobody
 // left to pick is skipped. No rule matches → null (the caller falls back to auto-assign).

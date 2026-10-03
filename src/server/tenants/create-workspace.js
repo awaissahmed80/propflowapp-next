@@ -100,7 +100,14 @@ export async function createWorkspace({ invite, company, person }) {
       const apps = await trx("apps")
         .whereNull("deletedAt")
         .where({ isActive: true })
-        .where((q) => (pkg?.apps?.length ? q.where({ alwaysOn: true }).orWhereIn("code", pkg.apps) : q.where({ alwaysOn: true }).orWhereIn("id", planRows.map((r) => r.appId))))
+        .where((q) =>
+          pkg?.apps?.length
+            ? q.where({ alwaysOn: true }).orWhereIn("code", pkg.apps)
+            : q.where({ alwaysOn: true }).orWhereIn(
+                "id",
+                planRows.map((r) => r.appId),
+              ),
+        )
         .select("id", "code")
       const offFor = (a) => {
         const keys = pkg?.apps?.length ? pkg.off?.[a.code] : planRows.find((r) => r.appId === a.id)?.offFeatures
@@ -131,7 +138,7 @@ export async function createWorkspace({ invite, company, person }) {
           tenantId,
           details: { summary: `${company.name} (${code}) on ${plan.name}, ${trial ? `${invite.trialDays ?? trialDaysDefault}-day trial` : `active, billed ${invite.billingCycle}`}`, invitationId: invite.id },
         },
-        trx
+        trx,
       )
       return { id: tenantId, code, dbName: tenantDbName(code), name: company.name }
     })

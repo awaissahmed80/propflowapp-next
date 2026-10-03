@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { saveSiteSettings } from "../server/actions"
-import { Notice } from "./parts"
+import { toastAction } from "@/lib/toast-action"
 
 // Times are picked in Pakistan time (UTC+5, no daylight saving), the same on the server and
 // in the browser: "2026-10-02T09:30:00.000Z" ↔ "2026-10-02T14:30"
@@ -53,33 +53,29 @@ export function SettingsView({ site, updatedAt, editable }) {
     analyticsConsent: site.analyticsConsent,
   })
   const [errors, setErrors] = useState({})
-  const [notice, setNotice] = useState(null)
   const [pending, startTransition] = useTransition()
-  const set = (key) => (v) => {
-    setForm((f) => ({ ...f, [key]: v }))
-    setNotice(null)
-  }
+  const set = (key) => (v) => setForm((f) => ({ ...f, [key]: v }))
 
   const save = () =>
     startTransition(async () => {
       setErrors({})
-      const result = await saveSiteSettings({
-        maintenance: form.maintenance,
-        message: form.message.trim() || null,
-        until: fromLocalInput(form.until),
-        signupOpen: form.signupOpen,
-        pricesVisible: form.pricesVisible,
-        quoteRequests: form.quoteRequests,
-        signInVisible: form.signInVisible,
-        analyticsId: form.analyticsId.trim() || null,
-        analyticsConsent: form.analyticsConsent,
-      })
+      const result = await toastAction(
+        () =>
+          saveSiteSettings({
+            maintenance: form.maintenance,
+            message: form.message.trim() || null,
+            until: fromLocalInput(form.until),
+            signupOpen: form.signupOpen,
+            pricesVisible: form.pricesVisible,
+            quoteRequests: form.quoteRequests,
+            signInVisible: form.signInVisible,
+            analyticsId: form.analyticsId.trim() || null,
+            analyticsConsent: form.analyticsConsent,
+          }),
+        { loading: "Saving…", success: form.maintenance ? "Saved. PropFlow is in maintenance mode: only the PropFlow team can sign in." : "Saved." },
+      )
       if (result.fieldErrors) setErrors(result.fieldErrors)
-      else if (result.error) setNotice({ tone: "error", text: result.error })
-      else {
-        setNotice({ tone: "success", text: form.maintenance ? "Saved. PropFlow is in maintenance mode: only the PropFlow team can sign in." : "Saved." })
-        router.refresh()
-      }
+      else if (!result.error) router.refresh()
     })
 
   return (
@@ -95,7 +91,6 @@ export function SettingsView({ site, updatedAt, editable }) {
           )
         }
       />
-      {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
 
       <div className="max-w-3xl space-y-4">
         <Card

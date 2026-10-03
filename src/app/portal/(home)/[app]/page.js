@@ -1,7 +1,10 @@
-import { redirect } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
+import { platformDb } from "@/server/db/connections"
+import { live } from "@/server/db/records"
 import Link from "next/link"
 import { getPortal } from "@/modules/portal/server/context"
 import { NoAccess } from "@/modules/portal/components/no-access"
+import { codeForSlug } from "@/modules/portal/app-paths"
 import { AppIcon } from "@/components/app-icon"
 import { Button } from "@/components/ui/button"
 import { Icon } from "@/components/ui/icon"
@@ -9,16 +12,24 @@ import { Icon } from "@/components/ui/icon"
 export async function generateMetadata({ params }) {
   const { app } = await params
   const { apps } = await getPortal()
-  return { title: apps.find((a) => a.code === app)?.name ?? "App" }
+  return { title: apps.find((a) => a.code === codeForSlug(app))?.name ?? "App" }
 }
 
 // Stand-in for each app until it's ported; also stops direct links to apps the person can't open
 export default async function AppPage({ params }) {
-  const [{ app: code }, { apps, setupCompleted }] = await Promise.all([params, getPortal()])
+  const [{ app: slug }, { apps, setupCompleted }] = await Promise.all([params, getPortal()])
+  const code = codeForSlug(slug)
   if (!setupCompleted) redirect("/setup")
   const app = apps.find((a) => a.code === code)
 
-  if (!app) return <NoAccess />
+  if (!app) {
+    // A real PropFlow app they can't open: no access. Anything else (a typo, an old link): 404
+    const known = await live(platformDb(), "apps")
+      .where({ code: String(code).toLowerCase(), isActive: true })
+      .first("id")
+    if (!known) notFound()
+    return <NoAccess />
+  }
 
   return (
     <main className="px-4 py-8 sm:px-6 sm:py-10 lg:px-8">

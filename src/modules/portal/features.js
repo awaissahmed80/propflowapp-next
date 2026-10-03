@@ -1,12 +1,12 @@
 // Features inside each app, so a plan or a single workspace can have an app without some of its
-// parts (e.g. Estate Management without Resale & rentals). Each app has one core feature that
+// parts (e.g. Project Portfolio without Resale & rentals). Each app has one core feature that
 // can't be switched off. Plans and workspaces store only what's switched OFF (offFeatures), so
 // every feature is on unless someone took it away, and new features reach existing workspaces.
-// Feature ids are "app.key", e.g. "estate.resale". Used by the server, the browser and seeds, so
+// Feature ids are "app.key", e.g. "portfolio.resale". Used by the server, the browser and seeds, so
 // no path aliases here.
 
 export const APP_FEATURES = {
-  estate: [
+  portfolio: [
     { key: "projects", label: "Projects & inventory", core: true },
     { key: "price-lists", label: "Price lists & payment plans" },
     { key: "resale", label: "Resale & rentals" },
@@ -25,13 +25,13 @@ export const APP_FEATURES = {
     { key: "lead-forms", label: "Lead forms (website, Google Forms)" },
     { key: "landing-pages", label: "Landing pages" },
   ],
-  sales: [
+  operations: [
     { key: "bookings", label: "Bookings", core: true },
     { key: "installments", label: "Installment plans & schedules" },
     { key: "allotments", label: "Allotment letters" },
     { key: "dealers", label: "Dealer quotas & commissions" },
   ],
-  services: [
+  estate: [
     { key: "requests", label: "Service requests", core: true },
     { key: "transfers", label: "Ownership transfers" },
     { key: "ndc-possession", label: "NDC & possession" },
@@ -65,7 +65,7 @@ export const featureLabel = (id) => {
 // offFeatures as stored ([keys] for one app) → only optional keys that exist
 export const cleanOff = (app, off) => [...new Set((Array.isArray(off) ? off : []).filter((k) => optionalFeatures(app).some((f) => f.key === k)))]
 
-// "Estate Management without Resale & rentals"
+// "Project Portfolio without Resale & rentals"
 export const withoutText = (app, off) => {
   const names = cleanOff(app, off).map((k) => featuresOf(app).find((f) => f.key === k)?.label)
   return names.length ? `without ${names.join(", ")}` : ""
