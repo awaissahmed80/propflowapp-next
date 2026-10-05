@@ -14,5 +14,5 @@ export default async function ProjectPage({ params }) {
   const ctx = await estatePage(`/project-portfolio/projects/${code}`)
   const project = await getProject(ctx, code)
   if (!project) return <ProjectNotFound />
-  return <ProjectView project={project} canEdit={ctx.can("edit")} canCreate={ctx.can("create")} />
+  return <ProjectView project={project} canEdit={ctx.can("edit")} canCreate={ctx.can("create")} canDelete={ctx.can("delete")} />
 }

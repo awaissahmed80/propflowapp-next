@@ -1,5 +1,6 @@
 "use client"
 
+import { DataMenu } from "@/modules/data-io/components/data-menu"
 import { useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { formatDate, tenure } from "@/lib/format"
@@ -149,16 +150,21 @@ export function EmployeesView({ data, can }) {
           </>
         }
         actions={
-          can.create && (
+          (can.create || can.export) && (
             <>
-              <DropdownMenu
-                align="end"
-                items={[{ label: "Add everyone in Users & Teams", icon: "team-line", onClick: fromMembers }]}
-                trigger={<IconButton icon="more-2-line" variant="outline" aria-label="More" tooltip={false} />}
-              />
-              <Button leftIcon="user-add-line" onClick={() => setAdding(true)}>
-                New employee
-              </Button>
+              <DataMenu entity="employees" can={{ import: can.create, export: can.export }} />
+              {can.create && (
+                <DropdownMenu
+                  align="end"
+                  items={[{ label: "Add everyone in Users & Teams", icon: "team-line", onClick: fromMembers }]}
+                  trigger={<IconButton icon="more-2-line" variant="outline" aria-label="More" tooltip={false} />}
+                />
+              )}
+              {can.create && (
+                <Button leftIcon="user-add-line" onClick={() => setAdding(true)}>
+                  New employee
+                </Button>
+              )}
             </>
           )
         }

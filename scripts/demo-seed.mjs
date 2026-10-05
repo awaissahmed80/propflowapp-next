@@ -82,11 +82,11 @@ const PEOPLE = {
   "USR-0010": { role: "sales-agent" },
   "USR-0011": { role: "sales-agent" },
   "USR-0012": { role: "sales-agent" },
-  "USR-0013": { role: "accountant" },
+  "USR-0013": { role: "finance-manager" },
   "USR-0014": { role: "dealer" },
   "USR-0015": { role: "dealer" },
   "USR-0018": { role: "estate-officer", designation: "estate-officer", department: "estate-office" },
-  "USR-0019": { role: "estate-officer", designation: "site-engineer", department: "construction" },
+  "USR-0019": { role: "project-manager", designation: "site-engineer", department: "construction" },
 }
 // Designations and departments the Vite data uses beyond PropFlow's defaults
 const EXTRA_LOOKUPS = [

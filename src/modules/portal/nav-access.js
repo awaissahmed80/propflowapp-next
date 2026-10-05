@@ -5,6 +5,7 @@
 //   action: "create" | "edit" | "approve"… — that permission in this app
 //   grant: "hr.payroll" | ["hr.payroll", "hr.salaries"] — any of these grants (a choice grant set
 //          to "none", e.g. operations.commissions, counts as not granted)
+//   admin: true — administrators only (full access)
 //   setup: true — setup rights (owner, administrator or a settings permission: portal.canSetUp)
 //   any: [need, …] — instead of the above: passes when any one of them does
 // Full access ("*") passes everything. Items can also arrive already locked (locked, lockedReason).
@@ -17,6 +18,7 @@ const granted = (v) => Boolean(v) && v !== "none"
 export function meetsNeed(need, appCode, access, canSetUp) {
   if (need.any) return need.any.some((n) => meetsNeed(n, appCode, access, canSetUp))
   if (access.permissions?.includes("*")) return true
+  if (need.admin) return false
   if (need.setup && !canSetUp) return false
   if (need.action && !access.permissions?.includes(`${appCode}.${need.action}`)) return false
   const grants = [need.grant].flat().filter(Boolean)

@@ -144,7 +144,18 @@ export function DataTable({
                   )}
                 >
                   {selectable && (
-                    <td className="w-10 px-3 py-2.5">
+                    // The whole cell toggles the tick, never opens the row
+                    <td
+                      data-no-row-click
+                      className="w-10 cursor-default px-3 py-2.5"
+                      onClick={(e) => {
+                        if (e.target !== e.currentTarget) return
+                        const next = new Set(selectedIds)
+                        if (next.has(rowKey(row))) next.delete(rowKey(row))
+                        else next.add(rowKey(row))
+                        onSelectionChange(next)
+                      }}
+                    >
                       <BaseCheckbox
                         aria-label="Select row"
                         checked={selectedIds.has(rowKey(row))}

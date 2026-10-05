@@ -26,7 +26,7 @@ const INVITE_DAYS = 14
 
 // plans: active plans [{ id, name, priceMonthly, apps, off }]; defaults: { trialDays, yearlyMonths }
 // apps: sellable apps (for a custom package); initial: prefill (e.g. from a get-started lead),
-// may include package: { apps, off }
+// may include package: { apps, off }, billingCycle and price (a workspace request's quote)
 function InviteWorkspaceDialog({ plans, defaults, apps = [], initial = {}, onClose, onDone }) {
   const [form, setForm] = useState({
     contactName: initial.contactName ?? "",
@@ -34,10 +34,10 @@ function InviteWorkspaceDialog({ plans, defaults, apps = [], initial = {}, onClo
     phone: initial.phone ?? "",
     companyName: initial.companyName ?? "",
     planId: initial.planId ?? plans[0]?.id ?? null,
-    billingCycle: "monthly",
+    billingCycle: initial.billingCycle ?? "monthly",
     startAs: "trial",
     trialDays: defaults.trialDays,
-    price: null,
+    price: initial.price ?? null,
     note: initial.note ?? "",
   })
   // null: the plan's apps and features; { apps, off }: a custom package

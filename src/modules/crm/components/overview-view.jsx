@@ -1,5 +1,6 @@
 "use client"
 
+import { sameMonths } from "@/lib/format"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { toHex } from "@/lib/color"
@@ -88,7 +89,7 @@ function Stages({ stages }) {
 // New leads per week: columns with the count on hover; the latest week is labeled
 function Weeks({ weeks }) {
   const max = Math.max(1, ...weeks.map((w) => w.count))
-  const label = (d) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(new Date(`${d}T00:00:00`))
+  const label = (d) => sameMonths(new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(new Date(`${d}T00:00:00`)))
   return (
     <div className="px-5 pt-5 pb-4">
       <div className="flex h-40 items-end gap-1.5 border-b">

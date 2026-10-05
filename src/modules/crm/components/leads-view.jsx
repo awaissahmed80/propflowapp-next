@@ -27,6 +27,7 @@ import { LeadDialog, LogDialog } from "./lead-dialog"
 import { LeadForm } from "./lead-form"
 import { StatusChangeDialog } from "./status-change-dialog"
 import { ScoreBadge, ScoreRing } from "./lead-score"
+import { DataMenu } from "@/modules/data-io/components/data-menu"
 import { BulkActions } from "./bulk-actions"
 import { AgentChip, LeadStatusBadge, TempIcon, dueText, telHref, whatsappHref } from "./lead-parts"
 
@@ -496,6 +497,7 @@ export function LeadsView({ leads, agents, projects, me, access, brand, userName
                 { value: "board", label: "Board", icon: "kanban-view" },
               ]}
             />
+            <DataMenu entity="leads" can={{ import: access.create, export: access.export }} extra={["activities"]} />
             {access.create && (
               <Button leftIcon="add-line" onClick={() => setParam("new", "1")}>
                 New lead

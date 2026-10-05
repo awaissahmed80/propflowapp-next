@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button"
 import { Combobox } from "@/components/ui/combobox"
 import { Dialog } from "@/components/ui/dialog"
 import { DropdownMenu } from "@/components/ui/dropdown-menu"
+import { useDelete } from "@/modules/recycle-bin/components/use-delete"
 import { Icon } from "@/components/ui/icon"
 import { IconButton } from "@/components/ui/icon-button"
 import { Input } from "@/components/ui/input"
@@ -32,6 +33,7 @@ import { financeNav, rs } from "./money-parts"
 
 export function VendorsView({ vendors, fy, accounts, can }) {
   const router = useRouter()
+  const { remove } = useDelete("vendor")
   const categories = useList("vendor-category")
   const { title, description } = financeNav("/finance/vendors")
   const [q, setQ] = useState("")
@@ -152,6 +154,7 @@ export function VendorsView({ vendors, fy, accounts, can }) {
                 { label: "Edit", icon: "edit-line", onClick: () => setEditing(v) },
                 { type: "separator" },
                 v.isActive ? { label: "Deactivate", icon: "forbid-line", variant: "destructive", onClick: () => toggle(v) } : { label: "Reactivate", icon: "play-circle-line", onClick: () => toggle(v) },
+                ...(can.delete ? [{ label: "Delete vendor…", icon: "delete-bin-line", variant: "destructive", onClick: () => remove([v.code], { name: v.name, what: "vendor", onDone: () => router.refresh() }) }] : []),
               ]}
               trigger={<IconButton icon="more-2-line" aria-label="Actions" tooltip={false} />}
             />

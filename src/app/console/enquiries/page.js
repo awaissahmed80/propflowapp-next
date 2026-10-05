@@ -15,5 +15,5 @@ export default async function EnquiriesPage() {
         apps: apps.filter((a) => !a.alwaysOn && a.code !== "settings").map((a) => ({ code: a.code, name: a.name, icon: a.icon, color: a.color })),
       }))
     : null
-  return <EnquiriesView list={await listEnquiries()} invite={invite} />
+  return <EnquiriesView list={await listEnquiries()} invite={invite} canDiscard={staff.role === "owner"} />
 }

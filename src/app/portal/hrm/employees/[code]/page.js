@@ -35,6 +35,7 @@ export default async function EmployeePage({ params }) {
       can={{
         edit,
         create: ctx.can("create"),
+        delete: ctx.can("delete"),
         pay: Boolean(ctx.grant("hr.salaries")),
         approveLeave: Boolean(ctx.grant("hr.approve-leave")),
         payroll: ctx.has("payroll"),

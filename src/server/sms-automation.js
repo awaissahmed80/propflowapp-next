@@ -1,5 +1,6 @@
 import "server-only"
 import { live } from "@/server/db/records"
+import { sameMonths } from "@/lib/format"
 import { platformDb, tenantDb } from "@/server/db/connections"
 import { integrationOn } from "@/server/integrations"
 import { readSettings } from "@/modules/portal/server/setup"
@@ -27,7 +28,7 @@ export const inSendingHours = (now = new Date()) => {
 }
 
 const rs = (n) => `Rs ${Math.round(Number(n) || 0).toLocaleString("en-US")}`
-const dateText = (d) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(typeof d === "string" ? `${d.slice(0, 10)}T00:00:00Z` : d))
+const dateText = (d) => sameMonths(new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(typeof d === "string" ? `${d.slice(0, 10)}T00:00:00Z` : d)))
 
 export async function readAutomation(db) {
   const row = await db("settings").where({ key: SMS_AUTOMATION_KEY }).first("value")

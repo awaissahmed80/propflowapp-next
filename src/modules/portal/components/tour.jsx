@@ -111,7 +111,7 @@ export const LAUNCHER_TOUR = [
   { icon: "hand-heart-line", title: "Welcome to PropFlow", text: "Your workspace is ready. Here's a one-minute look around; you can replay this any time from your account menu." },
   { target: "desk", icon: "user-smile-line", title: "My Desk", text: "Your own corner: to-dos from every app, requests waiting for your sign-off and what you did recently. It's always here when you come back." },
   { target: "apps", icon: "apps-2-line", title: "Your apps", text: "Everything your plan includes, grouped by department: Estate, CRM, Operations, Finance and more. Click one to open it." },
-  { target: "spotlight", icon: "command-line", title: "Search everything", text: "Press ⌘K (Ctrl K on Windows) anywhere in PropFlow to search apps, and soon your leads, bookings and buyers too." },
+  { target: "spotlight", icon: "command-line", title: "Search everything", text: "Press ⌘K (Ctrl K on Windows) anywhere in PropFlow to jump to any app, lead, contact, project or employee." },
   { target: "critical", icon: "alarm-warning-line", title: "What needs you now", text: "Overdue follow-ups, approvals waiting on you and holds about to run out, from every app." },
   { target: "getting-started", icon: "rocket-2-line", title: "Finish setting up", text: "How much of your workspace setup is done. Continue opens the next step." },
   { target: "inbox", icon: "notification-3-line", title: "Messages & notifications", text: "Chat with your team and see approvals, reminders and updates from your apps." },

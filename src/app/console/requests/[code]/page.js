@@ -8,6 +8,7 @@ import { SectionCard } from "@/components/section-card"
 import { Badge } from "@/components/ui/badge"
 import { Icon } from "@/components/ui/icon"
 import { StatusBadge } from "@/modules/console/components/parts"
+import { DiscardButton } from "@/modules/console/components/deletion"
 import { fromUrlCode, urlCode } from "@/lib/url"
 
 const CATEGORY = byValue(REQUEST_CATEGORIES)
@@ -23,7 +24,7 @@ export async function generateMetadata({ params }) {
 // Replying, status and assignment come with the request actions
 export default async function RequestDetailPage({ params }) {
   const code = fromUrlCode((await params).code)
-  await requireArea("requests", `/requests/${urlCode(code)}`)
+  const staff = await requireArea("requests", `/requests/${urlCode(code)}`)
   const r = await getRequest(code)
   if (!r) notFound()
 
@@ -37,6 +38,7 @@ export default async function RequestDetailPage({ params }) {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-semibold tracking-tight">{r.subject}</h1>
+              {staff.role === "owner" && <DiscardButton kind="request" id={r.id} code={r.code} back="/requests" />}
               {r.priority === "urgent" && <Badge color="red">Urgent</Badge>}
             </div>
             <p className="mt-1 text-sm text-muted-foreground">

@@ -1,5 +1,6 @@
 "use client"
 
+import { sameMonths } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { toHex } from "@/lib/color"
 import { useList } from "@/modules/lookups/context"
@@ -97,7 +98,7 @@ export function dueText(at, now = Date.now()) {
   }
   if (pk(d) === today) return { text: `Today ${time}`, tone: "text-amber-600 dark:text-amber-400", today: true }
   if (pk(d) === tomorrow) return { text: `Tomorrow ${time}`, tone: "text-foreground" }
-  return { text: new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Karachi", weekday: "short", day: "numeric", month: "short" }).format(d), tone: "text-muted-foreground" }
+  return { text: sameMonths(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Karachi", weekday: "short", day: "numeric", month: "short" }).format(d)), tone: "text-muted-foreground" }
 }
 
 // tel: and WhatsApp links (with a friendly opening line)

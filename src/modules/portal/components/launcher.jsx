@@ -209,6 +209,9 @@ function DeskColumn({ user, role, tenant, desk, apps, greeting, today, setupStep
           <Button variant="outline" size="sm" leftIcon="user-3-line" nativeButton={false} render={<Link href="/profile" />}>
             Profile
           </Button>
+          <Button variant="outline" size="sm" leftIcon="book-open-line" nativeButton={false} render={<Link href="/guide" />}>
+            User guide
+          </Button>
         </div>
       </div>
 

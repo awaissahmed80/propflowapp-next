@@ -44,6 +44,14 @@ export function tenantDb(tenant) {
   return entry.db
 }
 
+// Close one workspace's pool (before its database is dropped)
+export async function closeTenantDb(tenant) {
+  const key = `${tenant.dbHost ?? ""}/${tenant.dbName}`
+  const entry = store.tenants.get(key)
+  store.tenants.delete(key)
+  if (entry) await entry.db.destroy().catch(() => {})
+}
+
 // Close tenant pools nobody has used for a while
 function sweep() {
   const now = Date.now()

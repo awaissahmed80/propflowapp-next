@@ -28,7 +28,13 @@ const CONSOLE_NAV = [
       { area: "billing", label: "Payment Methods", icon: "secure-payment-line", to: "/payment-methods" },
     ],
   },
-  { label: "Product", items: [{ area: "plans", label: "Plans & Pricing", icon: "vip-crown-line", to: "/plans" }] },
+  {
+    label: "Product",
+    items: [
+      { area: "plans", label: "Plans & Pricing", icon: "vip-crown-line", to: "/plans" },
+      { area: "plans", label: "Dynamic Pricing", icon: "price-tag-3-line", to: "/pricing" },
+    ],
+  },
   {
     label: "Platform",
     items: [
@@ -37,6 +43,7 @@ const CONSOLE_NAV = [
       { area: "settings", label: "Emails", icon: "mail-settings-line", to: "/emails" },
       { area: "settings", label: "Integrations", icon: "plug-line", to: "/integrations" },
       { area: "settings", label: "Settings", icon: "settings-3-line", to: "/settings" },
+      { area: "trash", label: "Deleted items", icon: "delete-bin-line", to: "/trash" },
     ],
   },
 ]

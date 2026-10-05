@@ -6,16 +6,22 @@ import { Button } from "@/components/ui/button"
 import { Icon } from "@/components/ui/icon"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
-import { BUSINESS_TYPES, NEEDS_FOR, NEED_GROUPS } from "../quote"
+import { BUSINESS_TYPES, NEEDS_FOR, NEED_GROUPS, packageFor } from "../quote"
 import { submitEnquiry } from "../server/actions"
+import { submitWorkspaceRequest } from "../server/request-actions"
+import { PackageEditor, rs, usePackageQuote } from "./pricing-builder"
 import { LegalLink } from "./legal"
 import { track } from "../track"
 
-// "Create workspace" on the website (prices hidden, get-started on): a step-by-step wizard right
-// in the page. What kind of business, then one plain question per area (leads, selling,
-// after-sale, finance, HR), and finally where to email them when their workspace is ready. For us it's a lead in the console (kind "quote") with the package their answers imply.
+// "Create workspace" on the website: a step-by-step wizard right in the page. What kind of
+// business, then one plain question per area (leads, selling, after-sale, finance, HR), and finally
+// where to email them when their workspace is ready. For us it's a lead in the console (kind
+// "quote") with the package their answers imply.
+// With dynamic pricing on (pricing: the builder config), a "Your package" step comes before the last
+// one: the apps their answers suggest, users and billing with the price as they change it, and the
+// request (kind "workspace") carries the package and the quoted price.
 
-const STEPS = [{ key: "business" }, ...NEED_GROUPS.map((g) => ({ key: g.title, group: g })), { key: "contact" }]
+const BASE_STEPS = [{ key: "business" }, ...NEED_GROUPS.map((g) => ({ key: g.title, group: g }))]
 
 function Choice({ on, icon, title, hint, onClick, role = "checkbox" }) {
   return (
@@ -41,8 +47,14 @@ function Choice({ on, icon, title, hint, onClick, role = "checkbox" }) {
   )
 }
 
-export function GetStartedWizard({ trialDays = 15 }) {
+export function GetStartedWizard({ trialDays = 15, pricing = null }) {
+  const STEPS = [...BASE_STEPS, ...(pricing ? [{ key: "package" }] : []), { key: "contact" }]
   const top = useRef(null)
+  // Their package (dynamic pricing): optional apps picked, users, billing; edited: they changed it
+  const optional = pricing ? pricing.catalog.filter((a) => !pricing.pricing.baseApps.includes(a.code) && pricing.pricing.appPrices[a.code] != null).map((a) => a.code) : []
+  const [pkg, setPkg] = useState({ apps: [], users: pricing?.pricing.baseUsers ?? 1, cycle: "monthly" })
+  const [pkgEdited, setPkgEdited] = useState(false)
+  const quote = usePackageQuote(pricing ?? { pricing: { baseApps: [], appPrices: {}, baseUsers: 1, maxUsers: 1, baseMonthly: 0, userPrice: 0 }, catalog: [], yearlyMonths: 12 }, pkg)
   const [step, setStep] = useState(0)
   const [form, setForm] = useState({ businessType: "", interests: [], name: "", company: "", email: "", phone: "", website: "", acceptTerms: false })
   const [touched, setTouched] = useState(false) // they changed the suggested answers themselves
@@ -55,7 +67,10 @@ export function GetStartedWizard({ trialDays = 15 }) {
     setErrors((e) => ({ ...e, ...Object.fromEntries(Object.keys(patch).map((k) => [k, undefined])) }))
   }
   const current = STEPS[step]
+  const suggested = packageFor(form.interests).apps.filter((c) => optional.includes(c))
   const go = (n) => {
+    // Reaching "Your package": the apps their answers suggest, unless they've picked their own
+    if (STEPS[n]?.key === "package" && !pkgEdited) setPkg((p) => ({ ...p, apps: suggested }))
     setStep(n)
     // Which steps people reach (and where they stop) in Google Analytics
     if (n > step) track("get_started_step", { step_number: n + 1, step_name: STEPS[n].group?.title ?? STEPS[n].key })
@@ -79,7 +94,7 @@ export function GetStartedWizard({ trialDays = 15 }) {
   const submit = () =>
     startTransition(async () => {
       setError("")
-      const r = await submitEnquiry({ ...form, kind: "quote", source: "Create workspace" })
+      const r = pricing ? await submitWorkspaceRequest({ ...form, needs: form.interests, apps: pkg.apps, users: pkg.users, cycle: pkg.cycle }) : await submitEnquiry({ ...form, kind: "quote", source: "Create workspace" })
       if (r.fieldErrors) {
         setErrors(r.fieldErrors)
         if (r.fieldErrors.businessType) go(0)
@@ -90,6 +105,20 @@ export function GetStartedWizard({ trialDays = 15 }) {
       }
     })
 
+  if (done && pricing)
+    return (
+      <div ref={top} className="mx-auto mt-10 max-w-2xl scroll-mt-24 rounded-2xl border bg-card p-8 text-center shadow-sm">
+        <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-500/10 text-3xl text-emerald-600">
+          <Icon name="mail-check-line" />
+        </span>
+        <h3 className="mt-4 text-xl font-semibold">Request sent, {form.name.split(" ")[0]}!</h3>
+        <p className="mt-2 text-muted-foreground">
+          We&apos;ll set up the workspace for {form.company || "your business"} with your package ({quote.users} users, {rs(pkg.cycle === "yearly" ? quote.cycleTotal : quote.monthly)}{" "}
+          {pkg.cycle === "yearly" ? "a year" : "a month"} before taxes), starting with a {trialDays}-day free trial, and email <span className="font-medium text-foreground">{form.email}</span> a link to sign in.
+        </p>
+        <p className="mt-3 text-sm text-muted-foreground">No payment now. We&apos;ve sent you a confirmation email.</p>
+      </div>
+    )
   if (done)
     return (
       <div ref={top} className="mx-auto mt-10 max-w-2xl scroll-mt-24 rounded-2xl border bg-card p-8 text-center shadow-sm">
@@ -107,7 +136,7 @@ export function GetStartedWizard({ trialDays = 15 }) {
 
   return (
     <>
-      <div ref={top} className="mx-auto mt-10 max-w-3xl scroll-mt-24 rounded-2xl border bg-card p-5 shadow-sm sm:p-8">
+      <div ref={top} className={cn("mx-auto mt-10 scroll-mt-24 rounded-2xl border bg-card p-5 shadow-sm sm:p-8", pricing ? "max-w-4xl" : "max-w-3xl")}>
         {/* Progress */}
         <div className="flex items-center gap-3">
           <div className="flex flex-1 gap-1">
@@ -155,6 +184,22 @@ export function GetStartedWizard({ trialDays = 15 }) {
                 ))}
               </div>
               {errors.interests && <p className="mt-2 text-[13px] text-destructive">{errors.interests}</p>}
+            </>
+          )}
+
+          {current.key === "package" && pricing && (
+            <>
+              <h3 className="text-xl font-semibold">Your package</h3>
+              <p className="mt-1 mb-5 text-sm text-muted-foreground">These apps cover what you picked. Add or remove any, set how many people will use PropFlow, and see the price as you go.</p>
+              <PackageEditor
+                config={pricing}
+                value={pkg}
+                suggested={suggested}
+                onChange={(next) => {
+                  setPkgEdited(true)
+                  setPkg(next)
+                }}
+              />
             </>
           )}
 

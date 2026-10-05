@@ -13,8 +13,15 @@ import { ENQUIRY_STATUSES } from "../statuses"
 import { businessType, need } from "@/modules/web/quote"
 import { AppIcon } from "@/components/app-icon"
 import { InviteWorkspaceButton } from "./workspace-invites"
+import { DiscardButton } from "./deletion"
 
-const KIND = { demo: { label: "Demo request", color: "violet" }, sales: { label: "Sales enquiry", color: "sky" }, trial: { label: "Trial request", color: "green" }, quote: { label: "Get started", color: "amber" } }
+const KIND = {
+  demo: { label: "Demo request", color: "violet" },
+  sales: { label: "Sales enquiry", color: "sky" },
+  trial: { label: "Trial request", color: "green" },
+  quote: { label: "Get started", color: "amber" },
+  workspace: { label: "Workspace request", color: "green" },
+}
 import { EmptyState, StatusBadge } from "./parts"
 
 const digits = (s) => (s ?? "").replace(/\D/g, "")
@@ -24,7 +31,97 @@ const intl = (phone) => {
   return d.startsWith("0") ? `92${d.slice(1)}` : d
 }
 
-function Detail({ e, invite }) {
+const rs = (n) => `Rs ${new Intl.NumberFormat("en-PK").format(Math.round(Number(n) || 0))}`
+
+// A request from the website's wizard with dynamic pricing: answers, package and quoted price,
+// and "Create workspace" on the Custom plan with that package and price
+function WorkspaceRequest({ e, invite }) {
+  const q = e.quote
+  return (
+    <div className="space-y-3 rounded-xl border border-green-500/30 bg-green-500/5 p-4">
+      <p className="flex items-center gap-2 text-sm font-medium">
+        <Icon name={businessType(e.businessType)?.icon ?? "briefcase-line"} className="text-base text-green-600 dark:text-green-400" />
+        {businessType(e.businessType)?.label ?? "Business"}
+      </p>
+      {e.needs?.length > 0 && (
+        <div>
+          <p className="mb-1.5 text-xs font-medium text-muted-foreground">Wants to</p>
+          <ul className="space-y-1">
+            {e.needs.map((v) => (
+              <li key={v} className="flex items-center gap-2 text-sm">
+                <Icon name={need(v)?.icon ?? "check-line"} className="text-muted-foreground" />
+                {need(v)?.label ?? v}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <div>
+        <p className="mb-1.5 text-xs font-medium text-muted-foreground">Their package</p>
+        <ul className="flex flex-wrap gap-1.5">
+          {(e.modules ?? []).map((m) => (
+            <li key={m.code} className="flex items-center gap-1.5 rounded-full border bg-background py-0.5 pr-2.5 pl-0.5 text-xs" title={m.without || undefined}>
+              {m.icon ? <AppIcon icon={m.icon} color={m.color} size="sm" className="size-5 rounded-full text-[10px]" /> : null}
+              {m.name}
+              {m.without && <span className="text-muted-foreground">*</span>}
+            </li>
+          ))}
+        </ul>
+        {(e.modules ?? []).some((m) => m.without) && (
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            *{" "}
+            {e.modules
+              .filter((m) => m.without)
+              .map((m) => `${m.name} ${m.without}`)
+              .join(" · ")}
+          </p>
+        )}
+      </div>
+      {q && (
+        <div className="rounded-lg bg-background p-3 text-sm">
+          <ul className="space-y-1">
+            {q.lines.map((l) => (
+              <li key={l.label} className="flex justify-between gap-3">
+                <span className="min-w-0 text-muted-foreground">{l.label}</span>
+                <span className="tabular-nums">{rs(l.amount)}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 flex justify-between border-t pt-2 font-semibold">
+            <span>
+              {e.users} users · {e.billingCycle === "yearly" ? `yearly (${q.months} months charged)` : "monthly"}
+            </span>
+            <span className="tabular-nums">{rs(q.cycleTotal)}</span>
+          </p>
+          <p className="text-right text-xs text-muted-foreground">{rs(q.monthly)} a month · before tax · as quoted on the website</p>
+        </div>
+      )}
+      {invite && e.package?.apps?.length > 0 && (
+        <InviteWorkspaceButton
+          plans={invite.plans}
+          defaults={invite.defaults}
+          apps={invite.apps}
+          label="Create workspace with this package"
+          size="sm"
+          leftIcon="add-circle-line"
+          initial={{
+            contactName: e.name,
+            email: e.email ?? "",
+            phone: e.phone ?? "",
+            companyName: e.company ?? "",
+            planId: e.customPlanId ?? undefined,
+            package: e.package,
+            billingCycle: e.billingCycle ?? "monthly",
+            price: q?.cycleTotal ?? null,
+            note: `From ${e.code}: ${e.users} users, as quoted on the website`,
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+function Detail({ e, invite, canDiscard = false }) {
   return (
     <div className="space-y-5 p-5">
       <div>
@@ -55,7 +152,9 @@ function Detail({ e, invite }) {
             Email
           </Button>
         )}
+        {canDiscard && <DiscardButton kind="enquiry" id={e.id} code={e.code} />}
       </div>
+      {e.kind === "workspace" && <WorkspaceRequest e={e} invite={invite} />}
       {e.kind === "quote" && (
         <div className="space-y-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
           <p className="flex items-center gap-2 text-sm font-medium">
@@ -110,9 +209,9 @@ function Detail({ e, invite }) {
       )}
       <dl className="grid grid-cols-2 gap-4 rounded-xl border p-4 text-sm sm:grid-cols-3">
         {[
-          ...(e.kind === "quote" ? [] : [["Plan", e.plan ?? "Not sure"]]),
+          ...(e.kind === "quote" || e.kind === "workspace" ? [] : [["Plan", e.plan ?? "Not sure"]]),
           ["Projects", e.projects ?? "—"],
-          ["Team", e.teamSize ? `${e.teamSize} people` : "—"],
+          ["Team", e.users ? `${e.users} users` : e.teamSize ? `${e.teamSize} people` : "—"],
           ["Best time to call", e.callTime ?? "—"],
           ["Assigned to", e.assignee?.name ?? "Unassigned"],
         ].map(([k, v]) => (
@@ -122,7 +221,7 @@ function Detail({ e, invite }) {
           </div>
         ))}
       </dl>
-      {e.kind !== "quote" && e.interests?.length > 0 && (
+      {!["quote", "workspace"].includes(e.kind) && e.interests?.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {e.interests.map((i) => (
             <span key={i} className="rounded-full bg-muted px-2.5 py-1 text-xs">
@@ -142,7 +241,7 @@ function Detail({ e, invite }) {
   )
 }
 
-export function EnquiriesView({ list, invite = null }) {
+export function EnquiriesView({ list, invite = null, canDiscard = false }) {
   const [status, setStatus] = useState("all")
   const [search, setSearch] = useState("")
   const [selected, setSelected] = useState(list[0]?.id ?? null)
@@ -223,7 +322,7 @@ export function EnquiriesView({ list, invite = null }) {
               <button type="button" onClick={() => setMobileDetail(false)} className="flex items-center gap-1 px-5 pt-4 text-sm text-muted-foreground hover:text-foreground lg:hidden">
                 <Icon name="arrow-left-line" /> All enquiries
               </button>
-              {current ? <Detail key={current.id} e={current} invite={invite} /> : <p className="p-10 text-center text-sm text-muted-foreground">Pick an enquiry.</p>}
+              {current ? <Detail key={current.id} e={current} invite={invite} canDiscard={canDiscard} /> : <p className="p-10 text-center text-sm text-muted-foreground">Pick an enquiry.</p>}
             </ScrollView>
           </div>
         </>

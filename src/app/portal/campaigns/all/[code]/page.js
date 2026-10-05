@@ -27,5 +27,5 @@ export default async function CampaignPage({ params }) {
   const pageUrl = (slug) => siteUrl("campaigns", `/${ctx.tenant.slug}/${slug}`)
   const pages = campaign.pages.map((p) => ({ ...p, url: pageUrl(p.slug) }))
   const meta = await campaignMetaForms(ctx, code)
-  return <CampaignDetail campaign={{ ...campaign, pages }} meta={meta} baseUrl={pageUrl(slugify(campaign.name))} canEdit={ctx.can("edit")} />
+  return <CampaignDetail campaign={{ ...campaign, pages }} meta={meta} baseUrl={pageUrl(slugify(campaign.name))} canEdit={ctx.can("edit")} canDelete={ctx.can("delete")} />
 }

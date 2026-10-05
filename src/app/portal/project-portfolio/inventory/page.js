@@ -9,5 +9,5 @@ export const metadata = { title: "Inventory" }
 export default async function InventoryPage() {
   const ctx = await estatePage("/project-portfolio/inventory")
   const [units, tree, dealers] = await Promise.all([listInventory(ctx), projectTree(ctx), activeDealers(ctx)])
-  return <InventoryView units={units} tree={tree} dealers={dealers} canEdit={ctx.can("edit")} canCreate={ctx.can("create")} />
+  return <InventoryView units={units} tree={tree} dealers={dealers} canEdit={ctx.can("edit")} canCreate={ctx.can("create")} canExport={ctx.can("export")} canDelete={ctx.can("delete")} />
 }

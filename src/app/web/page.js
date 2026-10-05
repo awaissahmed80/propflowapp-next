@@ -11,6 +11,7 @@ import { FeatureTabs } from "@/modules/web/components/features"
 import { Header } from "@/modules/web/components/header"
 import { PricingPlans } from "@/modules/web/components/pricing"
 import { GetStartedWizard } from "@/modules/web/components/get-started"
+import { getDynamicPricing } from "@/server/dynamic-pricing"
 import { Screen } from "@/modules/web/components/screen"
 import { Maintenance } from "@/modules/web/components/maintenance"
 import { LegalLink } from "@/modules/web/components/legal"
@@ -311,6 +312,22 @@ function Apps() {
   )
 }
 
+// Dynamic pricing on (console › Plans & Pricing): the create-workspace wizard with a "Your package"
+// step that prices what their answers need (they can change it), then the request
+function DynamicPricing({ config }) {
+  return (
+    <Section id="get-started" className="bg-muted/40">
+      <Heading
+        center
+        eyebrow="Pricing"
+        title="A package made for your business"
+        text={`Answer a few quick questions and we'll suggest the apps you need, priced as you go. Pay only for what you use, starting with a ${config.trialDays}-day free trial.`}
+      />
+      <GetStartedWizard trialDays={config.trialDays} pricing={config} />
+    </Section>
+  )
+}
+
 function Pricing({ pricing, quoteMode }) {
   const notes = [
     `${pricing.trialDays}-day free trial on every plan, no card needed`,
@@ -449,20 +466,34 @@ export default async function HomePage({ searchParams }) {
   await connection()
   const site = await getSiteSettings()
   if (site.maintenance) return <Maintenance message={site.message} until={site.until} />
-  const [pricing, { request }] = await Promise.all([publicPricing({ showPrices: site.pricesVisible }), searchParams])
+  const [pricing, { request }, dynamic] = await Promise.all([publicPricing({ showPrices: site.pricesVisible }), searchParams, getDynamicPricing()])
+  // Dynamic pricing: the wizard with prices (a "Your package" step) replaces the plans
+  const builder =
+    dynamic.mode === "dynamic"
+      ? {
+          pricing: dynamic.pricing,
+          catalog: dynamic.catalog.filter((a) => dynamic.pricing.baseApps.includes(a.code) || dynamic.pricing.appPrices[a.code] != null),
+          yearlyMonths: dynamic.yearlyMonths,
+          trialDays: dynamic.trialDays,
+        }
+      : null
   // With prices hidden the section is about what each plan includes
   // Prices hidden with the get-started wizard on: no plans, just the modules they pick
-  const quoteMode = !site.pricesVisible && site.quoteRequests
-  const nav = site.pricesVisible ? m.nav : m.nav.map((n) => (n.href === "#pricing" ? (quoteMode ? { href: "#get-started", label: "Get started" } : { ...n, label: "Plans" }) : n))
+  const quoteMode = !builder && !site.pricesVisible && site.quoteRequests
+  const nav = builder
+    ? m.nav.map((n) => (n.href === "#pricing" ? { href: "#get-started", label: "Pricing" } : n))
+    : site.pricesVisible
+      ? m.nav
+      : m.nav.map((n) => (n.href === "#pricing" ? (quoteMode ? { href: "#get-started", label: "Get started" } : { ...n, label: "Plans" }) : n))
   // Links like /?request=trial (from the sign-up page) open that form on arrival
   const initial = ["trial", "sales", "quote"].includes(request) ? { kind: request, source: "Link" } : null
   return (
-    <EnquiryProvider trialDays={pricing.trialDays} signupOpen={site.signupOpen} quote={quoteMode} initial={initial}>
-      <StructuredData pricing={pricing} />
+    <EnquiryProvider trialDays={pricing.trialDays} signupOpen={site.signupOpen} quote={quoteMode || Boolean(builder)} initial={initial}>
+      <StructuredData pricing={builder ? { ...pricing, showPrices: true, plans: [{ monthly: builder.pricing.baseMonthly }] } : pricing} />
       <div data-site="web" className="min-h-svh overflow-x-clip bg-background text-foreground">
         <Header nav={nav} showSignIn={site.signInVisible} />
         <main>
-          <Hero trialDays={pricing.trialDays} showPrices={pricing.showPrices} quoteMode={quoteMode} />
+          <Hero trialDays={pricing.trialDays} showPrices={pricing.showPrices || Boolean(builder)} quoteMode={quoteMode || Boolean(builder)} />
           <BuiltFor />
           <Pains />
           <Different />
@@ -470,7 +501,7 @@ export default async function HomePage({ searchParams }) {
           <Builder />
           <Local />
           <Apps />
-          <Pricing pricing={pricing} quoteMode={quoteMode} />
+          {builder ? <DynamicPricing config={builder} /> : <Pricing pricing={pricing} quoteMode={quoteMode} />}
           <Trust />
           <Faq />
           <Cta signupOpen={site.signupOpen} trialDays={pricing.trialDays} showPrices={pricing.showPrices} quoteMode={quoteMode} />

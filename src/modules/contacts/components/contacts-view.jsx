@@ -1,5 +1,6 @@
 "use client"
 
+import { DataMenu } from "@/modules/data-io/components/data-menu"
 import Link from "next/link"
 import { useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
@@ -208,7 +209,8 @@ export function ContactsView({ rows, total, page, type = null, can, workspace, m
           info={filtered ? `${visible.length.toLocaleString()} shown` : null}
           actions={
             <>
-              {can.export && <IconButton icon="file-excel-2-line" variant="outline" tooltip="Export to Excel" disabled={!visible.length || exporting} onClick={exportExcel} />}
+              {can.export && <IconButton icon="file-excel-2-line" variant="outline" tooltip="Export what's shown to Excel" disabled={!visible.length || exporting} onClick={exportExcel} />}
+              <DataMenu entity="contacts" can={{ import: can.create, export: can.export }} />
               {can.create && (
                 <Button leftIcon="user-add-line" onClick={() => setAdding(true)}>
                   New contact

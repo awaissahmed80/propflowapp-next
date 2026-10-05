@@ -8,5 +8,5 @@ export default async function FinanceVendorsPage() {
   const ctx = await financePage("/finance/vendors", "vendors")
   const edit = ctx.can("edit")
   const [{ vendors, fy }, accounts] = await Promise.all([vendorRegister(ctx), ctx.can("create") || edit ? chargeAccounts(ctx) : []])
-  return <VendorsView vendors={vendors} fy={fy} accounts={accounts} can={{ create: ctx.can("create"), edit }} />
+  return <VendorsView vendors={vendors} fy={fy} accounts={accounts} can={{ create: ctx.can("create"), edit, delete: ctx.can("delete") }} />
 }

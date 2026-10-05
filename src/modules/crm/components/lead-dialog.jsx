@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { urlCode } from "@/lib/url"
-import { formatDateTime, formatPkr, timeAgo } from "@/lib/format"
+import { formatDateTime, formatPkr, sameMonths, timeAgo } from "@/lib/format"
 import { formatPkPhone } from "@/lib/phone"
 import { toHex } from "@/lib/color"
 import { useList } from "@/modules/lookups/context"
@@ -31,6 +31,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tooltip } from "@/components/ui/tooltip"
 import { ToggleGroup } from "@/components/ui/toggle-group"
 import { PAYMENT_PLANS, PURPOSES, budgetText, interestText } from "../constants"
+import { useDelete } from "@/modules/recycle-bin/components/use-delete"
 import { archiveLeads, assignLeads, loadLead, sendLeadEmail, logLeadActivity, planLeadActivity, setLeadPriority, setLeadStatus, updatePlannedActivity } from "../server/leads"
 import { LeadForm } from "./lead-form"
 import { ContactCardButton } from "./contact-card"
@@ -679,6 +680,16 @@ export function LeadDialog({ code, agents, projects, access, me, onClose, onOpen
   const archived = Boolean(lead?.archivedAt)
   const canEdit = access.edit && !archived
   const [archiving, setArchiving] = useState(false) // the "Archive lead?" dialog
+  const { remove } = useDelete("lead")
+  const deleteLead = () =>
+    remove([lead.code], {
+      name: lead.name,
+      what: "lead",
+      onDone: () => {
+        onClose()
+        router.refresh()
+      },
+    })
   const archive = (on, note = "") =>
     run(
       () => archiveLeads([lead.code], { archive: on, note }),
@@ -761,6 +772,7 @@ export function LeadDialog({ code, agents, projects, access, me, onClose, onOpen
                       ]),
                   { type: "separator" },
                   { label: "Archive lead…", icon: "archive-line", onClick: () => setArchiving(true) },
+                  ...(access.delete ? [{ label: "Delete lead…", icon: "delete-bin-line", variant: "destructive", onClick: deleteLead }] : []),
                 ]}
                 trigger={<IconButton icon="more-2-line" size="sm" aria-label="More" tooltip={false} />}
               />
@@ -1149,7 +1161,7 @@ function dueWhen(at) {
   const pk = (x) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi" }).format(x)
   const time = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Karachi", hour: "numeric", minute: "2-digit" }).format(d)
   const day = { [pk(new Date())]: "today", [pk(new Date(Date.now() + 86_400_000))]: "tomorrow", [pk(new Date(Date.now() - 86_400_000))]: "yesterday" }[pk(d)]
-  return `${day ?? `on ${new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Karachi", weekday: "short", day: "numeric", month: "short" }).format(d)}`} at ${time}`
+  return `${day ?? `on ${sameMonths(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Karachi", weekday: "short", day: "numeric", month: "short" }).format(d))}`} at ${time}`
 }
 
 // The next planned step, a slim two-line bar under the tabs, colored by urgency: Done, or

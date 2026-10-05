@@ -216,12 +216,13 @@ export async function platformMetrics() {
 }
 
 // Enquiries, newest first. Quote requests also get the modules they asked for (by name) and the
-// smallest public plan that includes all of them.
+// smallest public plan that includes all of them; workspace requests (dynamic pricing) their
+// package, users, cycle and quoted price.
 export async function listEnquiries() {
   const db = platformDb()
   const rows = await live(db, "enquiries").orderBy("createdAt", "desc")
   const people = await usersByIds(rows.map((r) => r.assignedTo))
-  const quotes = rows.some((r) => r.kind === "quote")
+  const quotes = rows.some((r) => ["quote", "workspace"].includes(r.kind))
   const [apps, plans, planApps] = quotes
     ? await Promise.all([
         live(db, "apps").select("code", "name", "icon", "color"),
@@ -229,6 +230,8 @@ export async function listEnquiries() {
         db("planApps as pa").join("apps as a", "a.id", "pa.appId").select("pa.planId", "a.code", "pa.offFeatures"),
       ])
     : [[], [], []]
+  // Workspace requests (dynamic pricing) are set up on the hidden Custom plan
+  const customPlan = rows.some((r) => r.kind === "workspace") ? await live(db, "plans").where({ code: "custom" }).first("id") : null
   // The cheapest public plan that has every app they need, without any wanted feature switched off
   const suggest = (needs) => {
     const wanted = featuresFor(needs)
@@ -244,6 +247,18 @@ export async function listEnquiries() {
   }
   return rows.map((r) => {
     const out = { ...r, assignee: people.get(r.assignedTo) ?? null }
+    if (r.kind === "workspace") {
+      // From the website's wizard with dynamic pricing: their package and the quoted price
+      const pkg = typeof r.package === "string" ? JSON.parse(r.package) : (r.package ?? { apps: [], off: {} })
+      return {
+        ...out,
+        needs: r.interests ?? [],
+        package: pkg,
+        quote: typeof r.quote === "string" ? JSON.parse(r.quote) : r.quote,
+        modules: pkg.apps.map((c) => ({ ...(apps.find((a) => a.code === c) ?? { code: c, name: c }), without: withoutText(c, pkg.off?.[c]) })),
+        customPlanId: customPlan?.id ?? null,
+      }
+    }
     if (r.kind !== "quote") return out
     const needs = r.interests ?? []
     const pkg = packageFor(needs)
@@ -412,5 +427,46 @@ export async function invoiceSuggestion(tenantId) {
       { description: `${plan.name} plan, ${cycle}${cycle === "yearly" ? ` (${yearlyMonths} months charged)` : ""}`, quantity: 1, unitPrice: price },
       ...extras.map((a) => ({ description: `Extra app: ${a.name}`, quantity: 1, unitPrice: 0 })),
     ],
+  }
+}
+
+// Console › Deleted items: deleted workspaces (with why, from the audit log), discarded enquiries
+// and workspace requests, newest first
+export async function listDeleted() {
+  const db = platformDb()
+  const [tenants, enquiries, requests] = await Promise.all([
+    db("tenants as t").leftJoin("plans as p", "p.id", "t.planId").whereNotNull("t.deletedAt").orderBy("t.deletedAt", "desc").select("t.id", "t.code", "t.name", "t.deletedAt", "t.deletedBy", "p.name as plan"),
+    db("enquiries").whereNotNull("deletedAt").orderBy("deletedAt", "desc").limit(200).select("id", "code", "name", "company", "kind", "deletedAt", "deletedBy"),
+    db("supportRequests as r")
+      .leftJoin("tenants as t", "t.id", "r.tenantId")
+      .whereNotNull("r.deletedAt")
+      .orderBy("r.deletedAt", "desc")
+      .limit(200)
+      .select("r.id", "r.code", "r.subject", "r.deletedAt", "r.deletedBy", "t.name as workspace"),
+  ])
+  const ids = tenants.map((t) => t.id)
+  const [members, reasons] = await Promise.all([
+    ids.length ? authDb()("memberships").whereIn("tenantId", ids).whereNull("deletedAt").groupBy("tenantId").select("tenantId").count({ n: "*" }) : [],
+    ids.length ? db("auditLog").where({ action: "tenant.deleted" }).whereIn("tenantId", ids).orderBy("id", "desc").select("tenantId", "details") : [],
+  ])
+  const people = await usersByIds([...tenants, ...enquiries, ...requests].map((x) => x.deletedBy))
+  const reasonOf = (id) => {
+    const d = reasons.find((r) => r.tenantId === id)?.details
+    const s = (typeof d === "string" ? JSON.parse(d) : d)?.summary ?? ""
+    return s.includes(": ") ? s.slice(s.indexOf(": ") + 2) : null
+  }
+  return {
+    workspaces: tenants.map((t) => ({
+      id: t.id,
+      code: t.code,
+      name: t.name,
+      plan: t.plan,
+      members: Number(members.find((m) => m.tenantId === t.id)?.n ?? 0),
+      deletedAt: t.deletedAt,
+      deletedBy: people.get(t.deletedBy)?.name ?? null,
+      reason: reasonOf(t.id),
+    })),
+    enquiries: enquiries.map((e) => ({ id: e.id, code: e.code, title: e.company || e.name, detail: e.name, deletedAt: e.deletedAt, deletedBy: people.get(e.deletedBy)?.name ?? null })),
+    requests: requests.map((r) => ({ id: r.id, code: r.code, title: r.subject ?? "Request", detail: r.workspace, deletedAt: r.deletedAt, deletedBy: people.get(r.deletedBy)?.name ?? null })),
   }
 }
