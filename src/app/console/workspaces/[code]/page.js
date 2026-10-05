@@ -58,7 +58,8 @@ export default async function WorkspaceDetailPage({ params }) {
   const [t, { plans, apps }, yearlyMonths, taxRate] = await Promise.all([getWorkspace(code), listPlans(), getSetting("yearly_months_charged", 10), getSetting("sales_tax_rate", 0)])
   if (!t) notFound()
   const integrations = await workspaceIntegrationsAdmin(t.id)
-  const allowed = { workspaces: can(staff.role, "workspaces"), billing: can(staff.role, "billing") }
+  // delete: the platform owner only (soft first; removed for good from Deleted items)
+  const allowed = { workspaces: can(staff.role, "workspaces"), billing: can(staff.role, "billing"), delete: staff.role === "owner" }
   // Sign in as a member: owner, admin and support staff, while the workspace is open
   const impersonate = canImpersonate(staff.role) && ["trial", "active", "past_due"].includes(t.status)
 

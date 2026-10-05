@@ -57,7 +57,7 @@ export function matches(rule, lead, projectCodes) {
 }
 
 // The people a rule hands leads to, in a fixed order, active only
-function candidates(rule, agents) {
+export function candidates(rule, agents) {
   const active = agents.map((a) => a.id)
   if (rule.assignTo === "agent") return active.includes(rule.agentId) ? [rule.agentId] : []
   if (rule.assignTo === "team")
@@ -69,7 +69,7 @@ function candidates(rule, agents) {
 }
 
 // Next in a rotation after `last`, skipping `exclude`
-const nextAfter = (ids, last, exclude) => {
+export const nextAfter = (ids, last, exclude) => {
   const pool = ids.filter((id) => id !== exclude)
   return pool.find((id) => id > (last ?? 0)) ?? pool[0] ?? null
 }

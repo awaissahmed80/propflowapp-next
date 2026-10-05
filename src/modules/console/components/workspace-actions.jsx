@@ -1,5 +1,6 @@
 "use client"
 
+import { DeleteWorkspaceDialog } from "./deletion"
 import { useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { formatAmount } from "@/lib/format"
@@ -322,7 +323,7 @@ export function WorkspaceActions({ t, apps, planApps, plans, yearlyMonths, can }
             }
           />
         )}
-        {(can.workspaces || can.billing) && (
+        {(can.workspaces || can.billing || can.delete) && (
           <DropdownMenu
             align="end"
             items={[
@@ -336,6 +337,7 @@ export function WorkspaceActions({ t, apps, planApps, plans, yearlyMonths, can }
                       : { label: "Suspend workspace", icon: "pause-circle-line", variant: "destructive", onClick: () => setDialog("suspend") },
                   ]
                 : []),
+              ...(can.delete ? [{ type: "separator" }, { label: "Delete workspace…", icon: "delete-bin-line", variant: "destructive", onClick: () => setDialog("delete") }] : []),
             ]}
             trigger={<Button variant="outline" size="icon" aria-label="More actions" leftIcon="more-2-line" />}
           />
@@ -346,6 +348,7 @@ export function WorkspaceActions({ t, apps, planApps, plans, yearlyMonths, can }
       {dialog === "date" && <DateDialog t={t} trial={trial} onClose={() => setDialog(null)} onDone={done} />}
       {dialog === "plan" && <PlanDialog t={t} plans={plans} yearlyMonths={yearlyMonths} onClose={() => setDialog(null)} onDone={done} />}
       {dialog === "suspend" && <SuspendDialog t={t} onClose={() => setDialog(null)} onDone={done} />}
+      {dialog === "delete" && <DeleteWorkspaceDialog t={t} onClose={() => setDialog(null)} />}
     </div>
   )
 }

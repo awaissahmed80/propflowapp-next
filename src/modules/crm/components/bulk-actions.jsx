@@ -15,6 +15,7 @@ import { Icon } from "@/components/ui/icon"
 import { OPEN_STEPS, budgetText, interestText } from "../constants"
 import { archiveLeads, assignLeads, setLeadsPriority, setLeadsStatus } from "../server/leads"
 import { ArchiveDialog } from "./lead-dialog"
+import { useDelete } from "@/modules/recycle-bin/components/use-delete"
 import { StatusChangeDialog } from "./status-change-dialog"
 import { formatPkr } from "@/lib/format"
 
@@ -30,6 +31,7 @@ export function BulkActions({ picked, archivedTab, access, agents, me, brand, us
   const codes = picked.map((l) => l.code)
   const n = picked.length
   const many = `${n} ${n === 1 ? "lead" : "leads"}`
+  const { remove, deleting } = useDelete("lead")
 
   const act = (fn, done) =>
     startTransition(async () => {
@@ -165,9 +167,24 @@ export function BulkActions({ picked, archivedTab, access, agents, me, brand, us
               Restore
             </Button>
           )}
-          <Button size="sm" variant="outline" leftIcon="download-2-line" onClick={() => setDialog({ kind: "export" })}>
-            Export
-          </Button>
+          {access.delete && (
+            <Button
+              size="sm"
+              variant="outline"
+              leftIcon="delete-bin-line"
+              className="text-red-600 hover:text-red-600 dark:text-red-400"
+              loading={deleting}
+              disabled={pending}
+              onClick={() => remove(codes, { name: n === 1 ? picked[0].name : undefined, what: "lead", onDone: (r) => onDone({ tone: "success", text: `${leadsWord(r.count)} moved to the recycle bin.` }) })}
+            >
+              Delete
+            </Button>
+          )}
+          {access.export && (
+            <Button size="sm" variant="outline" leftIcon="download-2-line" onClick={() => setDialog({ kind: "export" })}>
+              Export
+            </Button>
+          )}
         </div>
       </div>
 

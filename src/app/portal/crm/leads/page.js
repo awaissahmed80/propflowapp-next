@@ -28,6 +28,8 @@ export default async function LeadsPage({ searchParams }) {
       access={{
         create: ctx.can("create"),
         edit: ctx.can("edit"),
+        export: ctx.can("export"),
+        delete: ctx.can("delete"),
         reassign: ctx.canReassign,
         scope: ctx.scope,
         statusNote: prefs.statusNote,

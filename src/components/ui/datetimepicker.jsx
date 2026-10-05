@@ -1,5 +1,6 @@
 "use client"
 
+import { sameMonths } from "@/lib/format"
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { cn } from "cn"
 import { Icon } from "./icon"
@@ -57,7 +58,7 @@ export function formatDisplayTime(hours24, minutes, timeFormat = "12h") {
   return `${pad(hour12)}:${pad(minutes)} ${period}`
 }
 
-const displayDate = (d) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(d)
+const displayDate = (d) => sameMonths(new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(d))
 const sameDay = (a, b) => a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
 

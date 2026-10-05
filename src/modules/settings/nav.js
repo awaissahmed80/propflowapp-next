@@ -17,6 +17,13 @@ export const SETTINGS_NAV = [
     ],
   },
   {
+    label: "Data",
+    items: [
+      { label: "Import & Export", icon: "arrow-up-down-line", to: "/settings/import-export", description: "Bring data in from Excel or CSV and take it out again: leads and their history, contacts, units, employees" },
+      { label: "Recycle Bin", icon: "delete-bin-line", to: "/settings/recycle-bin", need: { admin: true }, description: "Deleted records from every app: restore them, or delete them permanently" },
+    ],
+  },
+  {
     label: "Connections",
     items: [
       { label: "Integrations", icon: "plug-line", to: "/settings/integrations", description: "Third-party services connected to this workspace: ads, messaging and payments" },

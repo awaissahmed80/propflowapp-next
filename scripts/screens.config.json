@@ -136,7 +136,12 @@
       },
       {
         "id": "columns",
-        "rect": [288, 142, 1152, 46]
+        "rect": [
+          288,
+          142,
+          1152,
+          46
+        ]
       }
     ]
   },
@@ -153,7 +158,12 @@
       },
       {
         "id": "header",
-        "rect": [858, 195, 545, 82]
+        "rect": [
+          858,
+          195,
+          545,
+          82
+        ]
       },
       {
         "id": "followups",
@@ -239,11 +249,21 @@
       },
       {
         "id": "receipts",
-        "rect": [282, 458, 716, 252]
+        "rect": [
+          282,
+          458,
+          716,
+          252
+        ]
       },
       {
         "id": "cleared",
-        "rect": [1040, 694, 392, 46]
+        "rect": [
+          1040,
+          694,
+          392,
+          46
+        ]
       }
     ]
   },
@@ -304,7 +324,12 @@
       },
       {
         "id": "ndc",
-        "rect": [295, 630, 738, 52]
+        "rect": [
+          295,
+          630,
+          738,
+          52
+        ]
       },
       {
         "id": "blocker",
@@ -375,6 +400,470 @@
         "find": "Booking cancellation",
         "to": "Rs 98.33 Lac",
         "pad": 10
+      }
+    ]
+  },
+  {
+    "id": "guide-leads",
+    "path": "/crm/leads",
+    "callouts": [
+      {
+        "id": "tabs",
+        "rect": [
+          660,
+          108,
+          390,
+          40
+        ]
+      },
+      {
+        "id": "find",
+        "find": "Filters",
+        "within": "button"
+      },
+      {
+        "id": "select",
+        "rect": [
+          290,
+          188,
+          40,
+          620
+        ]
+      },
+      {
+        "id": "row",
+        "find": "Asif Raza",
+        "within": "tr",
+        "pad": 2
+      },
+      {
+        "id": "add",
+        "find": "Import / Export",
+        "within": "button",
+        "to": "New lead",
+        "pad": 8,
+        "toWithin": "button"
+      }
+    ]
+  },
+  {
+    "id": "guide-follow-ups",
+    "path": "/crm/follow-ups",
+    "callouts": [
+      {
+        "id": "who",
+        "find": "Mine",
+        "within": "button",
+        "to": "Everyone",
+        "toWithin": "button"
+      },
+      {
+        "id": "row",
+        "find": "Bilal Mirza",
+        "within": "li",
+        "pad": 2
+      },
+      {
+        "id": "done",
+        "find": "Done",
+        "within": "button",
+        "pad": 8
+      }
+    ],
+    "before": "[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Everyone')?.click()"
+  },
+  {
+    "id": "guide-forms",
+    "path": "/campaigns/forms/frm-0001",
+    "callouts": [
+      {
+        "id": "stats",
+        "find": "Views",
+        "within": ".rounded-xl"
+      },
+      {
+        "id": "tabs",
+        "find": "Build",
+        "within": "[role=tablist]"
+      },
+      {
+        "id": "preview",
+        "rect": [
+          1000,
+          330,
+          412,
+          560
+        ]
+      },
+      {
+        "id": "status",
+        "find": "Pause",
+        "within": "button",
+        "to": "Saved",
+        "toWithin": "button"
+      }
+    ]
+  },
+  {
+    "id": "guide-bookings",
+    "path": "/operations/bookings",
+    "callouts": [
+      {
+        "id": "search",
+        "rect": [
+          410,
+          84,
+          450,
+          46
+        ]
+      },
+      {
+        "id": "stage",
+        "rect": [
+          940,
+          170,
+          140,
+          640
+        ]
+      },
+      {
+        "id": "new",
+        "find": "New booking",
+        "within": "button"
+      }
+    ]
+  },
+  {
+    "id": "guide-commissions",
+    "path": "/operations/commissions",
+    "callouts": []
+  },
+  {
+    "id": "guide-transfers",
+    "path": "/estate-management/transfers",
+    "callouts": [
+      {
+        "id": "tabs",
+        "rect": [
+          418,
+          90,
+          310,
+          34
+        ]
+      },
+      {
+        "id": "checklist",
+        "rect": [
+          955,
+          170,
+          120,
+          390
+        ]
+      },
+      {
+        "id": "new",
+        "find": "New transfer",
+        "within": "button"
+      }
+    ]
+  },
+  {
+    "id": "guide-vouchers",
+    "path": "/finance/vouchers",
+    "callouts": [
+      {
+        "id": "waiting",
+        "find": "Waiting for approval"
+      },
+      {
+        "id": "new",
+        "find": "New voucher",
+        "within": "button"
+      },
+      {
+        "id": "types",
+        "rect": [
+          410,
+          170,
+          170,
+          640
+        ]
+      }
+    ]
+  },
+  {
+    "id": "guide-employees",
+    "path": "/hrm/employees",
+    "callouts": []
+  },
+  {
+    "id": "guide-employee",
+    "path": "/hrm/employees/emp-00001",
+    "callouts": [
+      {
+        "id": "actions",
+        "find": "Apply for leave",
+        "within": "button",
+        "to": "Edit",
+        "toWithin": "button"
+      },
+      {
+        "id": "salary",
+        "find": "Salary",
+        "within": ".rounded-xl"
+      },
+      {
+        "id": "leave",
+        "find": "Leave in 2026",
+        "within": ".rounded-xl"
+      },
+      {
+        "id": "personal",
+        "find": "Personal",
+        "within": ".rounded-xl"
+      }
+    ]
+  },
+  {
+    "id": "guide-payroll",
+    "path": "/hrm/payroll/pr-2025-10",
+    "callouts": [
+      {
+        "id": "totals",
+        "find": "People",
+        "within": ".rounded-xl",
+        "to": "Net pay",
+        "toWithin": ".rounded-xl"
+      },
+      {
+        "id": "files",
+        "find": "Voucher BPV",
+        "within": "button",
+        "to": "Payslips",
+        "toWithin": "button"
+      },
+      {
+        "id": "table",
+        "rect": [
+          288,
+          318,
+          1120,
+          560
+        ]
+      }
+    ]
+  },
+  {
+    "id": "guide-leave",
+    "path": "/hrm/leave",
+    "callouts": [
+      {
+        "id": "decide",
+        "find": "Approve",
+        "within": "button",
+        "to": "Reject"
+      },
+      {
+        "id": "tabs",
+        "find": "Waiting (5)",
+        "to": "All"
+      },
+      {
+        "id": "apply",
+        "find": "Apply for leave",
+        "within": "button"
+      }
+    ]
+  },
+  {
+    "id": "guide-dashboard",
+    "path": "/dashboards",
+    "callouts": [
+      {
+        "id": "filters",
+        "find": "This month",
+        "within": "button",
+        "to": "Compare",
+        "pad": 10
+      },
+      {
+        "id": "card",
+        "find": "Bookings",
+        "within": ".rounded-xl"
+      },
+      {
+        "id": "tv",
+        "find": "TV mode",
+        "within": "button"
+      }
+    ]
+  },
+  {
+    "id": "guide-contacts",
+    "path": "/contacts/all",
+    "callouts": []
+  },
+  {
+    "id": "guide-contact",
+    "path": "/contacts/ct-00001",
+    "callouts": [
+      {
+        "id": "actions",
+        "find": "Call",
+        "within": "button",
+        "to": "New lead",
+        "toWithin": "button"
+      },
+      {
+        "id": "tabs",
+        "find": "Timeline",
+        "within": "[role=tablist]"
+      },
+      {
+        "id": "details",
+        "find": "Details",
+        "within": ".rounded-xl"
+      }
+    ]
+  },
+  {
+    "id": "guide-documents",
+    "path": "/documents",
+    "callouts": [
+      {
+        "id": "types",
+        "rect": [
+          8,
+          244,
+          240,
+          244
+        ]
+      },
+      {
+        "id": "upload",
+        "find": "Upload",
+        "within": "button"
+      },
+      {
+        "id": "expiring",
+        "find": "Expiring",
+        "within": "a"
+      }
+    ]
+  },
+  {
+    "id": "guide-roles",
+    "path": "/users/roles",
+    "callouts": [
+      {
+        "id": "list",
+        "rect": [
+          288,
+          156,
+          258,
+          712
+        ]
+      },
+      {
+        "id": "matrix",
+        "rect": [
+          545,
+          296,
+          862,
+          572
+        ]
+      },
+      {
+        "id": "data",
+        "find": "Data access & limits",
+        "within": "button"
+      }
+    ]
+  },
+  {
+    "id": "guide-invitations",
+    "path": "/users/invitations",
+    "callouts": []
+  },
+  {
+    "id": "guide-import",
+    "path": "/settings/import-export",
+    "callouts": [
+      {
+        "id": "card",
+        "find": "Leads",
+        "within": ".rounded-xl"
+      },
+      {
+        "id": "history",
+        "find": "Import history",
+        "within": ".rounded-xl"
+      }
+    ]
+  },
+  {
+    "id": "guide-recycle-bin",
+    "path": "/settings/recycle-bin",
+    "callouts": [
+      {
+        "id": "filter",
+        "rect": [
+          288,
+          166,
+          250,
+          38
+        ]
+      },
+      {
+        "id": "rows",
+        "rect": [
+          290,
+          250,
+          1000,
+          170
+        ]
+      },
+      {
+        "id": "actions",
+        "rect": [
+          1310,
+          250,
+          100,
+          170
+        ]
+      }
+    ]
+  },
+  {
+    "id": "guide-lists",
+    "path": "/settings/lists",
+    "callouts": []
+  },
+  {
+    "id": "guide-desk",
+    "path": "/",
+    "callouts": [
+      {
+        "id": "shortcuts",
+        "find": "Approvals",
+        "within": "a",
+        "to": "User guide",
+        "pad": 10
+      },
+      {
+        "id": "now",
+        "find": "Needs you now",
+        "within": "section"
+      },
+      {
+        "id": "todo",
+        "find": "To-do",
+        "within": "section"
+      },
+      {
+        "id": "signoff",
+        "find": "Waiting for your sign-off",
+        "within": "section"
       }
     ]
   }

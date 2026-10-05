@@ -1,5 +1,6 @@
 "use client"
 
+import { DataMenu } from "@/modules/data-io/components/data-menu"
 import { useMemo, useState, useTransition } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -16,6 +17,7 @@ import { PageHeader } from "@/components/page-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu } from "@/components/ui/dropdown-menu"
+import { useDelete } from "@/modules/recycle-bin/components/use-delete"
 import { Icon } from "@/components/ui/icon"
 import { Input } from "@/components/ui/input"
 import { ScrollView } from "@/components/ui/scroll-view"
@@ -119,8 +121,9 @@ function Board({ units, onOpen }) {
   )
 }
 
-export function InventoryView({ units, tree, dealers, canEdit, canCreate }) {
+export function InventoryView({ units, tree, dealers, canEdit, canCreate, canExport = false, canDelete = false }) {
   const router = useRouter()
+  const { remove } = useDelete("unit")
   const params = useSearchParams()
   const statuses = useList("unit-status")
   const types = useList("unit-type")
@@ -353,6 +356,7 @@ export function InventoryView({ units, tree, dealers, canEdit, canCreate }) {
                   ]}
                 />
               )}
+              <DataMenu entity="units" can={{ import: canCreate && tree.length > 0, export: canExport && units.length > 0 }} />
               {canCreate && tree.length > 0 && (
                 <Button leftIcon="add-line" onClick={() => setAdding(true)}>
                   Add inventory
@@ -438,6 +442,28 @@ export function InventoryView({ units, tree, dealers, canEdit, canCreate }) {
                 items={[
                   { label: `Block ${picked.length}`, icon: "forbid-line", onClick: () => setDialog("block") },
                   { label: `Unblock ${picked.length}`, icon: "checkbox-circle-line", onClick: unblock },
+                  ...(canDelete
+                    ? [
+                        { type: "separator" },
+                        {
+                          label: `Delete ${picked.length}…`,
+                          icon: "delete-bin-line",
+                          variant: "destructive",
+                          onClick: () =>
+                            remove(
+                              picked.map((u) => u.code),
+                              {
+                                name: picked.length === 1 ? unitLabel(picked[0]) : undefined,
+                                what: "unit",
+                                onDone: () => {
+                                  setSelected(new Set())
+                                  router.refresh()
+                                },
+                              },
+                            ),
+                        },
+                      ]
+                    : []),
                 ]}
                 trigger={<Button variant="outline" size="smicon" leftIcon="more-2-line" aria-label="More actions" />}
               />

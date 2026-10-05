@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { formatDate, formatDateTime, timeAgo } from "@/lib/format"
+import { formatDate, formatDateTime, sameMonths, timeAgo } from "@/lib/format"
 import { toHex } from "@/lib/color"
 import { confirm } from "@/components/alert-context"
 import { LookupSelect } from "@/modules/lookups/components/lookup-select"
@@ -396,7 +396,7 @@ function EventCard({ event, canEdit, onEdit, onDelete, pending }) {
   const types = useList("event-type")
   const status = EVENT_STATUS[event.status] ?? EVENT_STATUS.scheduled
   const p = pktParts(event.startsAt)
-  const month = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Karachi", month: "short" }).format(new Date(event.startsAt))
+  const month = sameMonths(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Karachi", month: "short" }).format(new Date(event.startsAt)))
   return (
     <li className={cn("flex items-start gap-4 rounded-xl border bg-background p-4", event.status === "cancelled" && "opacity-60")}>
       <div className="flex w-14 shrink-0 flex-col items-center rounded-lg border bg-muted/40 py-1.5">

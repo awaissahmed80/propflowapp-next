@@ -7,5 +7,5 @@ export const metadata = { title: "Employees" }
 export default async function EmployeesPage() {
   const ctx = await hrPage("/hrm/employees")
   const data = await listEmployees(ctx)
-  return <EmployeesView data={data} can={{ create: ctx.can("create"), pay: Boolean(ctx.grant("hr.salaries")) }} />
+  return <EmployeesView data={data} can={{ create: ctx.can("create"), export: ctx.can("export"), pay: Boolean(ctx.grant("hr.salaries")) }} />
 }

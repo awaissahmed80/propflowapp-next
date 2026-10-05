@@ -17,10 +17,14 @@ export function formatMoney(amount, currency = "PKR") {
 
 // Always Pakistan time, whether this runs on the server (UTC) or in the browser
 const TZ = "Asia/Karachi"
+
+// Node and browsers ship different date data: en-GB calls September "Sept" in one and "Sep" in the
+// other, so a date rendered on the server didn't match the browser (hydration errors). Always "Sep".
+export const sameMonths = (text) => String(text).replace(/\bSept\b/g, "Sep")
 const dateFormat = new Intl.DateTimeFormat("en-GB", { timeZone: TZ, day: "numeric", month: "short", year: "numeric" })
 
 export function formatDate(date) {
-  return date ? dateFormat.format(new Date(date)) : ""
+  return date ? sameMonths(dateFormat.format(new Date(date))) : ""
 }
 
 // "10 yrs 3 mos" since the given date
@@ -56,7 +60,7 @@ const dateTimeFormat = new Intl.DateTimeFormat("en-GB", {
 })
 
 export function formatDateTime(date) {
-  return date ? dateTimeFormat.format(new Date(date)) : ""
+  return date ? sameMonths(dateTimeFormat.format(new Date(date))) : ""
 }
 
 // Full currency amount, e.g. Rs 24,500,000; paisa always with two digits (Rs 201,828.40)

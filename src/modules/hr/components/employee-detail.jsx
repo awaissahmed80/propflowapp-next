@@ -23,6 +23,7 @@ import { IconButton } from "@/components/ui/icon-button"
 import { Textarea } from "@/components/ui/textarea"
 import { RUN_STATUS, SALARY_PARTS } from "../constants"
 import { endEmployment, linkLogin } from "../server/employee-actions"
+import { useDelete } from "@/modules/recycle-bin/components/use-delete"
 import { EmployeeDialog } from "./employee-dialog"
 import { ApplyLeaveDialog } from "./leave-dialogs"
 import { LeaveBalance, LeaveStatusBadge, LeaveTypeBadge, LoanStatusBadge, MoreLink, dateRange, daysLabel, monthLabel, pkToday, rs } from "./people-parts"
@@ -40,6 +41,7 @@ export function EmployeeDetail({ employee: e, teams, projects, members, leave, c
   const employmentTypes = useList("employment-type")
   const [dialog, setDialog] = useState(null) // edit | leave | end | login
   const [, startTransition] = useTransition()
+  const { remove } = useDelete("employee")
   const done = () => {
     setDialog(null)
     router.refresh()
@@ -64,6 +66,12 @@ export function EmployeeDetail({ employee: e, teams, projects, members, leave, c
     ...(can.edit && !e.login ? [{ label: "Link a portal login", icon: "link", onClick: () => setDialog("login") }] : []),
     ...(can.edit && e.login ? [{ label: "Unlink portal login", icon: "link-unlink", onClick: unlink }] : []),
     ...(can.edit && e.status === "active" && !e.isMe ? [{ type: "separator" }, { label: "End employment", icon: "door-open-line", variant: "destructive", onClick: () => setDialog("end") }] : []),
+    ...(can.delete && !e.isMe
+      ? [
+          { type: "separator" },
+          { label: "Delete employee…", icon: "delete-bin-line", variant: "destructive", onClick: () => remove([e.code], { name: e.name, what: "employee", onDone: () => router.push("/hrm/employees") }) },
+        ]
+      : []),
   ]
   const p = e.pay
 

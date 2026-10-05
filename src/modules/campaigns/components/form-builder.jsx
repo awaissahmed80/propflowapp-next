@@ -17,6 +17,7 @@ import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DropdownMenu } from "@/components/ui/dropdown-menu"
+import { DeleteMenu } from "@/modules/recycle-bin/components/delete-menu"
 import { Icon } from "@/components/ui/icon"
 import { IconButton } from "@/components/ui/icon-button"
 import { Input } from "@/components/ui/input"
@@ -101,7 +102,7 @@ function FieldEditor({ field, index, count, readOnly, onChange, onMove, onRemove
   )
 }
 
-export function FormBuilder({ form, workspace, workspaceName, campaigns = [], projects = [], agents = [], canEdit = false }) {
+export function FormBuilder({ form, workspace, workspaceName, campaigns = [], projects = [], agents = [], canEdit = false, canDelete = false }) {
   const router = useRouter()
   const sources = useList("lead-source")
   const cities = useList("city")
@@ -396,6 +397,7 @@ export function FormBuilder({ form, workspace, workspaceName, campaigns = [], pr
               <Button leftIcon="save-3-line" loading={pending} disabled={!dirty} onClick={save}>
                 {dirty ? "Save changes" : "Saved"}
               </Button>
+              {canDelete && <DeleteMenu kind="form" code={form.code} name={form.name} what="form" back="/campaigns/forms" />}
             </div>
           )}
         </div>

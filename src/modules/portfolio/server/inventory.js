@@ -7,6 +7,7 @@ import { logActivity } from "@/server/tenants/activity"
 import { getLookups, isLookupValue } from "@/modules/lookups/server"
 import { measures, priceFor, round1000, standardDimensions } from "../constants"
 import { estateAction } from "./context"
+import { figures, sizeError, unitCodes, workspaceMeasures } from "./unit-build"
 import { activeList, withListPremiums } from "./price-list-queries"
 
 // Inventory: add units (one, or a numbered series), and change them one at a time or in bulk:
@@ -15,15 +16,6 @@ import { activeList, withListPremiums } from "./price-list-queries"
 
 const MAX_UNITS = 500
 const HOLD_HOURS = [24, 48, 72]
-
-// Unit codes per project: SKE-0001, SKE-0002…
-async function unitCodes(trx, projectCode, n) {
-  const key = `unit:${projectCode}`
-  await trx("sequences").insert({ key, prefix: projectCode, format: "{PREFIX}-{SEQ}", padding: 4, reset: "never", nextValue: 1 }).onConflict("key").ignore()
-  const codes = []
-  for (let i = 0; i < n; i++) codes.push(await nextCode(trx, key))
-  return codes
-}
 
 // "SKE-F-" 1001…1050 → ["SKE-F-1001", …]
 const series = (prefix, from, to) => Array.from({ length: to - from + 1 }, (_, i) => `${prefix}${from + i}`)
@@ -56,30 +48,6 @@ const addSchema = z.object({
   rate: z.coerce.number({ message: "Enter the base rate." }).positive("Enter the base rate."),
   status: z.enum(["available", "blocked"]).default("available"),
 })
-
-// Area, dimensions, premiums and prices of one unit from its size, features and base rate.
-// Files have no features, premiums or dimensions.
-function figures({ type, sizeValue, sizeUnit, features, rate, marlaSqft, featureList, m }) {
-  const isFile = type === "file"
-  const own = isFile ? [] : [...new Set(features)].filter((f) => isLookupValue(featureList, f) || featureList.some((x) => x.value === f))
-  const premiums = own.map((f) => ({ feature: f, percent: Number(featureList.find((x) => x.value === f)?.meta?.premium ?? 0) }))
-  const { base, price } = priceFor({ rate, value: sizeValue, unit: sizeUnit, marlaSqft, premiums, m })
-  return {
-    sizeValue,
-    sizeUnit,
-    areaSqft: m.areaSqft(sizeValue, sizeUnit, marlaSqft),
-    dimensions: isFile || m.sizedInSqft(type) ? null : standardDimensions(marlaSqft, m.sizeInMarla(sizeValue, sizeUnit), "marla"),
-    features: JSON.stringify(own),
-    premiums: JSON.stringify(premiums),
-    baseRate: rate,
-    basePrice: base,
-    price: isFile ? base : price,
-  }
-}
-
-// The workspace's sizing rules (Area units, Unit types, Block categories)
-const workspaceMeasures = async (db) => measures(await getLookups(db, ["area-unit", "unit-type", "block-category"]))
-const sizeError = (m, type, unit) => (m.unitsFor(type).includes(unit) ? null : `Size this type in ${m.unitsFor(type).map(m.unitShort).join(", ")}.`)
 
 // → { ok, added, blockName } or { error, fieldErrors }
 export async function addUnits(input) {

@@ -55,6 +55,7 @@ export function UserMenu({ user, role, tenant, workspaces, canSetUp, placement =
     },
     { label: "My Desk", icon: "user-smile-line", onClick: () => router.push("/") },
     ...(canSetUp ? [{ label: "Workspace setup", icon: "list-check-3", onClick: () => router.push("/setup") }] : []),
+    { label: "User guide", icon: "book-open-line", onClick: () => router.push("/guide") },
     { label: "Take the tour", icon: "guide-line", onClick: () => router.push("/?tour=1") },
     ...(workspaces.length
       ? [

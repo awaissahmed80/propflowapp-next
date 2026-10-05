@@ -20,9 +20,9 @@ export async function downloadExcel(report, result, meta = []) {
     report.columns.map((c) => ({ ...bold(c.header), align: isNumeric(c) ? "right" : undefined })),
     ...result.rows.map((r) => report.columns.map((c) => cell(c, r))),
   ]
+  // write-excel-file 4: the result saves itself (.toFile); a fileName option is ignored
   await writeExcelFile(sheet, {
     columns: report.columns.map((c) => ({ width: c.width ?? 14 })),
-    fileName: `${reportFileName(report.title)}.xlsx`,
     sheet: report.title.slice(0, 30),
-  })
+  }).toFile(`${reportFileName(report.title)}.xlsx`)
 }

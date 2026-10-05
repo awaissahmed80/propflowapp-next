@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { formatDate, formatPkr, timeAgo } from "@/lib/format"
+import { formatDate, formatPkr, sameMonths, timeAgo } from "@/lib/format"
 import { urlCode } from "@/lib/url"
 import { vizColor } from "@/lib/chart-colors"
 import { toastAction } from "@/lib/toast-action"
@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input"
 import { Tabs } from "@/components/ui/tabs"
 import { moveCampaign } from "../server/campaign-actions"
 import { AD_PLATFORMS, dateRange, pct, timing, utmFor } from "../constants"
+import { DeleteMenu } from "@/modules/recycle-bin/components/delete-menu"
 import { CampaignLeadAds } from "./campaign-lead-ads"
 import { CampaignStatusBadge, ChannelName, GoalRow, Meter, Objective } from "./campaign-parts"
 
@@ -69,7 +70,7 @@ function perDay(c, now) {
   const days = Math.min(120, Math.floor((end - start) / DAY) + 1)
   const rows = Array.from({ length: days }, (_, i) => {
     const d = new Date(start + i * DAY)
-    return { key: d.toDateString(), day: d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }), leads: 0 }
+    return { key: d.toDateString(), day: sameMonths(d.toLocaleDateString("en-GB", { day: "numeric", month: "short" })), leads: 0 }
   })
   const index = new Map(rows.map((r, i) => [r.key, i]))
   for (const l of c.leads) {
@@ -198,7 +199,7 @@ const NEXT = {
   completed: [],
 }
 
-export function CampaignDetail({ campaign: c, meta = null, baseUrl, canEdit = false }) {
+export function CampaignDetail({ campaign: c, meta = null, baseUrl, canEdit = false, canDelete = false }) {
   const router = useRouter()
   const sources = useList("lead-source")
   const [now] = useState(() => Date.now())
@@ -250,6 +251,7 @@ export function CampaignDetail({ campaign: c, meta = null, baseUrl, canEdit = fa
               <Button variant="outline" leftIcon="edit-line" nativeButton={false} render={<Link href={`/campaigns/all/${urlCode(c.code)}/edit`} />}>
                 Edit
               </Button>
+              {canDelete && <DeleteMenu kind="campaign" code={c.code} name={c.name} what="campaign" back="/campaigns/all" />}
             </div>
           )}
         </div>

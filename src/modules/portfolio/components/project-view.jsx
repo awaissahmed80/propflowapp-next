@@ -2,6 +2,10 @@
 
 import Link from "next/link"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { useDelete } from "@/modules/recycle-bin/components/use-delete"
+import { DropdownMenu } from "@/components/ui/dropdown-menu"
+import { IconButton } from "@/components/ui/icon-button"
 import { formatDate, formatPkr } from "@/lib/format"
 import { urlCode } from "@/lib/url"
 import { useList } from "@/modules/lookups/context"
@@ -92,7 +96,9 @@ function PhaseSection({ project, phase }) {
 }
 
 // One project: numbers, phases and blocks, unit mix, and its details
-export function ProjectView({ project, canEdit, canCreate }) {
+export function ProjectView({ project, canEdit, canCreate, canDelete = false }) {
+  const router = useRouter()
+  const { remove } = useDelete("project")
   const [editing, setEditing] = useState(false)
   const [viewing, setViewing] = useState(null) // photo index in the lightbox
   const types = useList("project-type")
@@ -161,6 +167,20 @@ export function ProjectView({ project, canEdit, canCreate }) {
               <Button leftIcon="add-line" nativeButton={false} render={<Link href={`/project-portfolio/inventory?project=${urlCode(project.code)}&add=1`} />}>
                 Add inventory
               </Button>
+            )}
+            {canDelete && (
+              <DropdownMenu
+                align="end"
+                items={[
+                  {
+                    label: "Delete project…",
+                    icon: "delete-bin-line",
+                    variant: "destructive",
+                    onClick: () => remove([project.code], { name: project.name, what: "project", onDone: () => router.push("/project-portfolio/projects") }),
+                  },
+                ]}
+                trigger={<IconButton icon="more-2-line" variant="outline" aria-label="More" tooltip={false} />}
+              />
             )}
           </div>
         </div>

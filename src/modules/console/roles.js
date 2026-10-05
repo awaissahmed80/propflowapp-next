@@ -12,6 +12,7 @@ export const CONSOLE_AREAS = {
   team: "Team",
   audit: "Audit log",
   settings: "Platform settings",
+  trash: "Deleted items", // the platform owner only
 }
 const ALL = Object.keys(CONSOLE_AREAS)
 
@@ -26,8 +27,8 @@ export const PLATFORM_ROLES = {
   admin: {
     label: "Administrator",
     description: "Runs the platform day to day. Everything except managing the team.",
-    view: ALL,
-    manage: ALL.filter((a) => a !== "team"),
+    view: ALL.filter((a) => a !== "trash"),
+    manage: ALL.filter((a) => a !== "team" && a !== "trash"),
     impersonate: true,
   },
   finance: {

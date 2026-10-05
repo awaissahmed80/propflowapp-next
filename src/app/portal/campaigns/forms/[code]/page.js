@@ -17,5 +17,16 @@ export default async function LeadFormPage({ params }) {
   if (!form) notFound()
   const canEdit = ctx.can("edit")
   const [campaigns, projects, agents] = await Promise.all([campaignOptions(ctx), projectOptions(ctx), canEdit ? assignableAgents(ctx) : []])
-  return <FormBuilder form={form} workspace={ctx.tenant.slug} workspaceName={ctx.tenant.name} campaigns={campaigns} projects={projects} agents={agents.map((a) => ({ id: a.id, name: a.name }))} canEdit={canEdit} />
+  return (
+    <FormBuilder
+      form={form}
+      workspace={ctx.tenant.slug}
+      workspaceName={ctx.tenant.name}
+      campaigns={campaigns}
+      projects={projects}
+      agents={agents.map((a) => ({ id: a.id, name: a.name }))}
+      canEdit={canEdit}
+      canDelete={ctx.can("delete")}
+    />
+  )
 }

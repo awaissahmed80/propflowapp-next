@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { formatDate } from "@/lib/format"
+import { formatDate, sameMonths } from "@/lib/format"
 import { urlCode } from "@/lib/url"
 import { useList } from "@/modules/lookups/context"
 import { Avatar } from "@/components/ui/avatar"
@@ -28,7 +28,7 @@ export const pkToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/
 export const employeeHref = (code) => `/hrm/employees/${urlCode(code)}`
 
 // "2026-10" → "Oct 2026"
-export const monthLabel = (m) => (m ? new Intl.DateTimeFormat("en-GB", { month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${m}-15T00:00:00Z`)) : "")
+export const monthLabel = (m) => (m ? sameMonths(new Intl.DateTimeFormat("en-GB", { month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${m}-15T00:00:00Z`))) : "")
 
 // "4 Oct 2026" or "4 – 6 Oct 2026"
 export function dateRange(start, end) {
