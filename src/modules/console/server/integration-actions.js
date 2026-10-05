@@ -7,6 +7,8 @@ import { logActivity } from "@/server/tenants/activity"
 import { can } from "@/modules/console/roles"
 import { INTEGRATION_STATUS, integrationByKey } from "@/modules/integrations/catalog"
 import { disconnectMetaFor } from "@/modules/campaigns/server/meta"
+import { SMS_KEY } from "@/server/sms"
+import { sourceByIntegration } from "@/modules/integrations/leads/sources"
 import { logAudit } from "./audit"
 
 // Integrations from the console: the platform status of each one (owner and admin, Platform
@@ -75,6 +77,45 @@ export async function disconnectWorkspaceMeta(tenantId) {
     subjectId: tenant.id,
     tenantId: tenant.id,
     details: { summary: `Facebook disconnected (${pages} ${pages === 1 ? "Page" : "Pages"} receiving leads)` },
+  })
+  return { ok: true }
+}
+
+// Disconnect a workspace's SMS gateway (its provider account stays theirs) → { ok } | { error }
+export async function disconnectWorkspaceSms(tenantId) {
+  const { staff, tenant, error } = await workspaceStaff(tenantId)
+  if (error) return { error }
+  const db = tenantDb(tenant)
+  await db("settings")
+    .where({ key: SMS_KEY })
+    .update({ value: JSON.stringify(null), updatedAt: new Date() })
+  await logActivity(db, { type: "settings", action: "sms.disconnected", summary: "The SMS gateway was disconnected by PropFlow support" })
+  await logAudit({ actorUserId: staff.user.id, action: "sms.disconnected", subjectType: "tenant", subjectId: tenant.id, tenantId: tenant.id, details: { summary: "SMS gateway disconnected" } })
+  return { ok: true }
+}
+
+// Stop accepting a workspace's Google Ads lead forms or Google Forms (its key stops working; forms,
+// leads and the log stay) → { ok } | { error }
+export async function disconnectWorkspaceLeadSource(tenantId, integrationKey) {
+  const { staff, tenant, error } = await workspaceStaff(tenantId)
+  if (error) return { error }
+  const src = sourceByIntegration(integrationKey)
+  if (!src) return { error: "Unknown integration." }
+  const db = tenantDb(tenant)
+  const row = await db("settings").where({ key: src.settingsKey }).first("value")
+  const v = typeof row?.value === "string" ? JSON.parse(row.value) : row?.value
+  if (v)
+    await db("settings")
+      .where({ key: src.settingsKey })
+      .update({ value: JSON.stringify({ ...v, key: null }), updatedAt: new Date() })
+  await logActivity(db, { type: "campaigns", action: `${src.key}.disconnected`, summary: `${src.name} was disconnected by PropFlow support` })
+  await logAudit({
+    actorUserId: staff.user.id,
+    action: "integration.disconnected",
+    subjectType: "tenant",
+    subjectId: tenant.id,
+    tenantId: tenant.id,
+    details: { summary: `${src.name} disconnected`, key: integrationKey },
   })
   return { ok: true }
 }

@@ -14,7 +14,7 @@ import { Icon } from "@/components/ui/icon"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { INTEGRATION_STATUS, integrationByKey } from "@/modules/integrations/catalog"
-import { disconnectWorkspaceMeta, setIntegrationStatus, setWorkspaceIntegration } from "../server/integration-actions"
+import { disconnectWorkspaceLeadSource, disconnectWorkspaceMeta, disconnectWorkspaceSms, setIntegrationStatus, setWorkspaceIntegration } from "../server/integration-actions"
 
 // Integrations in the console: the platform list (Console › Integrations) and one workspace's
 // (Console › Workspaces › a workspace). rows come from server/integrations.js.
@@ -145,18 +145,30 @@ export function WorkspaceIntegrations({ tenantId, rows, editable }) {
   const [switching, setSwitching] = useState(null) // the integration being switched off
   const turnOn = (row) =>
     toastAction(() => setWorkspaceIntegration(tenantId, row.key, true), { loading: "Switching on…", success: `${integrationByKey(row.key).name} switched back on.` }).then((r) => r?.ok && router.refresh())
-  const disconnect = async () => {
-    if (
-      !(await confirm({
-        title: "Disconnect this workspace's Facebook?",
-        description: "Its Pages stop sending lead ads to PropFlow. Its forms, leads and log stay; someone in the workspace can connect again (unless Meta is switched off for it).",
-        confirmLabel: "Disconnect",
-        destructive: true,
-        icon: "link-unlink",
-      }))
-    )
-      return
-    const r = await toastAction(() => disconnectWorkspaceMeta(tenantId), { loading: "Disconnecting…", success: "Facebook disconnected." })
+  // What disconnecting does, per integration
+  const DISCONNECT = {
+    meta: {
+      title: "Disconnect this workspace's Facebook?",
+      description: "Its Pages stop sending lead ads to PropFlow. Its forms, leads and log stay; someone in the workspace can connect again (unless Meta is switched off for it).",
+      run: disconnectWorkspaceMeta,
+      done: "Facebook disconnected.",
+    },
+    sms: {
+      title: "Disconnect this workspace's SMS gateway?",
+      description: "PropFlow stops sending SMS for it. Its provider account and message log stay; someone in the workspace can connect again (unless SMS is switched off for it).",
+      run: disconnectWorkspaceSms,
+      done: "SMS gateway disconnected.",
+    },
+  }
+  const disconnect = async (key) => {
+    const d = DISCONNECT[key] ?? {
+      title: `Disconnect this workspace's ${integrationByKey(key).name}?`,
+      description: "PropFlow stops accepting its leads (its key stops working). Its forms, leads and log stay; someone in the workspace can connect again (unless it's switched off for it).",
+      run: (id) => disconnectWorkspaceLeadSource(id, key),
+      done: `${integrationByKey(key).name} disconnected.`,
+    }
+    if (!(await confirm({ title: d.title, description: d.description, confirmLabel: "Disconnect", destructive: true, icon: "link-unlink" }))) return
+    const r = await toastAction(() => d.run(tenantId), { loading: "Disconnecting…", success: d.done })
     if (r?.ok) router.refresh()
   }
 
@@ -182,12 +194,20 @@ export function WorkspaceIntegrations({ tenantId, rows, editable }) {
                       ? m
                         ? `${m.account ?? "Connected"} · ${m.pagesOn.length ? `${m.pagesOn.join(", ")}` : "no Page receiving leads"} · ${m.leads} ${m.leads === 1 ? "lead" : "leads"}${m.lastAt ? `, last ${timeAgo(m.lastAt)}` : ""}`
                         : "Not connected"
-                      : def.subtitle}
+                      : "source" in row && row.status === "live"
+                        ? row.source
+                          ? `${row.source.forms} ${row.source.forms === 1 ? "form" : "forms"} · ${row.source.leads30} ${row.source.leads30 === 1 ? "lead" : "leads"} in 30 days`
+                          : "Not connected"
+                        : row.key === "sms" && row.status === "live"
+                          ? row.sms
+                            ? `${row.sms.provider}${row.sms.sender ? ` · ${row.sms.sender}` : ""} · ${row.sms.sent30} SMS in 30 days${row.sms.tested ? "" : " · not tested yet"}`
+                            : "Not connected"
+                          : def.subtitle}
                 </p>
                 {m?.error && <p className="text-xs text-red-600 dark:text-red-400">{m.error}</p>}
               </div>
-              {editable && m && (
-                <Button size="sm" variant="outline" className="text-red-600 dark:text-red-400" onClick={disconnect}>
+              {editable && (m || row.sms || row.source) && (
+                <Button size="sm" variant="outline" className="text-red-600 dark:text-red-400" onClick={() => disconnect(row.key)}>
                   Disconnect
                 </Button>
               )}

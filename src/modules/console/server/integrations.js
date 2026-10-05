@@ -5,6 +5,9 @@ import { siteUrl } from "@/lib/sites"
 import { integrationStatuses } from "@/server/integrations"
 import { INTEGRATIONS } from "@/modules/integrations/catalog"
 import { metaEnabled, metaRedirectUri } from "@/modules/campaigns/meta/graph"
+import { SMS_PROVIDERS } from "@/modules/integrations/sms/providers"
+import { readSms } from "@/server/sms"
+import { LEAD_SOURCES, sourceByIntegration } from "@/modules/integrations/leads/sources"
 
 // Console views of integrations: the platform list (status, whether the server has the keys, how
 // many workspaces use it) and one workspace's (switched off or not, and Meta's connection).
@@ -32,7 +35,8 @@ export async function platformIntegrations() {
   }))
 }
 
-// One workspace → [{ key, status, enabled, note, meta? }]; meta: its Facebook connection
+// One workspace → [{ key, status, enabled, note, meta?, sms? }]; meta: its Facebook connection,
+// sms: its SMS gateway account (provider, sender, messages in 30 days)
 export async function workspaceIntegrationsAdmin(tenantId) {
   const [statuses, overrides, tenant] = await Promise.all([
     integrationStatuses(),
@@ -40,9 +44,34 @@ export async function workspaceIntegrationsAdmin(tenantId) {
     live(platformDb(), "tenants").where({ id: tenantId }).first("id", "dbName", "dbHost", "status"),
   ])
   let meta = null
+  let sms = null
+  const sources = {}
   if (tenant && tenant.status !== "provisioning") {
     try {
       const db = tenantDb(tenant)
+      // Google Ads lead forms / Google Forms: set up or not, forms, leads in 30 days
+      for (const src of Object.values(LEAD_SOURCES)) {
+        const row = await db("settings").where({ key: src.settingsKey }).first("value")
+        const v = typeof row?.value === "string" ? JSON.parse(row.value) : row?.value
+        if (!v?.key) continue
+        const [forms, leads] = await Promise.all([
+          db("externalForms").where({ source: src.key }).whereNot({ externalId: "propflow-test" }).count({ n: "id" }).first(),
+          db("externalLeads")
+            .where({ source: src.key, isTest: false })
+            .where("receivedAt", ">=", new Date(Date.now() - 30 * 86_400_000))
+            .count({ n: "id" })
+            .first(),
+        ])
+        sources[src.integration] = { forms: Number(forms?.n ?? 0), leads30: Number(leads?.n ?? 0) }
+      }
+      const account = await readSms(db)
+      if (account) {
+        const sent = await db("smsMessages")
+          .where("createdAt", ">=", new Date(Date.now() - 30 * 86_400_000))
+          .count({ n: "id" })
+          .first()
+        sms = { provider: SMS_PROVIDERS[account.provider]?.name ?? account.provider, sender: account.sender || null, sent30: Number(sent?.n ?? 0), tested: Boolean(account.verifiedAt) }
+      }
       const [conn, pages, synced] = await Promise.all([
         db("metaConnections").orderBy("id", "desc").first("fbUserName", "createdAt"),
         db("metaPages").select("name", "subscribedAt", "lastError"),
@@ -65,6 +94,14 @@ export async function workspaceIntegrationsAdmin(tenantId) {
   }
   return INTEGRATIONS.map((i) => {
     const o = overrides.find((x) => x.key === i.key)
-    return { key: i.key, status: statuses[i.key], enabled: o ? Boolean(o.enabled) : true, note: o?.note ?? null, changedAt: o?.updatedAt ?? null, ...(i.key === "meta" ? { meta } : {}) }
+    return {
+      key: i.key,
+      status: statuses[i.key],
+      enabled: o ? Boolean(o.enabled) : true,
+      note: o?.note ?? null,
+      changedAt: o?.updatedAt ?? null,
+      ...(i.key === "meta" ? { meta } : {}),
+      ...(i.key === "sms" ? { sms } : {}),
+    }
   })
 }

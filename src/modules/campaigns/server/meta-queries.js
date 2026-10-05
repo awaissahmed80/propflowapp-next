@@ -6,6 +6,12 @@ import { siteUrl } from "@/lib/sites"
 import { metaEnabled, metaRedirectUri } from "../meta/graph"
 import { campaignsContext } from "./context"
 import { integrationOn, workspaceIntegrations } from "@/server/integrations"
+import { smsOverview } from "@/server/sms"
+import { readAutomation } from "@/server/sms-automation"
+import { TEMPLATES, templateText } from "@/modules/integrations/sms/templates"
+import { LEAD_SOURCES } from "@/modules/integrations/leads/sources"
+import { leadSourceOverview } from "@/modules/integrations/leads/queries"
+import { canSetUp } from "@/modules/portal/server/setup"
 import { getLookups } from "@/modules/lookups/server"
 import { MAP_TARGETS, guessTarget, metaSettings } from "./meta"
 import { campaignOptions, projectOptions } from "./queries"
@@ -133,7 +139,7 @@ export async function metaOverview(ctx) {
   }
 }
 
-// What both Integrations pages (Campaigns and Settings) show → { integrations, meta, setup }. meta is null for
+// What both Integrations pages (Campaigns and Settings) show → { integrations, meta, sms, setup }. meta is null for
 // someone who can't open Campaigns (Settings › Integrations still lists it, as set up elsewhere).
 export async function integrationsData() {
   const ctx = await campaignsContext("/settings/integrations")
@@ -142,8 +148,35 @@ export async function integrationsData() {
     // For the cards: no secrets, no icons' server data, just what each card shows
     integrations: integrations.map(({ key, status, blocked }) => ({ key, status, blocked })),
     meta: ctx.can("view") && integrations.some((i) => i.key === "meta") ? await metaOverview(ctx) : null,
+    // SMS gateway: anyone who sees the page sees it; changing it needs setup rights
+    sms: integrations.some((i) => i.key === "sms" && i.status === "live")
+      ? { ...(await smsOverview({ db: ctx.db, tenant: ctx.tenant })), automation: await smsAutomationView(ctx.db), canEdit: canSetUp(ctx.permissions) }
+      : null,
+    // Google Ads lead forms and Google Forms (live ones, for people who can open Campaigns)
+    leadSources: await leadSourcesData(ctx, integrations),
     setup: { webhookUrl: siteUrl("portal", "/api/meta/webhook"), redirectUri: metaRedirectUri() },
   }
+}
+
+const SOURCE_FEATURE = { "google-ads": "lead-ads", "google-forms": "lead-forms" }
+
+async function leadSourcesData(ctx, integrations) {
+  if (!ctx.can("view")) return {}
+  const on = Object.values(LEAD_SOURCES).filter((src) => integrations.some((i) => i.key === src.integration && i.status === "live") && ctx.has(SOURCE_FEATURE[src.key]))
+  if (!on.length) return {}
+  const canEdit = ctx.can("edit")
+  const [campaigns, projects, agents, lists] = await Promise.all([campaignOptions(ctx), projectOptions(ctx), canEdit ? assignableAgents(ctx) : [], getLookups(ctx.db, ["lead-status", "lead-source"])])
+  const options = {
+    campaigns: campaigns.map((c) => ({ value: c.value, label: c.label })),
+    projects: projects.map((p) => ({ value: p.code, label: p.name })),
+    agents: agents.map((a) => ({ value: String(a.id), label: a.name })),
+    targets: MAP_TARGETS,
+    stages: lists["lead-status"].filter((x) => !["booked", "lost"].includes(x.value)).map((x) => ({ value: x.value, label: x.label })),
+    channels: lists["lead-source"].map((x) => ({ value: x.value, label: x.label })),
+  }
+  const out = {}
+  for (const src of on) out[src.key] = { ...(await leadSourceOverview(ctx, src.key, { canEdit })), options }
+  return out
 }
 
 // A campaign's Facebook & Instagram lead ads (its "Lead ads" tab): whether Meta can be used here,
@@ -189,4 +222,17 @@ export async function campaignMetaForms(ctx, campaignCode) {
   }))
   const strip = ({ campaignId, ...f }) => f
   return { available, connected: true, linked: shaped.filter((f) => f.campaignId === campaign.id).map(strip), others: shaped.filter((f) => f.campaignId !== campaign.id).map(strip) }
+}
+
+// Automatic SMS for the SMS gateway's Configure modal: what's on, and each template's text
+async function smsAutomationView(db) {
+  const a = await readAutomation(db)
+  return {
+    before: a.before,
+    due: a.due,
+    overdue: a.overdue,
+    receipt: { on: a.receipt.on },
+    lastReminderDay: a.lastReminderDay,
+    templates: TEMPLATES.map((t) => ({ key: t.key, ...templateText(a, t.key), custom: Boolean(a.templates[t.key]?.body?.trim()) })),
+  }
 }

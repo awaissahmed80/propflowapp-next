@@ -84,6 +84,8 @@ export const AUDIT_ACTIONS = {
   "integration.status": "Changed integration status",
   "integration.workspace": "Switched an integration for a workspace",
   "meta.disconnected": "Disconnected Facebook lead ads",
+  "sms.disconnected": "Disconnected the SMS gateway",
+  "integration.disconnected": "Disconnected an integration",
   "team.invited": "Invited to the team",
   "team.invite_resent": "Resent team invitation",
   "team.invite_revoked": "Canceled team invitation",

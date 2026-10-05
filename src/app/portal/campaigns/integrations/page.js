@@ -7,6 +7,6 @@ export const metadata = { title: "Integrations" }
 // Campaigns › Integrations: Facebook & Instagram lead ads (also in Settings › Integrations)
 export default async function CampaignsIntegrationsPage() {
   await campaignsPage("/campaigns/integrations")
-  const { integrations, meta, setup } = await integrationsData()
-  return <IntegrationsView integrations={integrations} meta={meta} setup={setup} from="campaigns" />
+  const { integrations, meta, sms, leadSources, setup } = await integrationsData()
+  return <IntegrationsView integrations={integrations} meta={meta} sms={sms} leadSources={leadSources} setup={setup} from="campaigns" />
 }

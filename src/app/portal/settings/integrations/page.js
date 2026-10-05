@@ -8,6 +8,16 @@ export const metadata = { title: "Integrations" }
 // app's access (Facebook lead ads: Campaigns › edit), so this page and the app's page stay in sync.
 export default async function SettingsIntegrationsPage() {
   await settingsPage("/settings/integrations")
-  const { integrations, meta, setup } = await integrationsData()
-  return <IntegrationsView integrations={integrations} meta={meta} setup={setup} from="settings" description="Third-party services connected to this workspace: ads, messaging and payments" />
+  const { integrations, meta, sms, leadSources, setup } = await integrationsData()
+  return (
+    <IntegrationsView
+      integrations={integrations}
+      meta={meta}
+      sms={sms}
+      leadSources={leadSources}
+      setup={setup}
+      from="settings"
+      description="Third-party services connected to this workspace: ads, messaging and payments"
+    />
+  )
 }

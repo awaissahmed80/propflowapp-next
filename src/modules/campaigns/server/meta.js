@@ -70,7 +70,7 @@ export function questionsToFields(questions = [], mapping = {}) {
 }
 
 // Meta's field_data → { questionKey: answer } for submitEntry
-function answers(fieldData, questions = []) {
+export function answers(fieldData, questions = []) {
   const values = Object.fromEntries(fieldData.map((f) => [f.name, f.values?.length > 1 ? f.values.join(", ") : (f.values?.[0] ?? "")]))
   const byType = (type) => questions.find((q) => q.type === type)?.key
   const first = values[byType("FIRST_NAME") ?? "first_name"]

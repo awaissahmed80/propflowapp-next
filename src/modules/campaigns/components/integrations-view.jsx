@@ -18,7 +18,10 @@ import { Icon } from "@/components/ui/icon"
 import { IconButton } from "@/components/ui/icon-button"
 import { Select } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { Popover, PopoverContent, PopoverDescription, PopoverHeader, PopoverTitle, PopoverTrigger } from "@/components/ui/popover"
+import { CardButton, IntegrationCard, cardOf } from "@/modules/integrations/components/card"
+import { SmsCard } from "@/modules/integrations/components/sms-card"
+import { LeadSourceCard } from "@/modules/integrations/components/lead-source-card"
+import { sourceByIntegration } from "@/modules/integrations/leads/sources"
 import { integrationByKey } from "@/modules/integrations/catalog"
 import { SYNC_OPTIONS } from "../meta/settings"
 import { disconnectMeta, saveMetaSettings, refreshPageForms, retryMetaLead, saveMetaForm, sendMetaTestLead, setPageLeads, syncMetaForm } from "../server/meta-actions"
@@ -28,6 +31,8 @@ import { disconnectMeta, saveMetaSettings, refreshPageForms, retryMetaLead, save
 // Shown in Campaigns › Integrations and Settings › Integrations (every third-party connection).
 //   integrations: [{ key, status: live | soon, blocked }] for this workspace (hidden ones left out)
 //   meta: metaOverview(), or null when this person can't open Campaigns
+//   sms: smsOverview() + canEdit, for the SMS gateway card (server/sms.js)
+//   leadSources: { "google-ads", "google-forms" }: leadSourceOverview() + options, when live
 //   setup: { webhookUrl, redirectUri } for the server's Meta app · from: "campaigns" | "settings"
 
 // What came back from Facebook Login (?meta=…)
@@ -53,7 +58,7 @@ const LEAD_STATUS = {
   received: { label: "Waiting", color: "gray" },
 }
 
-export function IntegrationsView({ integrations = [], meta, setup, from = "campaigns", description = "Connect lead sources and messaging, and keep CRM in sync on its own" }) {
+export function IntegrationsView({ integrations = [], meta, sms = null, leadSources = {}, setup, from = "campaigns", description = "Connect lead sources and messaging, and keep CRM in sync on its own" }) {
   const router = useRouter()
   const params = useSearchParams()
   const pathname = usePathname()
@@ -87,6 +92,8 @@ export function IntegrationsView({ integrations = [], meta, setup, from = "campa
                 actions={<CardButton disabled>Ask PropFlow support</CardButton>}
               />
             )
+          if (key === "sms") return sms ? <SmsCard key={key} sms={sms} /> : null
+          if (key === "google-leads" || key === "google-forms") return <LeadSourceCard key={key} integrationKey={key} data={leadSources[sourceByIntegration(key).key]} />
           if (key === "meta") return <MetaCard key={key} meta={meta} from={from} onConfigure={() => setConfiguring(true)} onChanged={() => router.refresh()} />
           return null
         })}
@@ -95,87 +102,6 @@ export function IntegrationsView({ integrations = [], meta, setup, from = "campa
     </div>
   )
 }
-
-// What a card shows from the catalog (never spread `key` into JSX)
-const cardOf = ({ icon, tile, name, subtitle, info }) => ({ icon, tile, name, subtitle, info })
-
-const TONES = {
-  green: { dot: "bg-green-500", text: "text-green-600 dark:text-green-400" },
-  amber: { dot: "bg-amber-500", text: "text-amber-700 dark:text-amber-400" },
-  red: { dot: "bg-red-500", text: "text-red-600 dark:text-red-400" },
-  gray: { dot: "bg-muted-foreground/60", text: "text-muted-foreground" },
-}
-
-// One integration: logo, name, what it does, a few facts, status, and its buttons
-//   rows: [[label, value]] · status: { tone: green | amber | red | gray, label } · actions: buttons
-function IntegrationCard({ icon, tile, name, subtitle, info, rows = [], status, actions }) {
-  const { dot, text } = TONES[status.tone]
-  return (
-    <section aria-label={name} className="flex flex-col rounded-xl border bg-background p-5 shadow-xs">
-      <header className="flex items-start gap-4">
-        <span className={cn("flex size-12 shrink-0 items-center justify-center rounded-xl text-2xl text-white", tile)}>
-          <Icon name={icon} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <h2 className="truncate text-base font-semibold">{name}</h2>
-          <p className="text-sm text-muted-foreground">{subtitle}</p>
-        </span>
-        {info && <InfoPopover name={name} info={info} />}
-      </header>
-      <dl className="mt-4 space-y-1.5 text-sm">
-        {rows.map(([label, value]) => (
-          <div key={label} className="flex min-w-0 gap-1">
-            <dt className="shrink-0 text-muted-foreground">{label}:</dt>
-            <dd className="min-w-0 truncate">{value}</dd>
-          </div>
-        ))}
-      </dl>
-      <p className={cn("mt-4 flex items-center gap-2 text-sm font-medium", text)}>
-        <span aria-hidden className={cn("size-2 rounded-full", dot)} />
-        {status.label}
-      </p>
-      <div className="mt-auto grid auto-cols-fr grid-flow-col gap-3 pt-5">{actions}</div>
-    </section>
-  )
-}
-
-// The (i) button: what the integration does and what you need before connecting
-function InfoPopover({ name, info }) {
-  return (
-    <Popover>
-      <PopoverTrigger
-        render={
-          <button
-            type="button"
-            aria-label={`About ${name}`}
-            className="-mt-1 -mr-1 cursor-pointer rounded-full p-1 text-lg text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-popup-open:text-foreground"
-          >
-            <Icon name="information-line" />
-          </button>
-        }
-      />
-      <PopoverContent align="end" className="w-80 gap-3 text-sm">
-        <PopoverHeader>
-          <PopoverTitle>{name}</PopoverTitle>
-          <PopoverDescription>{info.about}</PopoverDescription>
-        </PopoverHeader>
-        <div>
-          <p className="mb-1.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">What you need</p>
-          <ul className="space-y-1.5">
-            {info.needs.map((n) => (
-              <li key={n} className="flex gap-2">
-                <Icon name="checkbox-circle-line" className="mt-0.5 shrink-0 text-primary" />
-                {n}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </PopoverContent>
-    </Popover>
-  )
-}
-
-const CardButton = ({ className, ...props }) => <Button variant="outline" className={cn("w-full", className)} {...props} />
 
 function MetaCard({ meta, from, onConfigure, onChanged }) {
   const base = cardOf(integrationByKey("meta"))
