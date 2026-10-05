@@ -1,9 +1,12 @@
 import { campaignsPage } from "@/modules/campaigns/server/context"
-import { ComingSoon } from "@/components/coming-soon"
+import { integrationsData } from "@/modules/campaigns/server/meta-queries"
+import { IntegrationsView } from "@/modules/campaigns/components/integrations-view"
 
 export const metadata = { title: "Integrations" }
 
+// Campaigns › Integrations: Facebook & Instagram lead ads (also in Settings › Integrations)
 export default async function CampaignsIntegrationsPage() {
   await campaignsPage("/campaigns/integrations")
-  return <ComingSoon title="Integrations" description="Meta lead ads, Google Ads and SMS gateways" icon="plug-line" />
+  const { integrations, meta, sms, leadSources, setup } = await integrationsData()
+  return <IntegrationsView integrations={integrations} meta={meta} sms={sms} leadSources={leadSources} setup={setup} from="campaigns" />
 }

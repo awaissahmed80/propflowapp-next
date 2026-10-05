@@ -7,8 +7,7 @@ import { NoAccess } from "@/modules/portal/components/no-access"
 import { LookupsProvider } from "@/modules/lookups/context"
 import { crmContext } from "@/modules/crm/server/context"
 import { crmLists } from "@/modules/crm/server/queries"
-import { canEditCrmRules } from "@/modules/crm/server/settings"
-import { crmNav } from "@/modules/crm/nav"
+import { CRM_NAV } from "@/modules/crm/nav"
 
 export const metadata = { title: { default: "CRM", template: "%s · CRM · PropFlow" } }
 
@@ -25,7 +24,7 @@ export default async function CrmLayout({ children }) {
   const ctx = await crmContext()
   const lists = await crmLists(ctx)
   return (
-    <AppShell portal={portal} appCode="crm" nav={crmNav(canEditCrmRules(ctx))} defaultOpen={jar.get("sidebar_state")?.value !== "false"}>
+    <AppShell portal={portal} appCode="crm" nav={CRM_NAV} defaultOpen={jar.get("sidebar_state")?.value !== "false"}>
       <LookupsProvider lists={lists} app="crm" canAdd={ctx.can("edit") || ctx.can("create")}>
         {children}
       </LookupsProvider>

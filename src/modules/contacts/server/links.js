@@ -5,18 +5,21 @@ import { nextCode } from "@/server/db/numbering"
 // these inside their own transaction when they save a record about a person:
 //   const contactId = await ensureContact(trx, { name, phone, email, city }, userId)
 //   await linkContact(trx, contactId, { type: "lead", id: leadId, role: "lead" }, userId)
-// so the same person (matched by mobile) is one contact, whatever they are to the business.
+// so the same person (matched by CNIC or mobile) is one contact, whatever they are to the business.
 
-// Existing contact on this mobile (or a new one); fills details the contact doesn't have yet
-export async function ensureContact(trx, { name, phone, whatsapp, email, city, overseas, company, kind = "person" }, userId) {
+// Existing contact with this CNIC or mobile (or a new one); fills details the contact doesn't
+// have yet. The CNIC is only filled in when no other contact already has it.
+export async function ensureContact(trx, { name, phone, whatsapp, email, city, overseas, company, designation, address, cnic, guardianRelation, guardianName, kind = "person" }, userId) {
   const now = new Date()
-  const found = phone ? await trx("contacts").where({ phone }).whereNull("deletedAt").orderBy("id").first() : null
+  const found = (cnic ? await trx("contacts").where({ cnic }).whereNull("deletedAt").orderBy("id").first() : null) ?? (phone ? await trx("contacts").where({ phone }).whereNull("deletedAt").orderBy("id").first() : null)
   if (found) {
     const fill = Object.fromEntries(
-      Object.entries({ email, city, company })
+      Object.entries({ email, city, company, designation, address, guardianRelation, guardianName })
         .filter(([k, v]) => v && !found[k])
         .map(([k, v]) => [k, v]),
     )
+    if (phone && !found.phone) fill.phone = phone
+    if (cnic && !found.cnic && !(await trx("contacts").where({ cnic }).whereNull("deletedAt").first("id"))) fill.cnic = cnic
     if (overseas && !found.overseas) fill.overseas = true
     if (Object.keys(fill).length)
       await trx("contacts")
@@ -32,9 +35,14 @@ export async function ensureContact(trx, { name, phone, whatsapp, email, city, o
     phone: phone || null,
     whatsapp: whatsapp ?? true,
     email: email || null,
+    cnic: cnic || null,
     city: city || null,
     overseas: Boolean(overseas),
     company: company || null,
+    designation: designation || null,
+    address: address || null,
+    guardianRelation: guardianRelation || null,
+    guardianName: guardianName || null,
     createdBy: userId,
   })
   return id

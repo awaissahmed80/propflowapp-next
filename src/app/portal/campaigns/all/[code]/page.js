@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import { siteUrl } from "@/lib/sites"
 import { campaignsPage } from "@/modules/campaigns/server/context"
 import { getCampaign } from "@/modules/campaigns/server/queries"
+import { campaignMetaForms } from "@/modules/campaigns/server/meta-queries"
 import { CampaignDetail } from "@/modules/campaigns/components/campaign-detail"
 
 export async function generateMetadata({ params }) {
@@ -25,5 +26,6 @@ export default async function CampaignPage({ params }) {
   // Public addresses of its landing pages, for the tracking links
   const pageUrl = (slug) => siteUrl("campaigns", `/${ctx.tenant.slug}/${slug}`)
   const pages = campaign.pages.map((p) => ({ ...p, url: pageUrl(p.slug) }))
-  return <CampaignDetail campaign={{ ...campaign, pages }} baseUrl={pageUrl(slugify(campaign.name))} canEdit={ctx.can("edit")} />
+  const meta = await campaignMetaForms(ctx, code)
+  return <CampaignDetail campaign={{ ...campaign, pages }} meta={meta} baseUrl={pageUrl(slugify(campaign.name))} canEdit={ctx.can("edit")} />
 }

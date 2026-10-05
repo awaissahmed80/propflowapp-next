@@ -3,7 +3,7 @@
 import { live } from "@/server/db/records"
 import { deskContext } from "@/modules/desk/server/context"
 import { HANDLERS } from "./handlers"
-import { canDecideType } from "./queries"
+import { canDecideType, grantsOf } from "./queries"
 
 // Deciding from the inbox (My Desk › Requests & approvals). Approving runs the action in the app
 // the request came from, as the approver. Nobody decides their own request.
@@ -20,7 +20,7 @@ export async function decideApproval(code, decision, note = "") {
   if (!a) return { error: "That request was removed." }
   if (a.status !== "pending") return { error: "It has already been decided." }
   if (a.requestedBy === ctx.user.id) return { error: "You asked for this, so someone else needs to decide it." }
-  if (!canDecideType(ctx.permissions, a.type)) return { error: "Your role can't decide this kind of request." }
+  if (!canDecideType(ctx.permissions, a.type, grantsOf(ctx))) return { error: "Your role can't decide this kind of request." }
   const handler = HANDLERS[a.type]
   if (decision === "approved") {
     const r = await handler.approve(ctx, a)

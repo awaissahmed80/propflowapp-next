@@ -1,11 +1,11 @@
 // App catalog. Safe to run again: adds new apps and updates names, icons and order.
 const APPS = [
   ["desk", "My Desk", "Your tasks, approvals, shifts, leave and pay in one place", "user-smile-line", "teal", "Workspace & Admin", true],
-  ["portfolio", "Project Portfolio", "Projects, inventory, price lists, resale and rentals", "community-line", "orange", "Projects & Sales"],
+  ["portfolio", "Project Portfolio", "Projects, phases, inventory, price lists and dealer quotas", "community-line", "orange", "Projects & Sales"],
   ["campaigns", "Campaigns", "Ad campaigns, lead forms, landing pages and cost per lead", "megaphone-line", "rose", "Projects & Sales"],
   ["crm", "CRM", "Leads, follow-ups, site visits, call logs and pipeline", "user-star-line", "sky", "Projects & Sales"],
   ["operations", "Operations", "Bookings after sale: milestones, allotments, KYC, handover", "flow-chart", "blue", "After-Sales"],
-  ["estate", "Estate Management", "Transfers, NDC, possession, maintenance and complaints", "home-gear-line", "teal", "After-Sales"],
+  ["estate", "Estate Management", "Transfers, NDC, possession, resale, rentals and complaints", "home-gear-line", "teal", "After-Sales"],
   ["finance", "Finance", "Payments, invoices, receipts, cheques, escrow and banking", "bank-line", "emerald", "Finance & HR"],
   ["hr", "HR & Payroll", "Employees, duty rosters, attendance, leave and payroll", "team-line", "violet", "Finance & HR"],
   ["dashboards", "Dashboards", "Live sales, inventory and collections KPIs at a glance", "dashboard-3-line", "indigo", "Workspace & Admin"],

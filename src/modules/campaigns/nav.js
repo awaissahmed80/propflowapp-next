@@ -20,7 +20,7 @@ export const CAMPAIGNS_NAV = [
   {
     label: "Setup",
     items: [
-      { label: "Integrations", icon: "plug-line", to: "/campaigns/integrations", soon: true, description: "Meta lead ads, Google Ads and SMS gateways" },
+      { label: "Integrations", icon: "plug-line", to: "/campaigns/integrations", description: "Facebook & Instagram lead ads straight into CRM" },
       { label: "Customize", icon: "equalizer-line", to: "/campaigns/customize", description: "Captcha on public forms, campaign statuses and objectives" },
     ],
   },

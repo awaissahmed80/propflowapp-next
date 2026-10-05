@@ -35,6 +35,7 @@ const CONSOLE_NAV = [
       { area: "team", label: "Team", icon: "shield-user-line", to: "/team" },
       { area: "audit", label: "Audit Log", icon: "history-line", to: "/audit" },
       { area: "settings", label: "Emails", icon: "mail-settings-line", to: "/emails" },
+      { area: "settings", label: "Integrations", icon: "plug-line", to: "/integrations" },
       { area: "settings", label: "Settings", icon: "settings-3-line", to: "/settings" },
     ],
   },

@@ -41,6 +41,12 @@ export async function signIn(_prev, formData) {
 export async function signOut() {
   // The workspace's Activity Log shows sign-outs too
   const session = await getSession()
+  // Signed in as a member from the console: back to the console instead
+  if (session?.impersonatorUserId) {
+    const { endImpersonation } = await import("./impersonation")
+    const { url } = await endImpersonation()
+    redirect(url)
+  }
   if (session?.kind === "tenant" && session.tenantId) await logToWorkspace(session.tenantId, { type: "sign-in", action: "member.signed_out", actorUserId: session.user.id, summary: "signed out" })
   await endSession()
   redirect(siteUrl("auth"))

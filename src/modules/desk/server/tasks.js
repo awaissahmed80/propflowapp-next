@@ -6,6 +6,12 @@ import { listApprovals } from "@/modules/approvals/server/queries"
 import { servicesContext } from "@/modules/estate/server/context"
 import { OPEN_STATUSES } from "@/modules/estate/constants"
 import { financeContext } from "@/modules/finance/server/context"
+import { hrContext } from "@/modules/hr/server/context"
+import { attendanceDay } from "@/modules/hr/server/roster-queries"
+import { todayKey } from "@/modules/hr/roster"
+import { documentsContext } from "@/modules/documents/server/context"
+import { remindExpiring } from "@/modules/documents/server/reminders"
+import { SOON_DAYS, addDays, todayKey as pkToday } from "@/modules/documents/expiry"
 
 // My Desk's to-dos (on the launcher): things that need this person, gathered from every app.
 // Each: { id, app, icon?, title, detail?, href, critical? }. critical ones (overdue, waiting on
@@ -222,6 +228,79 @@ export async function myTasks(ctx) {
         critical: late,
       })
     }
+  }
+
+  // HR & Payroll: today's attendance still to mark (hr.roster), and this month's payroll to approve
+  // after the 25th (hr.payroll). Leave and advance requests already show through Approvals above.
+  const hr = await hrContext("/")
+  if (hr.can("view")) {
+    const today = todayKey()
+    if (hr.has("attendance") && hr.grant("hr.roster")) {
+      const n = (await attendanceDay(hr, today)).counts.unmarked
+      if (n)
+        tasks.push({
+          id: `hr-attendance-${today}`,
+          app: "hr",
+          title: `Mark attendance for ${n} ${n === 1 ? "person" : "people"} on duty today`,
+          detail: "Absences are unpaid days in payroll",
+          href: `/hrm/roster?tab=attendance&day=${today}`,
+        })
+    }
+    if (hr.has("payroll") && hr.can("edit") && hr.grant("hr.payroll") && Number(today.slice(8)) > 25) {
+      const run = await ctx
+        .db("payrollRuns")
+        .where({ month: today.slice(0, 7), status: "draft" })
+        .whereNull("deletedAt")
+        .first("code", "people")
+      if (run)
+        tasks.push({
+          id: `hr-payroll-${run.code}`,
+          app: "hr",
+          title: "Approve this month's payroll",
+          detail: `${run.code}: ${run.people} ${run.people === 1 ? "person" : "people"}. Review the draft, approve it, then pay on the 1st`,
+          href: `/hrm/payroll/${run.code.toLowerCase()}`,
+        })
+    }
+  }
+
+  // Documents: expired and soon-expiring documents (NOCs, contracts, licenses) for people who can
+  // renew them (documents.edit), in the types they may see. The day's expiry notifications go
+  // out here too when nobody has opened Documents yet today.
+  const docs = await documentsContext("/")
+  if (docs.can("edit") && docs.has("expiry") && docs.visibleTypes.length) {
+    await remindExpiring(ctx.db, ctx.tenant)
+    const today = pkToday()
+    const rows = await ctx
+      .db("assets")
+      .where({ app: "documents" })
+      .whereNull("deletedAt")
+      .whereNull("supersededAt")
+      .whereIn("category", docs.visibleTypes)
+      .where("expiresOn", "<=", addDays(today, SOON_DAYS))
+      .orderBy("expiresOn")
+      .select("title", "expiresOn")
+    const expired = rows.filter((r) => new Date(r.expiresOn).toISOString().slice(0, 10) < today)
+    const soon = rows.length - expired.length
+    if (expired.length)
+      tasks.push({
+        id: `documents-expired-${expired.length}`,
+        app: "documents",
+        title: `${expired.length} ${expired.length === 1 ? "document has" : "documents have"} expired`,
+        detail: `${expired
+          .slice(0, 2)
+          .map((r) => r.title)
+          .join(", ")}${expired.length > 2 ? "…" : ""}: renew and upload the new copy`,
+        href: "/documents/expiring",
+        critical: true,
+      })
+    if (soon)
+      tasks.push({
+        id: `documents-expiring-${soon}`,
+        app: "documents",
+        title: `${soon} ${soon === 1 ? "document expires" : "documents expire"} in the next ${SOON_DAYS} days`,
+        detail: rows.find((r) => new Date(r.expiresOn).toISOString().slice(0, 10) >= today)?.title,
+        href: "/documents/expiring",
+      })
   }
 
   // Project Portfolio: project events in the next 7 days

@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/page-header"
 import { Avatar } from "@/components/ui/avatar"
 import { Icon } from "@/components/ui/icon"
 import { updateMyPhone } from "../server/actions"
+import { ScreenLockSettings } from "./screen-lock-settings"
 
 function Row({ icon, label, children }) {
   return (
@@ -27,7 +28,7 @@ function Row({ icon, label, children }) {
 
 // My Desk › Profile: your details in this workspace. You can change your own mobile number;
 // your role, team, designation and department are set by an administrator.
-export function ProfileView({ me, user, workspace, lists }) {
+export function ProfileView({ me, user, workspace, lists, lock }) {
   const router = useRouter()
   const none = <span className="font-normal text-muted-foreground">Not set</span>
   const savePhone = async (phone) => {
@@ -91,6 +92,8 @@ export function ProfileView({ me, user, workspace, lists }) {
           </div>
         </section>
       </div>
+      {/* Not while console staff are signed in as this member */}
+      {lock && <ScreenLockSettings settings={lock} />}
     </div>
   )
 }

@@ -3,6 +3,9 @@
 //   yarn demo:seed            create the "Skyline Developers" workspace once (does nothing if it exists)
 //   yarn demo:seed --reset    drop its database and demo users, then build it again
 //   yarn demo:seed --check    counts, trial balance and a few app queries against the demo workspace
+//   yarn demo:seed --hr-people  HR employees, leave and loans for the existing demo workspace (once)
+//   yarn demo:seed --documents  the Documents app's library for the existing demo workspace (once):
+//                               placeholder PDFs, photos, Word and Excel files, versions, share links
 //
 // Sign in at portal.propflowapp.test with the demo owner:
 //   email     owner@skyline-demo.test
@@ -15,6 +18,7 @@
 import { registerHooks } from "node:module"
 import { readFileSync, existsSync } from "node:fs"
 import crypto from "node:crypto"
+import zlib from "node:zlib"
 import path from "node:path"
 import nextEnv from "@next/env"
 import { resolve as appResolve } from "./lib/app-imports.mjs"
@@ -195,9 +199,17 @@ const mine = (file) => load(file).filter((r) => r.tenantId === VITE_TENANT)
 const args = process.argv.slice(2)
 const RESET = args.includes("--reset")
 const CHECK = args.includes("--check")
+const HR_ROSTER = args.includes("--hr-roster")
+const HR_PEOPLE = args.includes("--hr-people")
+const HR_PAYROLL = args.includes("--hr-payroll")
+const DOCUMENTS = args.includes("--documents")
 
 try {
   if (CHECK) await check()
+  else if (HR_PEOPLE) await seedHrPeople()
+  else if (HR_ROSTER) await seedHrRoster()
+  else if (HR_PAYROLL) await seedHrPayroll()
+  else if (DOCUMENTS) await seedDocuments()
   else await run()
 } catch (err) {
   console.error(err)
@@ -2101,7 +2113,7 @@ async function check() {
   tries.push([`campaigns getCampaign ${campaign}`, async () => (await import("../src/modules/campaigns/server/queries.js")).getCampaign(ctx, campaign)])
   tries.push(["crm crmOverview", async () => (await import("../src/modules/crm/server/overview.js")).crmOverview(ctx)])
   // Every report in Finance, CRM, Campaigns and Project Portfolio, and the Operations reports
-  for (const app of ["finance", "crm", "campaigns", "portfolio"]) {
+  for (const app of ["finance", "crm", "campaigns", "portfolio", "hr"]) {
     const m = await import(`../src/modules/${app}/server/reports.js`)
     let filters
     for (const r of m.REPORTS)
@@ -2132,4 +2144,798 @@ async function check() {
     }
   }
   console.log(failed ? `  ${failed} of ${tries.length} app queries failed` : `  all ${tries.length} app queries ran`)
+}
+
+// ---------- HR: people (yarn demo:seed --hr-people) ----------
+//
+// Employees from the Vite dataset, each linked to a contact; portal logins linked for the demo
+// members (matched by name), everyone else without one (guards, drivers, site staff…). Leave
+// around today: approved, not approved, and waiting (with its Approvals row). A few loans and
+// advances, paid out from cash or the payroll bank and posted to Finance with the app's poster;
+// --hr-payroll then recovers them. Does nothing if the workspace already has employees.
+async function seedHrPeople() {
+  const tenant = await findDemoTenant()
+  if (!tenant) return console.log("No demo workspace yet. Run yarn demo:seed.")
+  const db = tenantDb(tenant)
+  if (await db("employees").whereNull("deletedAt").first("id")) return console.log(`${tenant.code} already has employees. Nothing changed.`)
+  const { ensureContact, linkContact } = await import("../src/modules/contacts/server/links.js")
+  const owner = await authDb()("users").where({ email: OWNER_EMAIL }).first("id", "name")
+  const ctx = { user: { id: owner.id } }
+  const members = await authDb()("memberships as m").join("users as u", "u.id", "m.userId").where({ "m.tenantId": tenant.id, "m.status": "active" }).whereNull("m.deletedAt").select("u.id", "u.name")
+  const dealers = new Set((await db("members").whereNotNull("dealerId").select("userId")).map((m) => m.userId))
+  const userOf = new Map(members.filter((m) => !dealers.has(m.id)).map((m) => [m.name.toLowerCase(), m.id]))
+  const hrApprover = userOf.get("ayesha malik") ?? owner.id
+  const dayStr = (n) => pkDay(new Date(TODAY.getTime() - n * DAY + 12 * HOUR))
+  const thisMonth = dayStr(0).slice(0, 7)
+  const monthShift = (m, k) => {
+    const [y, mo] = m.split("-").map(Number)
+    const d = new Date(Date.UTC(y, mo - 1 + k, 1))
+    return d.toISOString().slice(0, 7)
+  }
+  const label = (v) => v.replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase())
+
+  // Designations and departments the HR data uses beyond the workspace's lists
+  const source = mine("hr/employees.json")
+  const DEPARTMENT_MAP = { "hr-admin": "admin" }
+  const have = new Set((await db("lookups").whereIn("listKey", ["designation", "department"]).select("listKey", "value")).map((l) => `${l.listKey}:${l.value}`))
+  let sort = 700
+  for (const [listKey, value] of [...new Set(source.flatMap((e) => [`designation:${e.designation}`, `department:${DEPARTMENT_MAP[e.department] ?? e.department}`]))].map((k) => k.split(":")))
+    if (!have.has(`${listKey}:${value}`))
+      await db("lookups")
+        .insert({ listKey, value, label: label(value), isDefault: false, isActive: true, sortOrder: (sort += 10), createdBy: owner.id })
+        .onConflict()
+        .ignore()
+
+  // Site staff are based at a project; office staff at head office
+  const teams = new Map((await db("teams").whereNull("deletedAt").select("id", "name")).map((t) => [t.name, t.id]))
+  const teamOf = new Map(mine("master/teams.json").map((t) => [t.id, teams.get(t.name) ?? null]))
+  const projects = await db("projects").whereNull("deletedAt").orderBy("id").select("id")
+  const ON_SITE = new Set(["security-guard", "site-supervisor", "surveyor", "electrician", "plumber", "gardener", "site-engineer", "estate-officer"])
+  const employees = new Map() // Vite id → { id, name, userId, leftOn }
+  let site = 0
+  await db.transaction(async (trx) => {
+    for (const e of [...source].sort((a, b) => b.joinedDaysAgo - a.joinedDaysAgo || a.id.localeCompare(b.id))) {
+      const code = await nextCode(trx, "employee")
+      const phone = normalizePhone(e.phone)
+      const joinedOn = dayStr(e.joinedDaysAgo)
+      const leftOn = e.status === "resigned" ? dayStr(e.leftDaysAgo ?? 30) : null
+      const userId = userOf.get(e.name.toLowerCase()) ?? null
+      const [id] = await trx("employees").insert({
+        code,
+        userId,
+        name: e.name,
+        gender: e.gender ?? null,
+        guardianRelation: e.guardian?.relation ?? null,
+        guardianName: e.guardian?.name ?? null,
+        cnic: e.cnic ?? null,
+        phone,
+        designation: e.designation,
+        department: DEPARTMENT_MAP[e.department] ?? e.department,
+        teamId: e.teamId ? teamOf.get(e.teamId) : null,
+        projectId: ON_SITE.has(e.designation) && projects.length ? projects[site++ % projects.length].id : null,
+        employmentType: ["ceo", "managing-director", "director"].includes(e.designation) ? "director" : e.employmentType, // owners and directors: no EOBI/PF, not in headcount
+        joinedOn,
+        leftOn,
+        endReason: leftOn ? pick(seeded(e.id), ["Resigned, joined another company", "Resigned, moved to another city", "Contract ended"]) : null,
+        status: leftOn ? "left" : "active",
+        salary: json({ basic: 0, house: 0, utilities: 0, medical: 0, fuel: 0, other: 0, ...e.salary }),
+        pf: Boolean(e.pf),
+        payMethod: e.bank ? "bank" : "cash",
+        bankName: e.bank?.name ?? null,
+        accountTitle: e.bank ? e.name : null,
+        iban: e.bank?.iban ?? null,
+        eobiNo: e.eobiNo ?? null,
+        address: e.address ?? null,
+        emergency: e.emergency ? json({ name: e.emergency.name, relation: e.emergency.relation, phone: normalizePhone(e.emergency.phone) ?? e.emergency.phone }) : null,
+        createdBy: owner.id,
+        createdAt: later(daysAgo(e.joinedDaysAgo), daysAgo(365)),
+      })
+      const contactId = await ensureContact(trx, { name: e.name, phone }, owner.id)
+      await linkContact(trx, contactId, { type: "employee", id, role: "employee" }, owner.id)
+      await trx("employees").where({ id }).update({ contactId })
+      employees.set(e.id, { id, name: e.name, userId, leftOn })
+    }
+  })
+
+  // Leave, oldest first: dates relative to today
+  const NOT_APPROVED = ["Month-end closing that week; please take it after the 5th.", "Two others from the team are already away then.", "Site handover that week. Take it the week after."]
+  const leaves = mine("hr/leaves.json")
+    .filter((l) => employees.has(l.employeeId))
+    .sort((a, b) => b.startDaysAgo - a.startDaysAgo)
+  const leaveCounts = { approved: 0, pending: 0, rejected: 0 }
+  await db.transaction(async (trx) => {
+    for (const l of leaves) {
+      const emp = employees.get(l.employeeId)
+      const startOn = dayStr(l.startDaysAgo)
+      const endOn = dayStr(l.startDaysAgo - (l.days - 1))
+      if (emp.leftOn && startOn > emp.leftOn) continue
+      const applied = capNow(daysAgo(Math.max(l.appliedDaysAgo, 0), 10, 15))
+      const decider = emp.userId === hrApprover ? owner.id : hrApprover
+      const decided = l.status === "pending" ? null : capNow(new Date(applied.getTime() + 20 * HOUR))
+      const code = await nextCode(trx, "leave")
+      const [id] = await trx("leaveRequests").insert({
+        code,
+        employeeId: emp.id,
+        type: l.type,
+        startOn,
+        endOn,
+        days: l.days,
+        reason: l.reason ?? null,
+        status: l.status,
+        decidedBy: decided ? decider : null,
+        decidedAt: decided,
+        decisionNote: l.status === "rejected" ? pick(seeded(l.id), NOT_APPROVED) : null,
+        createdBy: emp.userId ?? hrApprover,
+        createdAt: applied,
+      })
+      leaveCounts[l.status] = (leaveCounts[l.status] ?? 0) + 1
+      if (l.status === "pending")
+        await approval(trx, {
+          type: "leave",
+          app: "hr",
+          subjectType: "leave",
+          subjectId: id,
+          title: `${emp.name}: ${l.days} ${l.days === 1 ? "day" : "days"} of leave`,
+          details: `${startOn} to ${endOn}${l.reason ? ` · ${l.reason}` : ""}`.slice(0, 255),
+          link: "/hrm/leave",
+          reason: l.reason ?? null,
+          payload: { type: l.type },
+          requestedBy: emp.userId ?? hrApprover,
+          createdAt: applied,
+        })
+    }
+  })
+
+  // Loans and advances: given the month before recovery starts, advances in cash, loans from the payroll bank
+  const accounts = new Map((await db("accounts").whereNull("deletedAt").whereIn("code", ["1110", "1150"]).select("id", "code")).map((a) => [a.code, a.id]))
+  let loans = 0
+  await db.transaction(async (trx) => {
+    for (const l of mine("hr/loans.json").filter((x) => employees.has(x.employeeId))) {
+      const emp = employees.get(l.employeeId)
+      if (emp.leftOn) continue
+      const given = monthShift(thisMonth, -l.startMonthsAgo)
+      const givenAt = capNow(new Date(`${given}-08T11:30:00+05:00`))
+      const code = await nextCode(trx, "loan")
+      const [id] = await trx("loans").insert({
+        code,
+        employeeId: emp.id,
+        kind: l.kind,
+        amount: l.amount,
+        installment: l.installment,
+        startMonth: monthShift(given, 1),
+        reason: l.reason ?? null,
+        status: "active",
+        accountId: (l.kind === "advance" ? accounts.get("1110") : accounts.get("1150")) ?? null,
+        givenAt,
+        approvedBy: owner.id,
+        createdBy: owner.id,
+        createdAt: givenAt,
+      })
+      await posting.postLoanGiven(trx, ctx, id)
+      loans++
+    }
+  })
+  const linked = [...employees.values()].filter((e) => e.userId).length
+  const leaveSummary = Object.entries(leaveCounts)
+    .map(([k, v]) => `${k} ${v}`)
+    .join(", ")
+  console.log(`HR people in ${tenant.code}: ${employees.size} employees (${linked} with a portal login), leave ${leaveSummary}, ${loans} loans and advances posted`)
+}
+
+// ---------- HR: duty roster (yarn demo:seed --hr-roster) ----------
+//
+// Duty posts, regular duties, a couple of cover changes this week and the last six weeks of
+// attendance (about 2.5% absent and 5.5% late; nobody marked on leave or days off; today is left
+// to mark). Needs the employees from --hr-people first; run it before --hr-payroll so payroll
+// picks up the absences. Running it again replaces the roster and attendance.
+async function seedHrRoster() {
+  const tenant = await findDemoTenant()
+  if (!tenant) return console.log("No demo workspace yet. Run yarn demo:seed.")
+  const db = tenantDb(tenant)
+  const R = await import("../src/modules/hr/roster.js")
+  const employees = await db("employees").whereNull("deletedAt").select("id", "code", "name", "status", "joinedOn", "leftOn")
+  if (!employees.length) return console.log(`${tenant.code} has no employees yet. Run yarn demo:seed --hr-people first.`)
+  const owner = await authDb()("users").where({ email: OWNER_EMAIL }).first("id")
+  const byName = new Map(employees.map((e) => [e.name.toLowerCase(), e]))
+  const vite = new Map(mine("hr/employees.json").map((e) => [e.id, e.name.toLowerCase()]))
+  const projects = await db("projects").whereNull("deletedAt").select("id", "name")
+  const projectVite = new Map(mine("estate/projects.json").map((p) => [p.id, projects.find((x) => x.name === p.name)?.id ?? null]))
+
+  await db.transaction(async (trx) => {
+    for (const t of ["attendance", "dutyOverrides", "dutyPatterns", "dutyPosts"]) await trx(t).delete()
+    await trx("sequences").where({ key: "duty-post" }).update({ nextValue: 1 })
+  })
+
+  // Posts: gates with day and night shifts, the construction site at night, site staff, the
+  // weekend sales desk, head office and transport
+  const posts = new Map()
+  for (const p of mine("hr/posts.json")) {
+    const code = await nextCode(db, "duty-post")
+    const shifts = p.shifts.map((s) => ({ key: s.id, label: s.label, start: s.start, end: s.end, needed: s.needed, ...(s.days ? { days: s.days } : {}) }))
+    const [id] = await db("dutyPosts").insert({
+      code,
+      name: p.name,
+      projectId: p.projectId ? projectVite.get(p.projectId) : null,
+      kind: p.kind,
+      shifts: json(shifts),
+      isActive: true,
+      createdBy: owner?.id ?? null,
+      createdAt: daysAgo(70),
+    })
+    posts.set(p.id, { id, code, name: p.name, kind: p.kind, projectId: p.projectId, shifts })
+  }
+
+  // Regular duties, one row per post and shift
+  let missing = 0
+  const patterns = []
+  for (const p of mine("hr/patterns.json")) {
+    const emp = byName.get(vite.get(p.employeeId))
+    if (!emp || emp.status !== "active") {
+      missing++
+      continue
+    }
+    for (const s of p.slots) patterns.push({ employeeId: emp.id, postId: posts.get(s.postId).id, shiftKey: s.shiftId, days: s.days, rotate: Boolean(s.rotate), weeks: s.weeks ?? null })
+  }
+  if (patterns.length) await db("dutyPatterns").insert(patterns.map((p) => ({ ...p, days: json(p.days), createdBy: owner?.id ?? null, createdAt: daysAgo(70) })))
+
+  const rosterPosts = [...posts.values()]
+  const leave = (await db("leaveRequests").whereNull("deletedAt").where({ status: "approved" }).select("employeeId", "startOn", "endOn", "type")).map((l) => ({
+    ...l,
+    startOn: R.dayKey(l.startOn),
+    endOn: R.dayKey(l.endOn),
+  }))
+  const data = { posts: rosterPosts, patterns, overrides: [], leave }
+  const today = R.todayKey()
+  const employed = (e, d) => R.dayKey(e.joinedOn) <= d && (!e.leftOn || R.dayKey(e.leftOn) >= d)
+  const active = new Map(employees.map((e) => [e.id, e]))
+  const working = (d) => [...R.assignments(data, d).entries()].map(([k, list]) => [k, list.filter((x) => active.has(x.employeeId) && employed(active.get(x.employeeId), d) && !R.leaveOn(leave, x.employeeId, d))])
+
+  // Cover this week: a guard free that day fills a short security shift (their day off, so it's
+  // overtime), and a site supervisor is away for a day with someone from maintenance covering
+  const overrides = []
+  const guards = new Set(patterns.filter((p) => rosterPosts.find((x) => x.id === p.postId)?.kind === "security").map((p) => p.employeeId))
+  for (let i = 0; i < 7 && overrides.length < 2; i++) {
+    const d = R.addDays(today, i)
+    const on = new Set([...R.assignments(data, d).values()].flat().map((x) => x.employeeId))
+    for (const [k, list] of working(d)) {
+      const [postId, shiftKey] = k.split(":").map((v, j) => (j ? v : Number(v)))
+      const post = rosterPosts.find((p) => p.id === postId)
+      const shift = post.shifts.find((s) => s.key === shiftKey)
+      if (post.kind !== "security" || list.length >= shift.needed) continue
+      const free = [...guards].find((g) => !on.has(g) && !R.leaveOn(leave, g, d))
+      if (!free) continue
+      overrides.push({ onDate: d, employeeId: free, postId, shiftKey, kind: "add", note: "Covering a short shift: overtime" })
+      on.add(free)
+      if (overrides.length >= 2) break
+    }
+  }
+  const nextWeekday = [1, 2, 3, 4, 5].map((n) => R.addDays(today, n)).find((d) => R.weekdayOf(d) !== 0)
+  const site = patterns.find((p) => rosterPosts.find((x) => x.id === p.postId)?.kind === "site" && R.patternShift(p, nextWeekday))
+  const spare = patterns.find((p) => rosterPosts.find((x) => x.id === p.postId)?.kind === "maintenance")
+  if (site && spare) {
+    overrides.push({ onDate: nextWeekday, employeeId: site.employeeId, postId: site.postId, shiftKey: site.shiftKey, kind: "remove", note: "At the LDA office for the NOC hearing" })
+    overrides.push({ onDate: nextWeekday, employeeId: spare.employeeId, postId: spare.postId, shiftKey: spare.shiftKey, kind: "remove", note: "Moved to development works for the day" })
+    overrides.push({ onDate: nextWeekday, employeeId: spare.employeeId, postId: site.postId, shiftKey: site.shiftKey, kind: "add", note: "Covering development works for the day" })
+  }
+  if (overrides.length) await db("dutyOverrides").insert(overrides.map((o) => ({ ...o, createdBy: owner?.id ?? null, createdAt: daysAgo(1) })))
+
+  // Attendance for the last six weeks, up to yesterday: everyone on duty, and office staff Monday
+  // to Saturday (including people whose only duty is weekend sales)
+  const marks = []
+  for (let n = 42; n >= 1; n--) {
+    const d = R.addDays(today, -n)
+    const expected = new Set(working(d).flatMap(([, list]) => list.map((x) => x.employeeId)))
+    for (const e of employees) if (e.status === "active" && R.officeDay(patterns, e.id, d) && employed(e, d) && !R.leaveOn(leave, e.id, d)) expected.add(e.id)
+    for (const id of expected) {
+      const r = seeded(`attendance:${id}:${d}`)()
+      marks.push({
+        employeeId: id,
+        onDate: d,
+        status: r < 0.025 ? "absent" : r < 0.08 ? "late" : "present",
+        note: r < 0.025 ? pick(seeded(d + id), ["Sick, called in", "Family emergency", "No show", null]) : null,
+        markedBy: owner?.id ?? null,
+        markedAt: new Date(`${d}T${r < 0.08 && r >= 0.025 ? "10:20" : "09:15"}:00+05:00`),
+      })
+    }
+  }
+  for (let i = 0; i < marks.length; i += 500) await db("attendance").insert(marks.slice(i, i + 500))
+
+  const count = (s) => marks.filter((m) => m.status === s).length
+  console.log(`✓ Duty roster for ${tenant.code}: ${posts.size} posts · ${patterns.length} regular duties for ${new Set(patterns.map((p) => p.employeeId)).size} people · ${overrides.length} one-day changes`)
+  console.log(`  attendance ${marks.length} marks over 42 days: ${count("present")} present · ${count("late")} late · ${count("absent")} absent`)
+  if (missing) console.log(`  ${missing} people in the source roster weren't found among active employees and were skipped`)
+}
+
+// ---------- HR: payroll (yarn demo:seed --hr-payroll) ----------
+//
+// Twelve paid payroll runs (the twelve months before this one) worked out by the app's own
+// payroll engine (salaries, unpaid leave, absences, loan installments) and posted to Finance in
+// month order: approved on the 27th, paid on the 1st of the next month from the default bank.
+// Eid bonuses go on the Eid months. This month is left as a draft. When a payment would overdraw
+// the bank (or cash) at any point after it, the directors put in capital just before.
+// Needs the employees from --hr-people (and, for absences, --hr-roster) first. Does nothing if
+// payroll has already been paid.
+async function seedHrPayroll() {
+  const tenant = await findDemoTenant()
+  if (!tenant) return console.log("No demo workspace yet. Run yarn demo:seed.")
+  const db = tenantDb(tenant)
+  if (!(await db("employees").whereNull("deletedAt").first("id"))) return console.log(`${tenant.code} has no employees yet. Run yarn demo:seed --hr-people first.`)
+  if (await db("payrollRuns").where({ status: "paid" }).whereNull("deletedAt").first("id")) return console.log(`${tenant.code} already has paid payroll. Nothing changed (use --reset to rebuild the workspace).`)
+  const { ensureDraft, rebuildDraft, afterPaid } = await import("../src/modules/hr/server/payroll.js")
+  const owner = await authDb()("users").where({ email: OWNER_EMAIL }).first("id")
+  const ctx = { user: { id: owner.id } }
+  const bank = await db("accounts").whereNull("deletedAt").where({ kind: "bank", isActive: true }).orderBy("isDefault", "desc").orderBy("code").first("id", "code", "name")
+  const cash = await db("accounts").whereNull("deletedAt").where({ code: "1110" }).first("id", "code", "name")
+  const month0 = pkDay(NOW).slice(0, 7)
+  const shift = (m, n) => {
+    const [y, mo] = m.split("-").map(Number)
+    return new Date(Date.UTC(y, mo - 1 + n, 1)).toISOString().slice(0, 7)
+  }
+  // Eid ul-Fitr (Mar 2026) and Eid ul-Adha (May 2026): half a month's basic as a bonus
+  const EID = { "2026-03": "Eid ul-Fitr bonus", "2026-05": "Eid ul-Adha bonus" }
+
+  // A money account's lowest balance from a moment on (opening balance plus posted vouchers)
+  const lowestFrom = async (trx, accountId, at) => {
+    const acc = await trx("accounts").where({ id: accountId }).first("openingBalance")
+    const lines = await trx("voucherLines as l")
+      .join("vouchers as v", "v.id", "l.voucherId")
+      .where("l.accountId", accountId)
+      .whereIn("v.status", ["posted", "void"])
+      .whereNull("v.deletedAt")
+      .orderBy("v.voucherDate")
+      .orderBy("v.id")
+      .select("l.debit", "l.credit", "v.voucherDate")
+    let balance = Number(acc?.openingBalance ?? 0)
+    let low = Infinity
+    for (const l of lines) {
+      if (new Date(l.voucherDate) >= at) low = Math.min(low, balance)
+      balance += Number(l.debit) - Number(l.credit)
+      if (new Date(l.voucherDate) >= at) low = Math.min(low, balance)
+    }
+    return Math.min(low, balance)
+  }
+  let capital = 0
+  const cover = async (trx, account, amount, at) => {
+    if (!account || amount <= 0) return
+    const low = await lowestFrom(trx, account.id, at)
+    if (low - amount >= 0) return
+    const put = Math.ceil((amount - low + 2_000_000) / 500_000) * 500_000
+    const out = await posting.postVoucher(trx, ctx, {
+      type: "jv",
+      date: new Date(at.getTime() - 3 * HOUR),
+      narration: account.code === "1110" ? "Capital introduced by the directors (cash for salaries)" : "Capital introduced by the directors for salaries",
+      lines: [
+        { account: account.code, debit: put },
+        { account: "3100", credit: put },
+      ],
+      reference: "Directors' cheque",
+      approvedBy: owner.id,
+    })
+    if (out) capital += put
+  }
+
+  // Drafts left from earlier tries are rebuilt from scratch
+  const stale = await db("payrollRuns").whereNot({ status: "paid" }).select("id")
+  if (stale.length) {
+    await db("payrollLines")
+      .whereIn(
+        "runId",
+        stale.map((r) => r.id),
+      )
+      .delete()
+    await db("payrollRuns")
+      .whereIn(
+        "id",
+        stale.map((r) => r.id),
+      )
+      .delete()
+  }
+
+  const paid = []
+  for (let k = 12; k >= 1; k--) {
+    const month = shift(month0, -k)
+    const payday = new Date(`${shift(month, 1)}-01T11:00:00+05:00`)
+    const approvedAt = new Date(`${month}-27T16:00:00+05:00`)
+    await db.transaction(async (trx) => {
+      const run = await ensureDraft(trx, month, owner.id)
+      await rebuildDraft(trx, run.id)
+      if (EID[month]) {
+        const lines = await trx("payrollLines").where({ runId: run.id }).select("id", "earnings")
+        for (const l of lines) {
+          const basic = Number((typeof l.earnings === "string" ? JSON.parse(l.earnings) : l.earnings).basic ?? 0)
+          await trx("payrollLines")
+            .where({ id: l.id })
+            .update({ bonus: Math.round(basic / 2 / 500) * 500, note: EID[month] })
+        }
+        await rebuildDraft(trx, run.id)
+      }
+      const totals = await trx("payrollRuns").where({ id: run.id }).first("people", "net")
+      if (!totals.people) {
+        await trx("payrollLines").where({ runId: run.id }).delete()
+        await trx("payrollRuns").where({ id: run.id }).delete()
+        return
+      }
+      await trx("payrollRuns")
+        .where({ id: run.id })
+        .update({ status: "approved", approvedBy: owner.id, approvedAt, createdAt: new Date(`${month}-20T10:00:00+05:00`), updatedAt: approvedAt })
+      const lines = await trx("payrollLines").where({ runId: run.id }).select("net", "payMethod")
+      const bankNet = lines.filter((l) => l.payMethod !== "cash").reduce((s, l) => s + Number(l.net), 0)
+      const cashNet = lines.filter((l) => l.payMethod === "cash").reduce((s, l) => s + Number(l.net), 0)
+      await cover(trx, bank, bankNet, payday)
+      await cover(trx, cash, cashNet, payday)
+      await posting.postPayroll(trx, ctx, run.id, { accountId: bank.id, date: payday })
+      await trx("payrollRuns").where({ id: run.id }).update({ status: "paid", paidBy: owner.id, paidAt: payday, accountId: bank.id, updatedAt: payday })
+      await afterPaid(trx, { ...run, month }, owner.id)
+      paid.push({ month, people: totals.people, net: Number(totals.net) })
+    })
+  }
+  // This month: the draft afterPaid started, rebuilt once more
+  await db.transaction(async (trx) => {
+    const run = await ensureDraft(trx, month0, owner.id)
+    if (run.status === "draft") await rebuildDraft(trx, run.id)
+  })
+  const draft = await db("payrollRuns").where({ month: month0 }).first("code", "people", "net")
+  console.log(
+    `✓ Payroll for ${tenant.code}: ${paid.length} paid runs (${paid[0]?.month ?? "—"} to ${paid.at(-1)?.month ?? "—"}) posted to Finance from ${bank.name}, ${rs(paid.reduce((s, p) => s + p.net, 0))} net in all`,
+  )
+  console.log(`  ${draft.code} left as a draft: ${draft.people} people, ${rs(draft.net)} net${capital ? ` · capital introduced to cover salaries ${rs(capital)}` : ""}`)
+  const tb = await db("voucherLines as l").join("vouchers as v", "v.id", "l.voucherId").whereIn("v.status", ["posted", "void"]).whereNull("v.deletedAt").sum({ d: "l.debit", c: "l.credit" }).first()
+  const d = Math.round(Number(tb.d) * 100) / 100
+  const c = Math.round(Number(tb.c) * 100) / 100
+  console.log(`  trial balance: debits ${rs(d)} · credits ${rs(c)} → ${d === c ? "balanced ✓" : "NOT BALANCED ✗"}`)
+  if (d !== c) process.exitCode = 1
+  for (const a of [bank, cash].filter(Boolean)) {
+    const low = await lowestFrom(db, a.id, new Date(0))
+    console.log(`  ${a.name}: lowest balance ever ${rs(low)}${low < 0 ? " ✗" : " ✓"}`)
+    if (low < 0) process.exitCode = 1
+  }
+}
+
+// ---------- Documents ----------
+
+// Small valid files standing in for the real documents: a one-page PDF with a title page, a PNG,
+// and minimal Word and Excel files (zip packages, stored uncompressed)
+
+function makePdf(lines) {
+  const esc = (t) =>
+    String(t)
+      .replace(/[^\x20-\x7e]/g, "-")
+      .replace(/[\\()]/g, (m) => `\\${m}`)
+  const wrap = (t, n) => {
+    const out = []
+    let line = ""
+    for (const w of String(t).split(/\s+/)) {
+      if ((line + " " + w).trim().length > n) {
+        out.push(line.trim())
+        line = w
+      } else line += ` ${w}`
+    }
+    if (line.trim()) out.push(line.trim())
+    return out
+  }
+  let y = 760
+  const ops = ["0.008 0.439 0.824 rg 0 812 595 30 re f", "0 0 0 rg"]
+  for (const [i, l] of lines.entries()) {
+    const size = i === 0 ? 11 : i === 1 ? 22 : 12
+    const font = i === 1 ? "F2" : "F1"
+    for (const part of wrap(l.text, i === 1 ? 42 : 80)) {
+      ops.push(`BT /${font} ${size} Tf ${l.gray ? "0.4 0.4 0.4 rg " : "0 0 0 rg "}72 ${y} Td (${esc(part)}) Tj ET`)
+      y -= size + 8
+    }
+    y -= l.gap ?? 6
+  }
+  ops.push("0.85 0.85 0.85 RG 72 90 m 523 90 l S", "BT /F1 9 Tf 0.5 0.5 0.5 rg 72 74 Td (Placeholder copy for the PropFlow demo workspace. Not a real document.) Tj ET")
+  const stream = ops.join("\n")
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>",
+    `<< /Length ${Buffer.byteLength(stream, "latin1")} >>\nstream\n${stream}\nendstream`,
+  ]
+  let pdf = "%PDF-1.4\n"
+  const offsets = []
+  objects.forEach((o, i) => {
+    offsets.push(Buffer.byteLength(pdf, "latin1"))
+    pdf += `${i + 1} 0 obj\n${o}\nendobj\n`
+  })
+  const xref = Buffer.byteLength(pdf, "latin1")
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.map((o) => `${String(o).padStart(10, "0")} 00000 n \n`).join("")}`
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`
+  return Buffer.from(pdf, "latin1")
+}
+
+function makePng(seed, width = 960, height = 640) {
+  const rand = seeded(seed)
+  const [r0, g0, b0] = [int(rand, 90, 160), int(rand, 120, 180), int(rand, 140, 210)]
+  const raw = Buffer.alloc((width * 3 + 1) * height)
+  for (let y = 0; y < height; y++) {
+    raw[y * (width * 3 + 1)] = 0
+    for (let x = 0; x < width; x++) {
+      const i = y * (width * 3 + 1) + 1 + x * 3
+      const ground = y > height * 0.62
+      const t = y / height
+      raw[i] = ground ? 120 + ((x * 7) % 30) : Math.round(r0 + (230 - r0) * t)
+      raw[i + 1] = ground ? 104 + ((y * 5) % 20) : Math.round(g0 + (235 - g0) * t)
+      raw[i + 2] = ground ? 84 : Math.round(b0 + (240 - b0) * t)
+    }
+  }
+  // A few building blocks on the horizon
+  for (let k = 0; k < 6; k++) {
+    const bx = int(rand, 40, width - 160)
+    const bw = int(rand, 60, 140)
+    const bh = int(rand, 80, 260)
+    const shade = int(rand, 150, 220)
+    for (let y = Math.round(height * 0.62) - bh; y < Math.round(height * 0.62); y++)
+      for (let x = bx; x < bx + bw; x++) {
+        const i = y * (width * 3 + 1) + 1 + x * 3
+        const win = (x - bx) % 18 < 8 && y % 22 < 10
+        raw[i] = win ? 70 : shade
+        raw[i + 1] = win ? 90 : shade - 10
+        raw[i + 2] = win ? 120 : shade - 25
+      }
+  }
+  const chunk = (type, data) => {
+    const len = Buffer.alloc(4)
+    len.writeUInt32BE(data.length)
+    const td = Buffer.concat([Buffer.from(type, "latin1"), data])
+    const crc = Buffer.alloc(4)
+    crc.writeUInt32BE(zlib.crc32(td) >>> 0)
+    return Buffer.concat([len, td, crc])
+  }
+  const ihdr = Buffer.alloc(13)
+  ihdr.writeUInt32BE(width, 0)
+  ihdr.writeUInt32BE(height, 4)
+  ihdr[8] = 8
+  ihdr[9] = 2
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk("IHDR", ihdr), chunk("IDAT", zlib.deflateSync(raw)), chunk("IEND", Buffer.alloc(0))])
+}
+
+function makeZip(files) {
+  const locals = []
+  const centrals = []
+  let offset = 0
+  for (const [name, text] of files) {
+    const data = Buffer.from(text, "utf8")
+    const nameBuf = Buffer.from(name, "utf8")
+    const crc = zlib.crc32(data) >>> 0
+    const local = Buffer.alloc(30)
+    local.writeUInt32LE(0x04034b50, 0)
+    local.writeUInt16LE(20, 4)
+    local.writeUInt32LE(crc, 14)
+    local.writeUInt32LE(data.length, 18)
+    local.writeUInt32LE(data.length, 22)
+    local.writeUInt16LE(nameBuf.length, 26)
+    const central = Buffer.alloc(46)
+    central.writeUInt32LE(0x02014b50, 0)
+    central.writeUInt16LE(20, 4)
+    central.writeUInt16LE(20, 6)
+    central.writeUInt32LE(crc, 16)
+    central.writeUInt32LE(data.length, 20)
+    central.writeUInt32LE(data.length, 24)
+    central.writeUInt16LE(nameBuf.length, 28)
+    central.writeUInt32LE(offset, 42)
+    locals.push(local, nameBuf, data)
+    centrals.push(central, nameBuf)
+    offset += 30 + nameBuf.length + data.length
+  }
+  const dir = Buffer.concat(centrals)
+  const end = Buffer.alloc(22)
+  end.writeUInt32LE(0x06054b50, 0)
+  end.writeUInt16LE(files.length, 8)
+  end.writeUInt16LE(files.length, 10)
+  end.writeUInt32LE(dir.length, 12)
+  end.writeUInt32LE(offset, 16)
+  return Buffer.concat([...locals, dir, end])
+}
+
+function xml(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+}
+function RELS(target) {
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="${target}"/></Relationships>`
+}
+
+function makeDocx(paragraphs) {
+  const body = paragraphs.map((p, i) => `<w:p><w:r>${i === 0 ? '<w:rPr><w:b/><w:sz w:val="36"/></w:rPr>' : ""}<w:t xml:space="preserve">${xml(p)}</w:t></w:r></w:p>`).join("")
+  return makeZip([
+    [
+      "[Content_Types].xml",
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`,
+    ],
+    ["_rels/.rels", RELS("word/document.xml")],
+    ["word/document.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr/></w:body></w:document>`],
+  ])
+}
+
+function makeXlsx(rows) {
+  const col = (i) => String.fromCharCode(65 + i)
+  const data = rows
+    .map(
+      (r, ri) => `<row r="${ri + 1}">${r.map((v, ci) => (typeof v === "number" ? `<c r="${col(ci)}${ri + 1}"><v>${v}</v></c>` : `<c r="${col(ci)}${ri + 1}" t="inlineStr"><is><t>${xml(v)}</t></is></c>`)).join("")}</row>`,
+    )
+    .join("")
+  return makeZip([
+    [
+      "[Content_Types].xml",
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`,
+    ],
+    ["_rels/.rels", RELS("xl/workbook.xml")],
+    [
+      "xl/workbook.xml",
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Sheet1" sheetId="1" r:id="rId1"/></sheets></workbook>`,
+    ],
+    [
+      "xl/_rels/workbook.xml.rels",
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`,
+    ],
+    ["xl/worksheets/sheet1.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${data}</sheetData></worksheet>`],
+  ])
+}
+
+function fileKinds() {
+  return {
+    pdf: { ext: "pdf", mime: "application/pdf" },
+    jpg: { ext: "png", mime: "image/png" }, // placeholder photos are PNGs
+    docx: { ext: "docx", mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+    xlsx: { ext: "xlsx", mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+  }
+}
+
+// The Documents library from the Vite demo data (documents/documents.json, the demo company's
+// own 37 of its 46; the rest belong to other demo companies), with earlier versions of two
+// documents and three share links (one active and opened, one expired, one revoked)
+async function seedDocuments() {
+  const tenant = await findDemoTenant()
+  if (!tenant) return console.log("No demo workspace yet. Run yarn demo:seed.")
+  const db = tenantDb(tenant)
+  if (await db("assets").where({ app: "documents" }).first("id")) return console.log(`${tenant.code} already has documents. Nothing changed.`)
+  const { saveFile } = await import("../src/server/storage/index.js")
+  const owner = await authDb()("users").where({ email: OWNER_EMAIL }).first("id", "name")
+  const viteUsers = load("auth/users.json")
+  const people = new Map(
+    (await authDb()("memberships as m").join("users as u", "u.id", "m.userId").where({ "m.tenantId": tenant.id }).whereNull("m.deletedAt").select("u.id", "u.name")).map((u) => [u.name.toLowerCase(), u.id]),
+  )
+  const userFor = (viteId) => people.get(viteUsers.find((u) => u.id === viteId)?.name?.toLowerCase()) ?? owner.id
+  const projects = await db("projects").whereNull("deletedAt").select("id", "code", "name")
+  const projectFor = new Map(mine("estate/projects.json").map((p) => [p.id, projects.find((x) => x.name === p.name) ?? null]))
+  const types = new Set((await db("lookups").where({ listKey: "document-type" }).whereNull("deletedAt").select("value")).map((t) => t.value))
+  const typeLabels = Object.fromEntries((await db("lookups").where({ listKey: "document-type" }).select("value", "label")).map((t) => [t.value, t.label]))
+  const folder = `tenants/${tenant.code.toLowerCase()}/documents`
+  const dayKey = (n) => pkDay(new Date(TODAY.getTime() + n * DAY + 12 * HOUR))
+  const slug = (s) =>
+    s
+      .replace(/[^\w]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 80)
+
+  const fileFor = (d, { title = d.name, version = 1, expiresOn = null } = {}) => {
+    const project = d.projectId ? projectFor.get(d.projectId) : null
+    if (d.type === "jpg") return makePng(`${d.id}-${version}`)
+    if (d.type === "docx") return makeDocx([title, `${COMPANY.name}`, d.note || "Template kept in Documents for the team.", "This is a placeholder file in the PropFlow demo workspace."])
+    if (d.type === "xlsx")
+      return makeXlsx(
+        /rate list/i.test(title)
+          ? [
+              ["Block", "Size", "Rate per marla (Rs)", "Dealer commission"],
+              ["A", "5 marla", 1450000 + version * 25000, "2%"],
+              ["B", "10 marla", 1380000 + version * 25000, "2%"],
+              ["C", "1 kanal", 1320000 + version * 25000, "1.5%"],
+            ]
+          : [
+              ["Vendor", "NTN", "Amount paid (Rs)", "Tax withheld (Rs)"],
+              ["Punjab Paving Company", "3519876-2", 8400000, 588000],
+              ["Khan Builders", "4410876-1", 12600000, 882000],
+              ["PropertyLink Media", "7712345-9", 950000, 95000],
+            ],
+      )
+    return makePdf([
+      { text: `${COMPANY.name} · ${typeLabels[d.folder] ?? "Documents"}`, gray: true, gap: 18 },
+      { text: title, gap: 14 },
+      ...(project ? [{ text: `Project: ${project.name}` }] : []),
+      ...(d.note ? [{ text: `Reference: ${d.note}` }] : []),
+      ...(expiresOn ? [{ text: `Valid until: ${expiresOn}` }] : []),
+      ...(version > 1 ? [{ text: `Version ${version}` }] : []),
+      { text: COMPANY.address, gray: true, gap: 0 },
+    ])
+  }
+  const store = async (d, opts) => {
+    const kinds = fileKinds()
+    const k = kinds[d.type] ?? kinds.pdf
+    const buffer = fileFor(d, opts)
+    const key = await saveFile({ folder, buffer, ext: k.ext, contentType: k.mime })
+    return { fileKey: key, fileName: `${slug(opts?.title ?? d.name)}.${k.ext}`, mime: k.mime, size: buffer.length }
+  }
+
+  // Earlier versions: the dealer rate list is replaced every month; last year's car insurance
+  const EARLIER = {
+    "DOC-125": [
+      { daysAgo: 62, title: "Dealer rate list, October" },
+      { daysAgo: 31, title: "Dealer rate list, October" },
+    ],
+    "DOC-129": [{ daysAgo: 695, expiresIn: 34 - 365 }],
+  }
+  // American spelling (license, not licence)
+  const us = (t) => t?.replace(/licen[cs]e/g, "license").replace(/Licen[cs]e/g, "License")
+  const docs = mine("documents/documents.json")
+    .filter((d) => types.has(d.folder))
+    .map((d) => ({ ...d, name: us(d.name), note: us(d.note) }))
+  const ids = new Map()
+  let files = 0
+  for (const d of [...docs].sort((a, b) => b.uploadedDaysAgo - a.uploadedDaysAgo || a.id.localeCompare(b.id))) {
+    const by = d.uploadedBy ? userFor(d.uploadedBy) : owner.id
+    const project = d.projectId ? (projectFor.get(d.projectId)?.id ?? null) : null
+    const chain = [...(EARLIER[d.id] ?? []), { daysAgo: d.uploadedDaysAgo, expiresIn: d.expiresInDays }]
+    let prev = null
+    for (const [i, v] of chain.entries()) {
+      const at = officeTime(daysAgo(v.daysAgo, 10 + (i % 6), 15), `${d.id}-${i}`)
+      const expiresOn = v.expiresIn == null ? null : dayKey(v.expiresIn)
+      const file = await store(d, { title: d.name, version: i + 1, expiresOn })
+      files++
+      const [id] = await db("assets").insert({
+        code: randomCode(),
+        app: "documents",
+        collection: "documents",
+        category: d.folder,
+        title: d.name,
+        ...file,
+        expiresOn,
+        // Already-lapsed earlier versions were reminded about at the time
+        remindedAt: i < chain.length - 1 && expiresOn ? at : null,
+        note: d.note || null,
+        projectId: project,
+        version: i + 1,
+        replacesId: prev?.id ?? null,
+        sortOrder: 10,
+        createdBy: by,
+        createdAt: at,
+      })
+      if (prev) await db("assets").where({ id: prev.id }).update({ supersededAt: at })
+      prev = { id, at }
+    }
+    ids.set(d.id, prev.id)
+  }
+
+  // Share links: the brochure to a dealer network (active, opened), the land agreement to a bank
+  // (expired) and the office rent agreement (revoked)
+  const UA = [
+    "Mozilla/5.0 (Linux; Android 14; SM-A546E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36",
+  ]
+  const links = [
+    { doc: "DOC-121", note: "Al-Hamd Estate, for their buyers", made: 3, days: 14, opens: [2.9, 2.1, 1.4, 0.3], by: "USR-0002" },
+    { doc: "DOC-108", note: "Meezan Bank, project financing team", made: 40, days: 7, opens: [39.5, 38.2], by: "USR-0006" },
+    { doc: "DOC-113", note: "Landlord's lawyer", made: 20, days: 30, opens: [19.6], revoked: 12, by: "USR-0013" },
+  ]
+  for (const l of links) {
+    if (!ids.has(l.doc)) continue
+    const made = daysAgo(l.made, 11, 30)
+    const opens = l.opens.map((o) => new Date(NOW.getTime() - o * DAY))
+    const [linkId] = await db("shareLinks").insert({
+      token: crypto.randomBytes(24).toString("base64url"),
+      assetId: ids.get(l.doc),
+      note: l.note,
+      expiresAt: new Date(made.getTime() + l.days * DAY),
+      revokedAt: l.revoked ? daysAgo(l.revoked, 15) : null,
+      revokedBy: l.revoked ? userFor(l.by) : null,
+      views: opens.length,
+      lastViewedAt: opens.at(-1) ?? null,
+      createdBy: userFor(l.by),
+      createdAt: made,
+    })
+    for (const [i, at] of opens.entries())
+      await db("shareLinkViews").insert({
+        linkId,
+        at,
+        ipHash: crypto
+          .createHash("sha256")
+          .update(`demo:${l.doc}:${i % 2}`)
+          .digest("hex"),
+        userAgent: UA[i % UA.length],
+      })
+  }
+  const expiring = docs.filter((d) => d.expiresInDays != null && d.expiresInDays <= 30).length
+  console.log(`✓ Documents for ${tenant.code}: ${docs.length} documents (${files} files with earlier versions), ${links.length} share links; ${expiring} expired or expiring within 30 days`)
 }

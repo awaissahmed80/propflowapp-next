@@ -168,7 +168,7 @@ export async function getCampaign(ctx, code) {
     }
   })
   const [forms, pages] = await Promise.all([
-    live(ctx.db, "leadForms").where({ campaignId: c.id }).select("code", "name", "status"),
+    live(ctx.db, "leadForms").where({ campaignId: c.id }).select("code", "name", "status", "provider"),
     live(ctx.db, "landingPages").where({ campaignId: c.id }).select("code", "name", "slug", "status"),
   ])
   return { ...strip(shaped), leads, channels, forms, pages: pages.map((p) => ({ ...p, url: null })) }

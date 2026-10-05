@@ -795,6 +795,81 @@ export const LOOKUP_LISTS = [
     ],
   },
   {
+    key: "leave-type",
+    name: "Leave types",
+    app: "hr",
+    kind: "system",
+    colored: true,
+    description: "Kinds of leave staff can apply for. Unpaid leave is deducted in payroll.",
+    values: [
+      { value: "annual", label: "Annual leave", color: "blue" },
+      { value: "casual", label: "Casual leave", color: "teal" },
+      { value: "sick", label: "Sick leave", color: "amber" },
+      { value: "unpaid", label: "Unpaid leave", color: "gray" },
+    ],
+  },
+  {
+    key: "employment-type",
+    name: "Employment types",
+    app: "hr",
+    kind: "custom",
+    description: "How someone is employed. Owners and directors get no EOBI or provident fund and aren't counted in headcount.",
+    values: [
+      { value: "permanent", label: "Permanent" },
+      { value: "probation", label: "On probation" },
+      { value: "contract", label: "Contract" },
+      { value: "daily-wage", label: "Daily wage" },
+      { value: "director", label: "Owner / director" },
+    ],
+  },
+  {
+    key: "post-kind",
+    name: "Duty post kinds",
+    app: "hr",
+    kind: "custom",
+    icons: true,
+    description: "What a duty post is for, on the roster.",
+    values: [
+      { value: "security", label: "Security", icon: "shield-user-line" },
+      { value: "maintenance", label: "Maintenance", icon: "tools-line" },
+      { value: "site", label: "Construction site", icon: "hammer-line" },
+      { value: "office", label: "Office", icon: "building-line" },
+      { value: "sales", label: "Sales office", icon: "store-2-line" },
+      { value: "transport", label: "Transport", icon: "car-line" },
+    ],
+  },
+  {
+    key: "document-type",
+    name: "Document types",
+    app: "documents",
+    kind: "custom",
+    icons: true,
+    fields: [
+      {
+        key: "access",
+        label: "Who can see",
+        type: "select",
+        options: [
+          { value: "staff", label: "Staff (not dealers)" },
+          { value: "everyone", label: "Everyone, dealers too" },
+          { value: "buyers", label: "People who see full CNICs" },
+          { value: "hr", label: "People who see salaries" },
+          { value: "finance", label: "Finance users" },
+        ],
+      },
+    ],
+    description: "How company documents are filed in Documents, and who can see each kind.",
+    values: [
+      { value: "approvals", label: "Approvals & NOCs", icon: "government-line", meta: { access: "staff" } },
+      { value: "legal", label: "Agreements & contracts", icon: "file-shield-2-line", meta: { access: "staff" } },
+      { value: "buyers", label: "Buyer files", icon: "id-card-line", meta: { access: "buyers" } },
+      { value: "marketing", label: "Marketing", icon: "megaphone-line", meta: { access: "everyone" } },
+      { value: "company", label: "Company & tax", icon: "building-2-line", meta: { access: "staff" } },
+      { value: "hr", label: "HR", icon: "team-line", meta: { access: "hr" } },
+      { value: "finance", label: "Finance", icon: "bank-line", meta: { access: "finance" } },
+    ],
+  },
+  {
     key: "vendor-category",
     name: "Vendor categories",
     app: "finance",
@@ -820,7 +895,18 @@ export const lookupList = (key) => LOOKUP_LISTS.find((l) => l.key === key) ?? nu
 export const LOOKUP_COLORS = ["gray", "blue", "sky", "teal", "green", "amber", "red", "violet"]
 
 // Headings for lists grouped by app in the editor
-export const LOOKUP_APPS = { users: "Users & Teams", portfolio: "Project Portfolio", campaigns: "Campaigns", crm: "CRM", operations: "Operations", estate: "Estate Management", finance: "Finance", general: "General" }
+export const LOOKUP_APPS = {
+  users: "Users & Teams",
+  portfolio: "Project Portfolio",
+  campaigns: "Campaigns",
+  crm: "CRM",
+  operations: "Operations",
+  estate: "Estate Management",
+  finance: "Finance",
+  hr: "HR & Payroll",
+  documents: "Documents",
+  general: "General",
+}
 
 // "Senior Sales Executive" → senior-sales-executive
 export const slugify = (text) =>

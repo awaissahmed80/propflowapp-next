@@ -42,7 +42,7 @@ export const NEED_GROUPS = [
       { value: "bookings", label: "Book units and issue allotment letters", icon: "file-paper-2-line", features: ["operations.bookings", "operations.allotments"] },
       { value: "installment-plans", label: "Installment plans and schedules for buyers", icon: "calendar-check-line", features: ["operations.installments"] },
       { value: "dealers", label: "Work with dealers: quotas, logins and commissions", icon: "shake-hands-line", features: ["operations.dealers", "users.dealers"] },
-      { value: "rentals", label: "Resale listings and rentals", icon: "key-2-line", features: ["portfolio.resale"] },
+      { value: "rentals", label: "Resale listings and rentals", icon: "key-2-line", features: ["estate.resale"] },
       { value: "transfers", label: "Ownership transfers, NDC and possession", icon: "arrow-left-right-line", features: ["estate.transfers", "estate.ndc-possession"] },
       { value: "complaints", label: "Maintenance requests and complaints", icon: "customer-service-2-line", features: ["estate.complaints"] },
     ],

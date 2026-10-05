@@ -1,5 +1,6 @@
 "use client"
 
+import { formatCnic } from "@/lib/cnic"
 import { useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { formatDate, formatPkr } from "@/lib/format"
@@ -213,10 +214,6 @@ export function VendorsView({ vendors, fy, accounts, can }) {
 }
 
 const blank = { name: "", category: "", accountId: null, whtPct: 0, ntn: "", cnic: "", phone: "", email: "", address: "", bankName: "", accountTitle: "", accountNumber: "", notes: "" }
-const formatCnic = (v) => {
-  const d = String(v).replace(/\D/g, "").slice(0, 13)
-  return [d.slice(0, 5), d.slice(5, 12), d.slice(12)].filter(Boolean).join("-")
-}
 
 function VendorDialog({ vendor, accounts, onClose, onSaved }) {
   const categories = useList("vendor-category")

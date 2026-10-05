@@ -119,7 +119,7 @@ export async function getPage(ctx, code) {
   const [campaigns, projects, forms, form, vars, cities] = await Promise.all([
     live(ctx.db, "campaigns").orderBy("startDate", "desc").select("id", "code", "name", "projectId"),
     live(ctx.db, "projects").orderBy("name").select("id", "code", "name"),
-    live(ctx.db, "leadForms").orderBy("name").select("id", "code", "name", "status"),
+    live(ctx.db, "leadForms").whereNull("provider").orderBy("name").select("id", "code", "name", "status"),
     p.formId ? live(ctx.db, "leadForms").where({ id: p.formId }).first() : null,
     projectVars(ctx.db, p.projectId, ctx.tenant.name),
     getLookups(ctx.db, ["city"]).then((l) => l.city.filter((c) => c.isActive).map((c) => ({ value: c.value, label: c.label }))),

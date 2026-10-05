@@ -1,5 +1,6 @@
 "use client"
 
+import { formatCnic } from "@/lib/cnic"
 import Link from "next/link"
 import { useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
@@ -30,10 +31,6 @@ const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi" 
 const nowPk = () =>
   new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Karachi", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date()).replace(" ", "T")
 const rs = (n) => `Rs ${new Intl.NumberFormat("en-PK").format(Math.round(n))}`
-const formatCnic = (v) => {
-  const d = String(v).replace(/\D/g, "").slice(0, 13)
-  return [d.slice(0, 5), d.slice(5, 12), d.slice(12)].filter(Boolean).join("-")
-}
 
 function Step({ n, title, done, children }) {
   return (

@@ -9,6 +9,9 @@ export const APPROVAL_TYPES = {
   "commission-payout": { label: "Commission payout", app: "operations", icon: "percent-line", color: "violet" },
   voucher: { label: "Voucher", app: "finance", icon: "file-list-3-line", color: "blue" },
   refund: { label: "Refund", app: "finance", icon: "refund-2-line", color: "amber" },
+  leave: { label: "Leave", app: "hr", icon: "calendar-check-line", color: "teal" },
+  advance: { label: "Salary advance", app: "hr", icon: "hand-coin-line", color: "violet" },
+  "payroll-payment": { label: "Payroll payment", app: "hr", icon: "team-line", color: "blue" },
 }
 
 export const APPROVAL_STATUS = {

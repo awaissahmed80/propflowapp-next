@@ -22,11 +22,13 @@ import { Input } from "@/components/ui/input"
 import { Tabs } from "@/components/ui/tabs"
 import { moveCampaign } from "../server/campaign-actions"
 import { AD_PLATFORMS, dateRange, pct, timing, utmFor } from "../constants"
+import { CampaignLeadAds } from "./campaign-lead-ads"
 import { CampaignStatusBadge, ChannelName, GoalRow, Meter, Objective } from "./campaign-parts"
 
 // One campaign: its results (goals, lead-to-booking funnel, leads per day), each channel's spend
 // and cost per lead, the leads it brought in (linked to CRM when this person can see them) and
 // tracking links for its ads. Launch / pause / resume / end for people who can edit.
+//   meta: campaignMetaForms() for the Lead ads tab (Facebook & Instagram lead forms feeding it)
 //   campaign: getCampaign() with pages[].url filled in; baseUrl: tracking link fallback when
 //   there's no landing page
 
@@ -162,9 +164,11 @@ function TrackingLinks({ c, baseUrl }) {
             <ul className="divide-y">
               {c.forms.map((f) => (
                 <li key={f.code}>
-                  <Link href={`/campaigns/forms/${urlCode(f.code)}`} className="group flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50">
-                    <Icon name="survey-line" className="text-muted-foreground" />
+                  {/* Facebook lead forms are set up in Integrations, the rest in the form builder */}
+                  <Link href={f.provider === "meta" ? "/campaigns/integrations" : `/campaigns/forms/${urlCode(f.code)}`} className="group flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50">
+                    <Icon name={f.provider === "meta" ? "meta-fill" : "survey-line"} className={f.provider === "meta" ? "text-[#0866FF]" : "text-muted-foreground"} />
                     <span className="min-w-0 flex-1 truncate text-sm group-hover:text-primary">{f.name}</span>
+                    {f.provider === "meta" && <Badge color="blue">Facebook</Badge>}
                     <Icon name="arrow-right-s-line" className="text-muted-foreground" />
                   </Link>
                 </li>
@@ -194,7 +198,7 @@ const NEXT = {
   completed: [],
 }
 
-export function CampaignDetail({ campaign: c, baseUrl, canEdit = false }) {
+export function CampaignDetail({ campaign: c, meta = null, baseUrl, canEdit = false }) {
   const router = useRouter()
   const sources = useList("lead-source")
   const [now] = useState(() => Date.now())
@@ -403,6 +407,16 @@ export function CampaignDetail({ campaign: c, baseUrl, canEdit = false }) {
                   <Empty icon="user-star-line" text="No leads from this campaign yet." />
                 ),
               },
+              ...(meta
+                ? [
+                    {
+                      value: "lead-ads",
+                      label: "Lead ads",
+                      icon: "meta-fill",
+                      content: <CampaignLeadAds meta={meta} campaign={{ code: c.code, name: c.name }} canEdit={canEdit} />,
+                    },
+                  ]
+                : []),
               {
                 value: "tracking",
                 label: "Tracking",

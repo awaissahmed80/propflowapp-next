@@ -4,6 +4,7 @@ import { live } from "@/server/db/records"
 import { peopleByIds } from "@/modules/users/server/queries"
 import { crmContext, scoped as crmScoped } from "@/modules/crm/server/context"
 import { salesContext, scoped as salesScoped } from "@/modules/operations/server/context"
+import { contactsContext, scoped as contactsScoped } from "./context"
 import { contactOf } from "./links"
 
 // The contact card: one person, the same everywhere they appear (a lead's header, a booking's
@@ -13,7 +14,7 @@ import { contactOf } from "./links"
 //   from: { contact: "CT-00001" } | { lead: "LD-00012" } | { booking: "BK-2026-000003" }
 //   → { card } | { error }
 export async function loadContactCard(from = {}) {
-  const [crm, sales] = await Promise.all([crmContext(), salesContext()])
+  const [crm, sales, contacts] = await Promise.all([crmContext(), salesContext(), contactsContext()])
   const db = crm.db
   const canCrm = crm.can("view")
   const canSales = sales.can("view")
@@ -39,7 +40,7 @@ export async function loadContactCard(from = {}) {
     contactId = b.contactId ?? (await contactOf(db, "booking", b.id))
     current = { booking: b.code }
   } else if (from.contact) {
-    if (!canCrm && !canSales) return { error: "Your role can't see contacts." }
+    if (!canCrm && !canSales && !contacts.can("view")) return { error: "Your role can't see contacts." }
     contactId =
       (
         await live(db, "contacts")
@@ -90,7 +91,7 @@ export async function loadContactCard(from = {}) {
   const bookings = allBookings.filter((b) => seenBookings.has(b.id))
 
   const leadIds = leads.map((l) => l.id)
-  const [projects, people, activity, dealer] = await Promise.all([
+  const [projects, people, activity, dealer, inDirectory] = await Promise.all([
     leads.some((l) => l.projectId)
       ? db("projects")
           .whereIn("id", [...new Set(leads.map((l) => l.projectId).filter(Boolean))])
@@ -99,6 +100,7 @@ export async function loadContactCard(from = {}) {
     peopleByIds(leads.map((l) => l.assignedTo)),
     leadIds.length ? live(db, "leadActivities").whereIn("leadId", leadIds).whereNot({ type: "system" }).select("type", "status", "at", "doneAt") : [],
     c.phone ? live(db, "dealers").where({ phone: c.phone }).first("name", "isActive") : null,
+    contacts.can("view") ? contactsScoped(contacts, live(db, "contacts")).where("contacts.id", c.id).first("contacts.id") : null,
   ])
   const done = activity.filter((a) => a.status === "done")
   const count = (type) => done.filter((a) => a.type === type).length
@@ -114,6 +116,8 @@ export async function loadContactCard(from = {}) {
       city: c.city,
       overseas: Boolean(c.overseas),
       since: c.createdAt,
+      // View contact: the Contacts app when this person can open them there, else CRM's page
+      href: `/${inDirectory ? "contacts" : "crm/contacts"}/${c.code.toLowerCase()}`,
       dealer: dealer ? { name: dealer.name, active: Boolean(dealer.isActive) } : null,
       touches: {
         calls: count("call"),

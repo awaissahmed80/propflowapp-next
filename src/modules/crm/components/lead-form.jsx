@@ -66,11 +66,12 @@ const fromLead = (l) => ({
 
 // Add a lead (or change one): the five things that matter up front, the rest under "More details".
 // A lead already on the same mobile is shown before a second one is added.
-export function LeadForm({ lead, agents, projects, access, me, onClose, onSaved, onOpenExisting }) {
+// prefill: details for a new lead (a contact's name, mobile, email, city)
+export function LeadForm({ lead, agents, projects, access, me, prefill = null, onClose, onSaved, onOpenExisting }) {
   const priorities = useList("lead-priority")
   const sources = useList("lead-source")
   const editing = Boolean(lead)
-  const [form, setForm] = useState(() => (lead ? fromLead(lead) : { ...blank(priorities.defaultValue ?? "moderate"), source: sources.defaultValue ?? "", assignedTo: access.autoAssign ? "" : String(me) }))
+  const [form, setForm] = useState(() => (lead ? fromLead(lead) : { ...blank(priorities.defaultValue ?? "moderate"), source: sources.defaultValue ?? "", assignedTo: access.autoAssign ? "" : String(me), ...prefill }))
   const [more, setMore] = useState(editing)
   const [errors, setErrors] = useState({})
   const [error, setError] = useState("")

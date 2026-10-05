@@ -6,8 +6,10 @@ import { getSetup } from "@/modules/portal/server/setup"
 import { Launcher } from "@/modules/portal/components/launcher"
 import { deskContext } from "@/modules/desk/server/context"
 import { deskSummary } from "@/modules/desk/server/summary"
+import { hrContext } from "@/modules/hr/server/context"
+import { isEmployee } from "@/modules/hr/server/self-queries"
 
-export const metadata = { title: "Apps" }
+export const metadata = { title: "My Desk" }
 
 // Greeting and date in Pakistan time, worked out on the server so every visitor sees the same
 function pakistanNow() {
@@ -29,7 +31,11 @@ export default async function LauncherPage({ searchParams }) {
   // "Invite your team" for anyone who can open Users & Teams; done once someone else has joined
   const team = apps.some((a) => a.code === "users") ? { done: Number((await authDb()("memberships").where({ tenantId: session.tenant.id }).whereNull("deletedAt").count({ n: "id" }).first()).n) > 1 } : null
   // My Desk: to-dos, approvals waiting, recent activity, and the critical ones
-  const desk = await deskSummary(await deskContext("/"))
+  const ctx = await deskContext("/")
+  const desk = await deskSummary(ctx)
+  // My leave / My pay / My roster, for people on the payroll here (and the HR features in the plan)
+  const hr = (await isEmployee(ctx.db, ctx.user.id)) ? await hrContext("/") : null
+  const selfService = hr ? { leave: hr.has("leave"), pay: hr.has("payroll"), roster: hr.has("attendance") } : null
   const { greeting, today } = pakistanNow()
   // Keyed on the tour flag so "Take the tour" restarts it even when the launcher is already open
   return (
@@ -40,6 +46,7 @@ export default async function LauncherPage({ searchParams }) {
       tenant={tenant}
       apps={apps}
       desk={desk}
+      selfService={selfService}
       greeting={greeting}
       today={today}
       setupSteps={setupSteps}

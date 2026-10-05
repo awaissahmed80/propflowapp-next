@@ -3,6 +3,7 @@ import { assetUrl } from "@/server/assets"
 import { live } from "@/server/db/records"
 import { getLookups } from "@/modules/lookups/server"
 import { listMembers, peopleByIds } from "@/modules/users/server/queries"
+import { contactsContext, scoped as contactsScoped } from "@/modules/contacts/server/context"
 import { scoped } from "./context"
 import { priceIndex, scoreLead, scoringActivities } from "./scoring"
 import { crmSettings } from "./settings"
@@ -384,7 +385,9 @@ export async function contactDetail(ctx, code) {
       .select("b.code", "b.leadId", "b.kind", "b.stage", "b.status", "b.agreedPrice", "b.bookedAt", "u.number as unitNumber", "p.name as projectName"),
     dealerIds.length ? live(ctx.db, "dealers").whereIn("id", dealerIds).select("code", "name", "isActive") : [],
   ])
-  const byPeople = await peopleByIds(activity.map((a) => a.by))
+  const [byPeople, contacts] = await Promise.all([peopleByIds(activity.map((a) => a.by)), contactsContext()])
+  // The full contact page (Contacts app), when this person can open it
+  const full = contacts.can("view") && Boolean(await contactsScoped(contacts, live(ctx.db, "contacts")).where("contacts.id", contact.id).first("contacts.id"))
   const codeOf = new Map(mine.map((l) => [l.id, l.code]))
   const done = activity.filter((a) => a.status === "done")
   const count = (type) => done.filter((a) => a.type === type).length
@@ -396,7 +399,7 @@ export async function contactDetail(ctx, code) {
     phone: contact.phone,
     whatsapp: Boolean(contact.whatsapp),
     email: contact.email,
-    cnic: contact.cnic,
+    cnic: contacts.cnic(contact.cnic),
     city: contact.city,
     overseas: Boolean(contact.overseas),
     address: contact.address,
@@ -404,6 +407,7 @@ export async function contactDetail(ctx, code) {
     designation: contact.designation,
     notes: contact.notes ?? "",
     since: contact.createdAt,
+    fullHref: full ? `/contacts/${contact.code.toLowerCase()}` : null,
     types: [...new Set(links.map((k) => k.role))],
     sources: [...new Set(mine.map((l) => l.source).filter(Boolean))],
     dealers: dealers.map((d) => ({ code: d.code, name: d.name, active: Boolean(d.isActive) })),

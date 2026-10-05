@@ -1,5 +1,6 @@
 "use client"
 
+import { formatCnic } from "@/lib/cnic"
 import { useMemo, useState, useTransition } from "react"
 import { cn } from "@/lib/utils"
 import { formatDate, formatPkr } from "@/lib/format"
@@ -151,10 +152,6 @@ export function PlanDialog({ booking: b, discountLimit, onClose, onDone }) {
 
 // ---------- buyer details (KYC) ----------
 
-const formatCnic = (v) => {
-  const d = String(v).replace(/\D/g, "").slice(0, 13)
-  return [d.slice(0, 5), d.slice(5, 12), d.slice(12)].filter(Boolean).join("-")
-}
 const RELATIONS = ["Wife", "Husband", "Son", "Daughter", "Father", "Mother", "Brother", "Sister"].map((r) => ({ value: r, label: r }))
 
 export function BuyerDialog({ booking: b, onClose, onDone }) {

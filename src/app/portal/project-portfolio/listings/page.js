@@ -1,16 +1,6 @@
-import { estatePage } from "@/modules/portfolio/server/context"
-import { ComingSoon } from "@/components/coming-soon"
+import { redirect } from "next/navigation"
 
-export const metadata = { title: "Listings" }
-
-export default async function ListingsPage() {
-  await estatePage("/project-portfolio/listings", "resale")
-  return (
-    <ComingSoon
-      title="Listings"
-      description="Resale and rental stock, portal syndication and enquiries"
-      icon="home-4-line"
-      points={["Resale and rental listings with photos, price and owner", "Publish to property portals and your website", "Enquiries on each listing flow into CRM"]}
-    />
-  )
+// Moved to Estate Management (resale and rentals are about units buyers own)
+export default function Moved() {
+  redirect("/estate-management/listings")
 }
