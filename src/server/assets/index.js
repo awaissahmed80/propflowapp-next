@@ -36,11 +36,13 @@ const view = (a) => ({
 
 // file: a File from FormData. allowed: mime types. Returns { asset } or { error }.
 // The first image in an owner's "images" collection becomes its cover.
-export async function storeAsset(db, tenant, { app, ownerType = null, ownerId = null, folderId = null, collection, category = null, title, file, allowed, isPrivate = false, userId }) {
+//   maxBytes: a larger limit for apps that need one (Documents: 20 MB) · extra: more columns for
+//   the row (Documents: expiry, note, project, version)
+export async function storeAsset(db, tenant, { app, ownerType = null, ownerId = null, folderId = null, collection, category = null, title, file, allowed, isPrivate = false, userId, maxBytes = MAX_BYTES, extra = {} }) {
   if (!(file instanceof File) || !file.size) return { error: "Choose a file." }
-  if (file.size > MAX_BYTES) return { error: `${file.name} is over 10 MB. Use a smaller file.` }
+  if (file.size > maxBytes) return { error: `${file.name} is over ${Math.round(maxBytes / 1024 / 1024)} MB. Use a smaller file.` }
   const buffer = Buffer.from(await file.arrayBuffer())
-  const type = detectFileType(buffer)
+  const type = detectFileType(buffer, file.name)
   if (!type || !allowed.includes(type.mime)) return { error: `${file.name} isn't a file type that can be added here.` }
 
   const folder = `tenants/${tenant.code.toLowerCase()}/${app}${ownerType ? `/${ownerType}-${ownerId}` : ""}`
@@ -65,6 +67,7 @@ export async function storeAsset(db, tenant, { app, ownerType = null, ownerId = 
     isPrivate,
     sortOrder: (last?.n ?? 0) + 10,
     createdBy: userId,
+    ...extra,
   }
   await db("assets").insert(row)
   return { asset: view({ ...row, createdAt: new Date() }) }

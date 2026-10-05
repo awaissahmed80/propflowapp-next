@@ -3,7 +3,11 @@ import { notFound } from "next/navigation"
 import { formatDate, formatPkr, timeAgo } from "@/lib/format"
 import { methodLabel } from "@/components/billing/methods"
 import { requireArea } from "@/modules/console/server/access"
-import { can, canView } from "@/modules/console/roles"
+import { can, canImpersonate, canView } from "@/modules/console/roles"
+import { SignInAs } from "@/modules/console/components/sign-in-as"
+import { WorkspaceIntegrations } from "@/modules/console/components/integrations-admin"
+import { workspaceIntegrationsAdmin } from "@/modules/console/server/integrations"
+import { IMPERSONATION_MINUTES } from "@/server/auth/session"
 import { getSetting, getWorkspace, listPlans } from "@/modules/console/server/queries"
 import { WorkspaceActions } from "@/modules/console/components/workspace-actions"
 import { NewInvoiceButton } from "@/modules/console/components/invoice-dialog"
@@ -44,16 +48,19 @@ function Usage({ label, used, limit }) {
   )
 }
 
-// One workspace: subscription, apps, owner, usage, invoices, members and console activity, with
+// One workspace: subscription, apps, owner, usage, invoices, integrations, members and console activity, with
 // actions for owner/admin (apps, details, suspend, retry setup) and billing roles (dates, plan).
-// Still to come: confirm payment, sign in as a user.
+// Still to come: confirm payment. Owner, admin and support staff can sign in as an active member.
 export default async function WorkspaceDetailPage({ params }) {
   const code = fromUrlCode((await params).code)
   const staff = await requireArea("workspaces", `/workspaces/${urlCode(code)}`)
   const money = canView(staff.role, "billing")
   const [t, { plans, apps }, yearlyMonths, taxRate] = await Promise.all([getWorkspace(code), listPlans(), getSetting("yearly_months_charged", 10), getSetting("sales_tax_rate", 0)])
   if (!t) notFound()
+  const integrations = await workspaceIntegrationsAdmin(t.id)
   const allowed = { workspaces: can(staff.role, "workspaces"), billing: can(staff.role, "billing") }
+  // Sign in as a member: owner, admin and support staff, while the workspace is open
+  const impersonate = canImpersonate(staff.role) && ["trial", "active", "past_due"].includes(t.status)
 
   const trial = t.status === "trial"
   return (
@@ -188,6 +195,10 @@ export default async function WorkspaceDetailPage({ params }) {
         </SectionCard>
       )}
 
+      <SectionCard title="Integrations" bodyClassName="p-0">
+        <WorkspaceIntegrations tenantId={t.id} rows={integrations} editable={allowed.workspaces} />
+      </SectionCard>
+
       <div className="grid gap-6 xl:grid-cols-2">
         <SectionCard title={`Members · ${t.members.length}`} bodyClassName="p-0">
           {t.members.length ? (
@@ -197,9 +208,16 @@ export default async function WorkspaceDetailPage({ params }) {
                   <Avatar name={m.name} source={m.avatarUrl} size="sm" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">{m.name}</span>
-                    <span className="block truncate text-xs text-muted-foreground">{m.email}</span>
                   </span>
+                  {m.role && (
+                    <Badge color="gray" className="shrink-0">
+                      {m.role}
+                    </Badge>
+                  )}
                   {m.membershipStatus !== "active" && <Badge color="gray">{m.membershipStatus}</Badge>}
+                  {impersonate && m.membershipStatus === "active" && m.status === "active" && m.id !== staff.user.id && (
+                    <SignInAs tenantCode={t.code} tenantName={t.name} member={{ id: m.id, name: m.name, email: m.email }} minutes={IMPERSONATION_MINUTES} />
+                  )}
                 </li>
               ))}
             </ul>

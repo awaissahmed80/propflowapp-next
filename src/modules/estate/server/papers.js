@@ -1,5 +1,6 @@
 import "server-only"
 import { live } from "@/server/db/records"
+import { maskCnic } from "@/lib/cnic"
 import { getLookups } from "@/modules/lookups/server"
 import { measures } from "@/modules/portfolio/constants"
 
@@ -14,15 +15,13 @@ export const PAPERS = {
   possession: { title: "Possession letter", file: "Possession letter" },
 }
 
-const maskCnic = (ctx, cnic) => (!cnic ? null : ctx.grant?.("contacts.cnic") ? cnic : String(cnic).replace(/^(\d{5})-?\d{7}-?(\d)$/, "$1-•••••••-$2"))
-
 const party = (ctx, p) =>
   p
     ? {
         name: p.name ?? null,
         relation: p.relation ?? p.guardianRelation ?? null,
         guardian: p.guardian ?? p.guardianName ?? null,
-        cnic: maskCnic(ctx, p.cnic),
+        cnic: maskCnic(p.cnic, ctx.grant?.("contacts.cnic")),
         phone: p.phone ?? null,
         address: p.address ?? null,
       }

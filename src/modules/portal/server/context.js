@@ -5,7 +5,9 @@ import { authDb, platformDb, tenantDb } from "@/server/db/connections"
 import { live } from "@/server/db/records"
 import { requireTenant } from "@/server/auth/dal"
 import { canOpenApp } from "@/modules/portal/access"
+import { roleAccess } from "@/modules/users/permissions"
 import { canSetUp } from "@/modules/portal/server/setup"
+import { getLockSettings } from "@/server/auth/screen-lock"
 
 const DAY = 86_400_000
 
@@ -18,7 +20,7 @@ export const getPortal = cache(async () => {
   const platform = platformDb()
 
   const [role, apps, plan, memberships, setupRow] = await Promise.all([
-    live(tdb, "roles").where({ id: s.membership.roleId }).first("id", "code", "name", "permissions"),
+    live(tdb, "roles").where({ id: s.membership.roleId }).first("id", "code", "name", "permissions", "scope", "grants"),
     platform("tenantApps as ta")
       .join("apps as a", "a.id", "ta.appId")
       .where("ta.tenantId", s.tenant.id)
@@ -35,9 +37,23 @@ export const getPortal = cache(async () => {
   const workspaces = others.length ? await live(platform, "tenants").whereIn("id", others).orderBy("name").select("id", "code", "name", "status") : []
 
   const permissions = role?.permissions ?? []
+  // Console staff signed in as this member: who, why, and until when (for the banner)
+  const impersonation = s.impersonatorUserId
+    ? await Promise.all([authDb()("users").where({ id: s.impersonatorUserId }).first("name"), s.impersonationId ? platform("impersonations").where({ id: s.impersonationId }).first("reason") : null]).then(
+        ([staff, imp]) => ({
+          staffName: staff?.name ?? "PropFlow support",
+          reason: imp?.reason ?? null,
+          expiresAt: s.expiresAt,
+        }),
+      )
+    : null
+  // Screen lock (never while staff are signed in as the member): starts locked if this session is
+  const lock = impersonation ? null : { ...(await getLockSettings(s.user.id)), lockedAt: s.lockedAt ? s.lockedAt.toISOString() : null }
   return {
     user: s.user,
     sessionId: s.id,
+    impersonation,
+    lock,
     role: { code: role?.code ?? null, name: role?.name ?? "Member", isOwner: role?.code === "owner" },
     tenant: {
       id: s.tenant.id,
@@ -55,6 +71,8 @@ export const getPortal = cache(async () => {
     // Until the owner finishes Get started, the apps stay closed
     setupCompleted: Boolean(setupRow?.value),
     canSetUp: canSetUp(permissions),
+    // What the role may do in each app, so sidebars can lock what it can't open (nav item `need`)
+    access: { permissions, grants: roleAccess({ permissions, scope: role?.scope, grants: role?.grants }).grants },
     workspaces: workspaces.map((w) => ({ ...w, open: ["trial", "active", "past_due"].includes(w.status) })),
   }
 })

@@ -23,6 +23,8 @@ const APP_OF = {
   operations: "operations",
   estate: "estate",
   finance: "finance",
+  hr: "hr",
+  documents: "documents",
 }
 const HIDDEN = ["sign-in", "security"]
 

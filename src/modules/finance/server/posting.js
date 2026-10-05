@@ -347,3 +347,62 @@ export async function postServiceFee(trx, ctx, requestId) {
     reference: fee.ref,
   })
 }
+
+// A payroll run paid: salaries (gross − unpaid days + bonus − other deductions + the employer's
+// EOBI and provident fund) are an expense; bank transfers and cash go out; tax, EOBI/PF and loan
+// recoveries are held back.
+//   accountId: the bank the transfers are paid from (cash pay comes from Cash in hand)
+export async function postPayroll(trx, ctx, runId, { accountId = null, date = new Date() } = {}) {
+  if (await posted(trx, "payroll_run", runId, "paid")) return null
+  const run = await trx("payrollRuns").where({ id: runId }).first("id", "code", "month")
+  const lines = await trx("payrollLines").where({ runId }).select("gross", "unpaidDeduction", "bonus", "otherDeduction", "tax", "eobi", "eobiEmployer", "pf", "pfEmployer", "loan", "net", "payMethod")
+  if (!run || !lines.length) return null
+  const sum = (k, f = () => true) => round(lines.filter(f).reduce((s, l) => s + Number(l[k]), 0))
+  const expense = round(lines.reduce((s, l) => s + Number(l.gross) - Number(l.unpaidDeduction) + Number(l.bonus) - Number(l.otherDeduction) + Number(l.eobiEmployer) + Number(l.pfEmployer), 0))
+  const bank = await moneyAccount(trx, accountId)
+  const cash = await trx("accounts").whereNull("deletedAt").where({ code: ACCOUNTS.cash }).first("id")
+  const bankNet = sum("net", (l) => l.payMethod !== "cash")
+  const cashNet = sum("net", (l) => l.payMethod === "cash")
+  return postVoucher(trx, ctx, {
+    type: bank?.kind === "cash" ? "cpv" : "bpv",
+    date,
+    narration: `${run.code}: salaries for ${run.month}`,
+    lines: [
+      { account: ACCOUNTS.salaries, debit: expense, memo: "Salaries, employer EOBI and provident fund" },
+      { account: bank.id, credit: bankNet, memo: "Bank transfers" },
+      { account: cash?.id ?? ACCOUNTS.cash, credit: cashNet, memo: "Paid in cash" },
+      { account: ACCOUNTS.wht, credit: sum("tax"), memo: "Income tax on salaries" },
+      { account: ACCOUNTS.eobi, credit: round(sum("eobi") + sum("eobiEmployer") + sum("pf") + sum("pfEmployer")), memo: "EOBI and provident fund" },
+      { account: ACCOUNTS.staffLoans, credit: sum("loan"), memo: "Loans and advances recovered" },
+    ],
+    source: "payroll",
+    sourceType: "payroll_run",
+    sourceId: run.id,
+    sourceCode: run.code,
+    event: "paid",
+    party: "Staff",
+  })
+}
+
+// A loan or advance paid out to an employee: owed back (Staff loans) until recovered through payroll
+export async function postLoanGiven(trx, ctx, loanId) {
+  if (await posted(trx, "loan", loanId, "given")) return null
+  const l = await trx("loans as l").join("employees as e", "e.id", "l.employeeId").where("l.id", loanId).first("l.id", "l.code", "l.kind", "l.amount", "l.accountId", "l.givenAt", "e.name")
+  if (!l) return null
+  const acc = await moneyAccount(trx, l.accountId)
+  return postVoucher(trx, ctx, {
+    type: voucherTypeFor("out", acc.kind),
+    date: l.givenAt ?? new Date(),
+    narration: `${l.code}: ${l.kind === "advance" ? "salary advance" : "loan"} to ${l.name}`,
+    lines: [
+      { account: ACCOUNTS.staffLoans, debit: l.amount },
+      { account: acc.id, credit: l.amount },
+    ],
+    source: "payroll",
+    sourceType: "loan",
+    sourceId: l.id,
+    sourceCode: l.code,
+    event: "given",
+    party: l.name,
+  })
+}

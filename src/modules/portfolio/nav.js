@@ -1,5 +1,5 @@
-// Project Portfolio sidebar; description is the page subtitle. Resale & Rentals are placeholders
-// (ComingSoon) until they're built.
+// Project Portfolio sidebar; description is the page subtitle. (Resale & rentals live in Estate
+// Management: they're about units buyers own.)
 export const ESTATE_NAV = [
   { items: [{ label: "Overview", icon: "dashboard-line", to: "/project-portfolio", end: true, description: "Inventory health, availability and pricing across all projects" }] },
   {
@@ -8,14 +8,6 @@ export const ESTATE_NAV = [
       { label: "Projects", icon: "community-line", to: "/project-portfolio/projects", description: "Societies, phases and blocks" },
       { label: "Inventory", icon: "layout-grid-line", to: "/project-portfolio/inventory", description: "Plots, files, houses, apartments and shops with live status" },
       { label: "Price Lists", icon: "price-tag-3-line", to: "/project-portfolio/price-lists", feature: "price-lists", description: "Rates, premiums, charges and payment plans, versioned per project" },
-    ],
-  },
-  {
-    label: "Resale & Rentals",
-    items: [
-      { label: "Listings", icon: "home-4-line", to: "/project-portfolio/listings", feature: "resale", description: "Resale and rental stock, portal syndication and enquiries" },
-      { label: "Rentals", icon: "key-2-line", to: "/project-portfolio/rentals", feature: "resale", description: "Tenancies, rent schedules and renewals" },
-      { label: "Owners", icon: "contacts-book-2-line", to: "/project-portfolio/owners", feature: "resale", description: "Property owners and landlords with their CNIC and documents" },
     ],
   },
   {

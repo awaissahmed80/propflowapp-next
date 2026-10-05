@@ -75,6 +75,12 @@ export const APP_PERMISSIONS = {
       toggle("estate.waive", "Waive fees"),
     ],
   },
+  // Who sees which document type is set per type (Documents › Customize); here only sharing
+  documents: {
+    scopes: ["all"],
+    noun: "documents",
+    grants: [toggle("documents.share", "Share documents outside the workspace", "Links that expire; buyer and HR files can't be shared.")],
+  },
   // One set of books: no per-person records. Approve = posts directly; without it, vouchers and
   // payments wait in Approvals for someone who has it.
   finance: {

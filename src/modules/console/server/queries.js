@@ -1,5 +1,5 @@
 import "server-only"
-import { authDb, platformDb } from "@/server/db/connections"
+import { authDb, platformDb, tenantDb } from "@/server/db/connections"
 import { live } from "@/server/db/records"
 import { canView } from "@/modules/console/roles"
 import { cleanOff, withoutText } from "@/modules/portal/features"
@@ -119,13 +119,32 @@ export async function getWorkspace(code) {
       .where("m.tenantId", t.id)
       .whereNull("m.deletedAt")
       .whereNull("u.deletedAt")
-      .select("u.id", "u.name", "u.email", "u.status", "u.avatarUrl", "m.status as membershipStatus"),
+      .select("u.id", "u.name", "u.email", "u.status", "u.avatarUrl", "m.status as membershipStatus", "m.roleId"),
     listInvoices({ tenantId: t.id }),
     listAudit({ tenantId: t.id, limit: 30 }),
   ])
   // "Extra" = switched on beyond the plan (always-on apps like My Desk come with every workspace)
   // off: features of the app this workspace doesn't have
-  return { ...t, apps: apps.map(({ offFeatures, ...a }) => ({ ...a, off: cleanOff(a.code, offFeatures), extra: !a.alwaysOn && !planApps.includes(a.code) })), members, invoices, activity }
+  // Each member's role, from the workspace's own database (it may not be set up yet)
+  const roleNames = await workspaceRoles(
+    t.id,
+    members.map((m) => m.roleId),
+  )
+  const withRoles = members.map(({ roleId, ...m }) => ({ ...m, role: roleNames.get(roleId) ?? null }))
+  return { ...t, apps: apps.map(({ offFeatures, ...a }) => ({ ...a, off: cleanOff(a.code, offFeatures), extra: !a.alwaysOn && !planApps.includes(a.code) })), members: withRoles, invoices, activity }
+}
+
+async function workspaceRoles(tenantId, roleIds) {
+  const ids = [...new Set(roleIds.filter(Boolean))]
+  if (!ids.length) return new Map()
+  const t = await platformDb()("tenants").where({ id: tenantId }).first("dbName", "dbHost", "status")
+  if (!t?.dbName || t.status === "provisioning") return new Map()
+  try {
+    const rows = await tenantDb({ dbName: t.dbName, dbHost: t.dbHost })("roles").whereIn("id", ids).select("id", "name")
+    return new Map(rows.map((r) => [r.id, r.name]))
+  } catch {
+    return new Map()
+  }
 }
 
 // Invoices with the workspace name and the latest payment (method, reference, status)

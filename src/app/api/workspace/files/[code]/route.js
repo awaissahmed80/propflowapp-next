@@ -5,10 +5,13 @@ import { live } from "@/server/db/records"
 import { readFile } from "@/server/storage"
 import { findAsset } from "@/server/assets"
 import { can, isFullAccess, roleAccess } from "@/modules/users/permissions"
+import { getLookups } from "@/modules/lookups/server"
+import { typeAccess } from "@/modules/documents/server/access"
 
 // GET /api/workspace/files/3fa9c0… → a workspace file (any app's asset) for people signed in to
 // that workspace whose role can view the file's app (private files: edit). Found by the asset's
-// random code, never its row id. ?download=1 saves it instead of showing it.
+// random code, never its row id. ?download=1 saves it instead of showing it. Documents' files also
+// need the document type's "Who can see" rule.
 export async function GET(request, { params }) {
   const session = await getSession()
   if (session?.kind !== "tenant" || !session.tenantId) return new NextResponse("Sign in first", { status: 401 })
@@ -20,10 +23,19 @@ export async function GET(request, { params }) {
 
   const db = tenantDb(tenant)
   const { code } = await params
-  const [asset, role] = await Promise.all([findAsset(db, code), live(db, "roles").where({ id: membership.roleId }).first("permissions", "scope", "grants")])
+  const [asset, role] = await Promise.all([findAsset(db, code), live(db, "roles").where({ id: membership.roleId }).first("code", "permissions", "scope", "grants")])
   if (!asset) return new NextResponse("Not found", { status: 404 })
   const permissions = role?.permissions ?? []
   if (!isFullAccess(permissions) && !can(permissions, asset.app, asset.isPrivate ? "edit" : "view")) return new NextResponse("Not allowed", { status: 403 })
+  // Company documents: only types the person may see (Documents › Customize › Who can see)
+  if (
+    asset.app === "documents" &&
+    !typeAccess(
+      role,
+      ((await getLookups(db, ["document-type"]))["document-type"] ?? []).filter((t) => t.isActive),
+    ).canSeeType(asset.category)
+  )
+    return new NextResponse("Not allowed", { status: 403 })
   // A booking's private folder: only people who may see that booking (their Sales scope)
   if (asset.folderId && !(await canSeeFolder(db, asset.folderId, session.user.id, role))) return new NextResponse("Not allowed", { status: 403 })
 
@@ -63,9 +75,10 @@ async function canSeeFolder(db, folderId, userId, role) {
   if (folder?.ownerType !== "booking") return true
   const { scope } = roleAccess({ permissions: role?.permissions ?? [], scope: role?.scope, grants: role?.grants })
   if (scope.operations === "all") return true
-  const booking = await live(db, "bookings").where({ id: folder.ownerId }).first("agentId")
+  const booking = await live(db, "bookings").where({ id: folder.ownerId }).first("agentId", "soldBy")
   if (!booking) return false
-  if (booking.agentId === userId) return true
+  // The same people Operations shows the booking to: whoever handles it, and whoever sold it
+  if (booking.agentId === userId || booking.soldBy === userId) return true
   if (scope.operations !== "team") return false
   const [me, led, agent] = await Promise.all([
     live(db, "members").where({ userId }).first("teamId"),

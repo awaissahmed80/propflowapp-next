@@ -1,11 +1,13 @@
 import "server-only"
 import { live } from "@/server/db/records"
-import { isFullAccess } from "@/modules/users/permissions"
+import { isFullAccess, roleAccess } from "@/modules/users/permissions"
 import { peopleByIds } from "@/modules/users/server/queries"
 import { HANDLERS } from "./handlers"
 
-// Can these permissions decide this type of request?
-export const canDecideType = (permissions, type) => isFullAccess(permissions) || Boolean(HANDLERS[type]?.canDecide(permissions))
+// Can this role decide this type of request? Handlers see its permissions and its grants
+// (filled in, so full-access roles have every grant)
+export const canDecideType = (permissions, type, grants = {}) => isFullAccess(permissions) || Boolean(HANDLERS[type]?.canDecide(permissions, grants))
+export const grantsOf = (ctx) => roleAccess({ permissions: ctx.permissions ?? [], scope: ctx.roleScope ?? null, grants: ctx.roleGrants ?? null }).grants
 
 const shape = (a, people) => ({
   code: a.code,
@@ -26,7 +28,7 @@ const shape = (a, people) => ({
 // The inbox for one person: waiting for them, what they asked for, what they decided
 export async function listApprovals(ctx) {
   const me = ctx.user.id
-  const types = Object.keys(HANDLERS).filter((t) => canDecideType(ctx.permissions, t))
+  const types = Object.keys(HANDLERS).filter((t) => canDecideType(ctx.permissions, t, grantsOf(ctx)))
   const [waiting, mine, decided] = await Promise.all([
     types.length ? live(ctx.db, "approvals").where({ status: "pending" }).whereIn("type", types).whereNot({ requestedBy: me }).orderBy("id", "desc").limit(200) : [],
     live(ctx.db, "approvals").where({ requestedBy: me }).orderBy("id", "desc").limit(100),
@@ -38,7 +40,7 @@ export async function listApprovals(ctx) {
 
 // How many requests are waiting for this person
 export async function waitingCount(ctx) {
-  const types = Object.keys(HANDLERS).filter((t) => canDecideType(ctx.permissions, t))
+  const types = Object.keys(HANDLERS).filter((t) => canDecideType(ctx.permissions, t, grantsOf(ctx)))
   if (!types.length) return 0
   const r = await live(ctx.db, "approvals").where({ status: "pending" }).whereIn("type", types).whereNot({ requestedBy: ctx.user.id }).count("id as n").first()
   return Number(r?.n ?? 0)

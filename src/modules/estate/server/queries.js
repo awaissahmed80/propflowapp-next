@@ -1,5 +1,6 @@
 import "server-only"
 import { live } from "@/server/db/records"
+import { maskCnic } from "@/lib/cnic"
 import { peopleByIds } from "@/modules/users/server/queries"
 import { assignableAgents } from "@/modules/crm/server/queries"
 import { ledgerFor } from "@/modules/operations/server/ledger"
@@ -21,7 +22,6 @@ const json = (v, fallback) => {
   }
 }
 const person = (p) => (p ? { id: p.id, name: p.name, avatarUrl: p.avatarUrl ?? null, phone: p.phone ?? null } : null)
-const maskCnic = (ctx, cnic) => (!cnic ? null : ctx.grant?.("contacts.cnic") ? cnic : cnic.replace(/^(\d{5})-?\d{7}-?(\d)$/, "$1-•••••••-$2"))
 
 export async function servicesSettings(db) {
   const row = await db("settings").where({ key: SETTINGS_KEY }).first("value")
@@ -114,7 +114,11 @@ function shape(ctx, r, m, people, ndc = null) {
     subject: r.subject,
     details: r.details ?? "",
     // The purchaser's and seller's CNICs follow the same masking as contacts
-    data: { ...data, ...(data.to ? { to: { ...data.to, cnic: maskCnic(ctx, data.to.cnic) } } : {}), ...(data.from ? { from: { ...data.from, cnic: maskCnic(ctx, data.from.cnic) } } : {}) },
+    data: {
+      ...data,
+      ...(data.to ? { to: { ...data.to, cnic: maskCnic(data.to.cnic, ctx.grant?.("contacts.cnic")) } } : {}),
+      ...(data.from ? { from: { ...data.from, cnic: maskCnic(data.from.cnic, ctx.grant?.("contacts.cnic")) } } : {}),
+    },
     fee: json(r.fee, null),
     resolution: r.resolution,
     createdAt: r.createdAt,
@@ -125,7 +129,7 @@ function shape(ctx, r, m, people, ndc = null) {
     steps,
     ready: steps.every((s) => s.done),
     assignee: person(people.get(r.assignedTo)),
-    contact: r.contactCode ? { code: r.contactCode, name: r.contactName, phone: r.contactPhone, cnic: maskCnic(ctx, r.contactCnic) } : null,
+    contact: r.contactCode ? { code: r.contactCode, name: r.contactName, phone: r.contactPhone, cnic: maskCnic(r.contactCnic, ctx.grant?.("contacts.cnic")) } : null,
     booking: r.bookingCode
       ? {
           code: r.bookingCode,

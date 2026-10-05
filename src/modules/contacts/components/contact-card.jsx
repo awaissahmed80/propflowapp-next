@@ -242,7 +242,7 @@ function Card({ card, onOpenLead, onEmail, onLeave }) {
       </div>
 
       <div className="border-t bg-muted/40 p-3">
-        <Button className="w-full" variant="outline" rightIcon="arrow-right-line" nativeButton={false} render={<Link href={`/crm/contacts/${urlCode(card.code)}`} onClick={onLeave} />}>
+        <Button className="w-full" variant="outline" rightIcon="arrow-right-line" nativeButton={false} render={<Link href={card.href} onClick={onLeave} />}>
           View contact
         </Button>
       </div>

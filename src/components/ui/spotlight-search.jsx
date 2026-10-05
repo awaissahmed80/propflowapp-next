@@ -10,6 +10,9 @@ import { ScrollView } from "./scroll-view"
 
 // Spotlight search (ported from the school-system portal): ⌘K / Ctrl+K anywhere.
 // `search(query)` returns groups: [{ value: "Group name", items: [{ value, label, href, icon, meta }] }]
+// right away; `searchRecords(query)` (optional) returns more groups from the server, a moment
+// after typing stops. A query with a digit (a code, phone or CNIC) lists the records first.
+const RECORDS_DELAY = 220
 
 const SpotlightContext = createContext(null)
 
@@ -20,7 +23,8 @@ export function useSpotlightSearch() {
 }
 
 // search(query) → [{ value: "Group", items: [{ value, label, meta, icon, href }] }], synchronous
-export function SpotlightSearchProvider({ search, placeholder = "Search…", hint, children }) {
+// searchRecords(query) → a promise of the same, optional
+export function SpotlightSearchProvider({ search, searchRecords, placeholder = "Search…", hint, children }) {
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
@@ -39,17 +43,41 @@ export function SpotlightSearchProvider({ search, placeholder = "Search…", hin
   return (
     <SpotlightContext.Provider value={value}>
       {children}
-      {open && <SpotlightSearch onClose={() => setOpen(false)} search={search} placeholder={placeholder} hint={hint} />}
+      {open && <SpotlightSearch onClose={() => setOpen(false)} search={search} searchRecords={searchRecords} placeholder={placeholder} hint={hint} />}
     </SpotlightContext.Provider>
   )
 }
 
-function SpotlightSearch({ onClose, search, placeholder, hint }) {
+function SpotlightSearch({ onClose, search, searchRecords, placeholder, hint }) {
   const router = useRouter()
   const hintId = useId()
   const [query, setQuery] = useState("")
+  // Server results for the query they were found for, so older answers never show for newer text
+  const [records, setRecords] = useState({ query: "", groups: [] })
   const highlightedRef = useRef(null)
-  const groups = useMemo(() => search(query), [search, query])
+  const q = query.trim()
+  const wantsRecords = Boolean(searchRecords) && q.length >= 2
+  const searching = wantsRecords && records.query !== q
+
+  useEffect(() => {
+    if (!wantsRecords) return undefined
+    let live = true
+    const timer = setTimeout(() => {
+      Promise.resolve(searchRecords(q))
+        .catch(() => [])
+        .then((groups) => live && setRecords({ query: q, groups: groups ?? [] }))
+    }, RECORDS_DELAY)
+    return () => {
+      live = false
+      clearTimeout(timer)
+    }
+  }, [q, wantsRecords, searchRecords])
+
+  const groups = useMemo(() => {
+    const instant = search(query)
+    const found = wantsRecords && records.query === q ? records.groups : []
+    return /\d/.test(q) ? [...found, ...instant] : [...instant, ...found]
+  }, [search, query, q, wantsRecords, records])
 
   const select = useCallback(
     (item) => {
@@ -71,6 +99,9 @@ function SpotlightSearch({ onClose, search, placeholder, hint }) {
           >
             <Dialog.Title className="sr-only">Spotlight search</Dialog.Title>
             <Dialog.Description className="sr-only">Search apps, pages and records across PropFlow.</Dialog.Description>
+            <span role="status" className="sr-only">
+              {searching ? "Searching…" : ""}
+            </span>
 
             <Autocomplete.Root
               open
@@ -86,7 +117,7 @@ function SpotlightSearch({ onClose, search, placeholder, hint }) {
               }}
             >
               <Autocomplete.InputGroup className="flex items-center gap-3 border-b px-4">
-                <Icon name="search-line" className="text-xl text-muted-foreground" aria-hidden />
+                <Icon name={searching ? "loader-4-line" : "search-line"} className={cn("text-xl text-muted-foreground", searching && "animate-spin")} aria-hidden />
                 <Autocomplete.Input
                   autoFocus
                   placeholder={placeholder}
@@ -107,7 +138,7 @@ function SpotlightSearch({ onClose, search, placeholder, hint }) {
 
               <ScrollView className="min-h-0 flex-1" viewportClassName="px-2 pb-2">
                 <Autocomplete.Empty className="text-sm text-muted-foreground">
-                  <div className="px-3 py-10 text-center">No results for “{query}”.</div>
+                  <div className="px-3 py-10 text-center">{searching ? "Searching…" : `No results for “${q}”.`}</div>
                 </Autocomplete.Empty>
                 <Autocomplete.List className="outline-none">
                   {(group) => (
@@ -179,7 +210,7 @@ export function SpotlightTrigger({ className }) {
       )}
     >
       <Icon name="search-line" className="text-base" />
-      <span className="min-w-0 flex-1 truncate">Spotlight search…</span>
+      <span className="min-w-0 flex-1 truncate">Search…</span>
       <kbd className="rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium">{isMac ? "⌘K" : "Ctrl K"}</kbd>
     </button>
   )

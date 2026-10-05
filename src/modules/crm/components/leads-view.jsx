@@ -287,7 +287,8 @@ const DOCKED_COLUMNS = ["name", "status", "next", "agent"]
 const BOARD_STEPS = [...OPEN_STEPS, "booked", "lost"]
 const CLOSED_ON_BOARD_DAYS = 30
 
-export function LeadsView({ leads, agents, projects, me, access, brand, userName }) {
+// prefill: the new-lead form's details when it's opened for a contact (?new=1&contact=ct-00012)
+export function LeadsView({ leads, agents, projects, me, access, brand, userName, prefill = null }) {
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
@@ -599,16 +600,24 @@ export function LeadsView({ leads, agents, projects, me, access, brand, userName
           projects={projects}
           access={access}
           me={me}
-          onClose={() => setParam("new", null)}
+          prefill={prefill}
+          onClose={() => {
+            const next = new URLSearchParams(params)
+            next.delete("new")
+            next.delete("contact")
+            router.replace(`${pathname}${next.size ? `?${next}` : ""}`, { scroll: false })
+          }}
           onSaved={(code) => {
             const next = new URLSearchParams(params)
             next.delete("new")
+            next.delete("contact")
             next.set("lead", urlCode(code))
             router.replace(`${pathname}?${next}`, { scroll: false })
           }}
           onOpenExisting={(code) => {
             const next = new URLSearchParams(params)
             next.delete("new")
+            next.delete("contact")
             next.set("lead", urlCode(code))
             router.replace(`${pathname}?${next}`, { scroll: false })
           }}

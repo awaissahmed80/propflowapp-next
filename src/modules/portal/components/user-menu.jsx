@@ -10,6 +10,8 @@ import { Icon } from "@/components/ui/icon"
 import { SidebarMenuButton } from "@/components/ui/sidebar"
 import { TenantMark } from "@/components/tenant-mark"
 import { switchWorkspace } from "../server/actions"
+import { useScreenLock } from "./screen-lock/lock-provider"
+import { useLockShortcut } from "./screen-lock/shortcut"
 
 const THEMES = [
   { value: "light", label: "Light", icon: "sun-line" },
@@ -17,12 +19,14 @@ const THEMES = [
   { value: "system", label: "System", icon: "computer-line" },
 ]
 
-// Account menu in the portal top bar: theme, all apps, switch workspace, sign out
+// Account menu in the portal top bar: theme, My Desk, switch workspace, lock screen, sign out
 // placement "sidebar": a full-width row at the bottom of an app's sidebar, opening upwards
 export function UserMenu({ user, role, tenant, workspaces, canSetUp, placement = "header" }) {
   const router = useRouter()
   const { theme, setTheme } = useTheme()
   const [, startTransition] = useTransition()
+  const lock = useScreenLock()
+  const lockShortcut = useLockShortcut()
 
   const header = (
     <>
@@ -49,7 +53,7 @@ export function UserMenu({ user, role, tenant, workspaces, canSetUp, placement =
       icon: THEMES.find((t) => t.value === theme)?.icon ?? "contrast-2-line",
       items: THEMES.map((t) => ({ label: t.label, icon: t.icon, selected: theme === t.value, onClick: () => setTheme(t.value) })),
     },
-    { label: "All apps", icon: "apps-2-line", onClick: () => router.push("/") },
+    { label: "My Desk", icon: "user-smile-line", onClick: () => router.push("/") },
     ...(canSetUp ? [{ label: "Workspace setup", icon: "list-check-3", onClick: () => router.push("/setup") }] : []),
     { label: "Take the tour", icon: "guide-line", onClick: () => router.push("/?tour=1") },
     ...(workspaces.length
@@ -73,6 +77,7 @@ export function UserMenu({ user, role, tenant, workspaces, canSetUp, placement =
         ]
       : []),
     { type: "separator" },
+    ...(lock ? [{ label: "Lock screen", icon: "lock-line", shortcut: lockShortcut, onClick: lock.lockNow }] : []),
     { label: "Sign out", icon: "logout-box-r-line", variant: "destructive", onClick: () => startTransition(() => signOut()) },
   ]
 

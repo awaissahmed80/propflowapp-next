@@ -10,9 +10,10 @@ import { salesContext } from "@/modules/operations/server/context"
 import { bookingEvent } from "@/modules/operations/server/activity"
 import { payRefund, refundedSoFar } from "@/modules/finance/server/refunds"
 import { lockDate } from "@/modules/finance/server/posting"
+import { activateLoan, payApprovedRun, settleLeave } from "@/modules/hr/server/ops"
 
 // What each approval type does when decided from the inbox. ctx: { db, user, permissions }.
-//   canDecide(permissions)        who may approve or reject it (never the person who asked)
+//   canDecide(permissions, grants) who may approve or reject it (never the person who asked)
 //   approve(ctx, a) → { message } | { error }
 //   reject(ctx, a, note), withdraw(ctx, a)
 const priceListRow = (ctx, a) => ctx.db("priceLists").where({ id: a.subjectId }).whereNull("deletedAt").first()
@@ -210,6 +211,83 @@ export const HANDLERS = {
         await closeApproval(trx, a.id, { status: "approved", userId: ctx.user.id })
       })
       return { message: `Refund paid (${out.code}).` }
+    },
+    reject: (ctx, a, note) => closeApproval(ctx.db, a.id, { status: "rejected", userId: ctx.user.id, note }).then(() => ({ ok: true })),
+    withdraw: (ctx, a) => closeApproval(ctx.db, a.id, { status: "withdrawn", userId: ctx.user.id }).then(() => ({ ok: true })),
+  },
+
+  // ---------- HR & Payroll ----------
+
+  // Leave asked for in My Desk (or by HR without the grant): decided by hr.approve-leave
+  leave: {
+    canDecide: (permissions, grants) => Boolean(grants?.["hr.approve-leave"]),
+    async approve(ctx, a) {
+      const l = await ctx.db("leaveRequests").where({ id: a.subjectId }).whereNull("deletedAt").first("id", "code", "employeeId", "status")
+      if (!l || l.status !== "pending") return { error: "That leave request isn't waiting any more." }
+      const emp = await ctx.db("employees").where({ id: l.employeeId }).first("userId")
+      if (emp?.userId === ctx.user.id) return { error: "Someone else needs to decide your own leave." }
+      await ctx.db.transaction(async (trx) => {
+        await settleLeave(trx, ctx, l, "approved", null)
+        await closeApproval(trx, a.id, { status: "approved", userId: ctx.user.id })
+      })
+      return { message: `${l.code} approved.` }
+    },
+    async reject(ctx, a, note) {
+      const l = await ctx.db("leaveRequests").where({ id: a.subjectId }).first("id", "code", "employeeId", "status")
+      await ctx.db.transaction(async (trx) => {
+        if (l?.status === "pending") await settleLeave(trx, ctx, l, "rejected", note)
+        await closeApproval(trx, a.id, { status: "rejected", userId: ctx.user.id, note })
+      })
+      return { ok: true }
+    },
+    async withdraw(ctx, a) {
+      await ctx.db.transaction(async (trx) => {
+        await trx("leaveRequests").where({ id: a.subjectId, status: "pending" }).update({ status: "cancelled", updatedAt: new Date() })
+        await closeApproval(trx, a.id, { status: "withdrawn", userId: ctx.user.id })
+      })
+      return { ok: true }
+    },
+  },
+
+  // A salary advance asked for in My Desk: approving pays it out and posts it (hr.loans)
+  advance: {
+    canDecide: (permissions, grants) => Boolean(grants?.["hr.loans"]),
+    async approve(ctx, a) {
+      const l = await ctx.db("loans").where({ id: a.subjectId }).whereNull("deletedAt").first("id", "code", "status")
+      if (!l || l.status !== "pending") return { error: "That advance isn't waiting any more." }
+      await ctx.db.transaction(async (trx) => {
+        await activateLoan(trx, ctx, l.id)
+        await closeApproval(trx, a.id, { status: "approved", userId: ctx.user.id })
+      })
+      return { message: `${l.code} approved and paid out.` }
+    },
+    async reject(ctx, a, note) {
+      await ctx.db.transaction(async (trx) => {
+        await trx("loans").where({ id: a.subjectId, status: "pending" }).update({ status: "rejected", updatedAt: new Date() })
+        await closeApproval(trx, a.id, { status: "rejected", userId: ctx.user.id, note })
+      })
+      return { ok: true }
+    },
+    async withdraw(ctx, a) {
+      await ctx.db.transaction(async (trx) => {
+        await trx("loans").where({ id: a.subjectId, status: "pending" }).update({ status: "rejected", updatedAt: new Date() })
+        await closeApproval(trx, a.id, { status: "withdrawn", userId: ctx.user.id })
+      })
+      return { ok: true }
+    },
+  },
+
+  // Paying an approved payroll run, asked by someone who isn't a Finance approver
+  "payroll-payment": {
+    canDecide: (permissions) => can(permissions, "finance", "approve"),
+    async approve(ctx, a) {
+      const run = await ctx.db("payrollRuns").where({ id: a.subjectId }).whereNull("deletedAt").first()
+      if (!run || run.status !== "approved") return { error: "That payroll run isn't waiting to be paid any more." }
+      await ctx.db.transaction(async (trx) => {
+        await payApprovedRun(trx, ctx, run, a.payload?.accountId ?? null)
+        await closeApproval(trx, a.id, { status: "approved", userId: ctx.user.id })
+      })
+      return { message: `${run.code} paid and posted to Finance.` }
     },
     reject: (ctx, a, note) => closeApproval(ctx.db, a.id, { status: "rejected", userId: ctx.user.id, note }).then(() => ({ ok: true })),
     withdraw: (ctx, a) => closeApproval(ctx.db, a.id, { status: "withdrawn", userId: ctx.user.id }).then(() => ({ ok: true })),

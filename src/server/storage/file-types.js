@@ -11,10 +11,31 @@ const SIGNATURES = [
   { mime: "audio/ogg", ext: "ogg", label: "Ogg audio", test: (b) => b.subarray(0, 4).toString("latin1") === "OggS" },
 ]
 
-export function detectFileType(buffer) {
+// Word and Excel files (.docx, .xlsx) are zip archives: only recognized when the caller passes
+// the file's name (so other apps never accept them) and the archive holds that format's parts.
+const ZIP = Buffer.from([0x50, 0x4b, 0x03, 0x04])
+const OFFICE = [
+  { ext: "docx", mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", label: "Word", part: "word/" },
+  { ext: "xlsx", mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", label: "Excel", part: "xl/" },
+]
+function officeType(buffer, name) {
+  const ext = String(name ?? "")
+    .toLowerCase()
+    .match(/\.([a-z0-9]+)$/)?.[1]
+  const kind = OFFICE.find((o) => o.ext === ext)
+  if (!kind || !buffer.subarray(0, 4).equals(ZIP)) return null
+  // Zip entry names are stored as plain text in each local header: look for the format's folder
+  // and the package's [Content_Types].xml
+  if (!buffer.includes("[Content_Types].xml", 0, "latin1") || !buffer.includes(kind.part, 0, "latin1")) return null
+  return { mime: kind.mime, ext: kind.ext, label: kind.label }
+}
+
+//   name: the file's name, only needed to recognize Word and Excel files
+export function detectFileType(buffer, name = null) {
   if (!buffer || buffer.length < 12) return null
   const hit = SIGNATURES.find((s) => s.test(buffer))
-  return hit ? { mime: hit.mime, ext: hit.ext, label: hit.label } : null
+  if (hit) return { mime: hit.mime, ext: hit.ext, label: hit.label }
+  return name ? officeType(buffer, name) : null
 }
 
 // Accepted for proof of payment
@@ -24,3 +45,7 @@ export const PROOF_MAX_BYTES = 10 * 1024 * 1024
 // Voice notes (CRM)
 export const AUDIO_TYPES = ["audio/webm", "audio/mp4", "audio/ogg"]
 export const VOICE_MAX_BYTES = 5 * 1024 * 1024 // a few minutes of speech
+
+// Documents app: PDFs, photos and scans, Word and Excel files, up to 20 MB each
+export const DOCUMENT_FILE_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/webp", ...OFFICE.map((o) => o.mime)]
+export const DOCUMENT_MAX_BYTES = 20 * 1024 * 1024

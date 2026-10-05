@@ -1,5 +1,6 @@
 import "server-only"
 import { live } from "@/server/db/records"
+import { maskCnic } from "@/lib/cnic"
 import { getLookups } from "@/modules/lookups/server"
 import { peopleByIds } from "@/modules/users/server/queries"
 import { activeListsByProject } from "@/modules/portfolio/server/price-list-queries"
@@ -89,8 +90,6 @@ export const SALES_LISTS = ["booking-stage", "booking-status", "payment-method",
 export const salesLists = (ctx) => getLookups(ctx.db, SALES_LISTS)
 
 const person = (p) => (p ? { id: p.id, name: p.name, avatarUrl: p.avatarUrl ?? null } : null)
-// 35202-1234567-1 → 35202-•••••••-1 without the "See full CNIC numbers" grant
-const maskCnic = (ctx, cnic) => (!cnic ? null : ctx.grant("contacts.cnic") ? cnic : cnic.replace(/^(\d{5})-?\d{7}-?(\d)$/, "$1-•••••••-$2"))
 
 // Bookings with their unit, project and buyer (scoped), newest first
 function baseQuery(ctx) {
@@ -134,7 +133,7 @@ function shape(ctx, b, money, people) {
       code: b.contactCode ?? null,
       name: b.contactName ?? b.customerName,
       phone: b.contactPhone ?? b.customerPhone,
-      cnic: maskCnic(ctx, b.contactCnic),
+      cnic: maskCnic(b.contactCnic, ctx.grant?.("contacts.cnic")),
       guardian: b.guardianName ? `${b.guardianRelation ?? "S/O"} ${b.guardianName}` : null,
     },
     unit: { code: b.unitCode, number: b.unitNumber, type: b.unitType, sizeValue: Number(b.sizeValue), sizeUnit: b.sizeUnit, block: b.blockName },
@@ -257,7 +256,7 @@ export async function getBooking(ctx, code) {
           name: contact.name,
           phone: contact.phone,
           email: contact.email,
-          cnic: maskCnic(ctx, contact.cnic),
+          cnic: maskCnic(contact.cnic, ctx.grant?.("contacts.cnic")),
           hasCnic: Boolean(contact.cnic),
           guardianRelation: contact.guardianRelation,
           guardianName: contact.guardianName,

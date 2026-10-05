@@ -35,6 +35,7 @@ import { bookingHref } from "./receipts-view"
 // bank details to pay into. They turn Paid on their own once the installments are paid.
 //   requests: paymentRequestList() · bookings: receivableBookings() · accounts: moneyAccounts()
 //   can: { create, edit } · initialNew: a booking code to start a request for (?new=bk-…)
+//   initialOpen: a request to show right away (?open=inv-…, from Spotlight search)
 
 const SHOW = [
   { value: "open", label: "Open" },
@@ -49,15 +50,17 @@ function StatusBadge({ request: q, today }) {
   return pkDayOf(q.dueOn) < today ? <Badge color="red">Overdue</Badge> : <Badge color="blue">Issued</Badge>
 }
 
-export function PaymentRequestsView({ requests, bookings, accounts, brand, can, initialNew = null }) {
+export function PaymentRequestsView({ requests, bookings, accounts, brand, can, initialNew = null, initialOpen = null }) {
   const router = useRouter()
   const { title, description } = financeNav("/finance/payment-requests")
-  const [show, setShow] = useState("open")
+  const opening = initialOpen ? requests.find((r) => r.code.toLowerCase() === String(initialOpen).toLowerCase()) : null
+  // Listed under the filter that includes it
+  const [show, setShow] = useState(opening && opening.status !== "issued" ? "all" : "open")
   const [q, setQ] = useState("")
   const [today] = useState(pkToday)
   const startCode = initialNew ? (bookings.find((b) => b.code.toLowerCase() === String(initialNew).toLowerCase())?.code ?? null) : null
   const [creating, setCreating] = useState(Boolean(startCode) && can.create)
-  const [preview, setPreview] = useState(null)
+  const [preview, setPreview] = useState(opening?.code ?? null)
   const [busy, startTransition] = useTransition()
 
   const open = requests.filter((r) => r.status === "issued")

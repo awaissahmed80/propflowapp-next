@@ -13,7 +13,9 @@ import { parseBudget } from "../constants"
 
 // Lead forms: fields, settings and entries. Every entry becomes a CRM lead linked to its contact
 // (by mobile), the form and its campaign (and the landing page it was filled on). Used on their
-// own hosted page, embedded on a website (embed.js) or inside a landing page.
+// own hosted page, embedded on a website (embed.js) or inside a landing page. Forms with a
+// provider ("meta": a Facebook lead form linked in Campaigns › Integrations) aren't listed or
+// public here; their entries come in through the provider.
 
 const json = (v, fallback) => {
   if (v == null) return fallback
@@ -53,7 +55,7 @@ async function entryStats(db, formIds) {
 }
 
 export async function listForms(ctx) {
-  const forms = await live(ctx.db, "leadForms").orderBy("id", "desc")
+  const forms = await live(ctx.db, "leadForms").whereNull("provider").orderBy("id", "desc")
   const [stats, campaigns, projects] = await Promise.all([
     entryStats(
       ctx.db,
@@ -83,6 +85,7 @@ export async function listForms(ctx) {
 export async function getForm(ctx, code) {
   const f = await live(ctx.db, "leadForms")
     .where({ code: String(code ?? "").toUpperCase() })
+    .whereNull("provider")
     .first()
   if (!f) return null
   const [list] = (await listForms(ctx)).filter((x) => x.code === f.code)
@@ -103,7 +106,8 @@ export async function getForm(ctx, code) {
   }
 }
 
-export const formOptions = async (ctx) => (await live(ctx.db, "leadForms").orderBy("name").select("code", "name", "status", "campaignId")).map((f) => ({ value: f.code, label: f.name, status: f.status }))
+export const formOptions = async (ctx) =>
+  (await live(ctx.db, "leadForms").whereNull("provider").orderBy("name").select("code", "name", "status", "campaignId")).map((f) => ({ value: f.code, label: f.name, status: f.status }))
 
 export async function createFormRow(trx, { name, campaignId, projectId, userId }) {
   const code = await nextCode(trx, "lead-form")
@@ -126,6 +130,7 @@ export async function publicWorkspace(slug) {
 export async function publicForm(db, code) {
   const f = await live(db, "leadForms")
     .where({ code: String(code ?? "").toUpperCase() })
+    .whereNull("provider")
     .first()
   return f ? { ...shapeForm(f), id: f.id, campaignId: f.campaignId, projectId: f.projectId } : null
 }
@@ -155,10 +160,13 @@ function parseSize(label) {
   return { value: Number(m[1]), unit: m[2].toLowerCase().startsWith("sq") ? "sqft" : m[2].toLowerCase() }
 }
 
-// Turn an entry into a CRM lead → { ok, duplicate } | { fieldErrors } | { error }
+// Turn an entry into a CRM lead → { ok, duplicate, leadId, code } | { fieldErrors } | { error }
 //   channel: from the link's utm_source when present (else the form's default channel)
 //   pageId: the landing page it was filled on · test: from the form builder (by: who tested)
-export async function submitEntry({ db, tenant }, form, values, { channel = null, pageId = null, test = false, by = null } = {}) {
+//   notes: lines to put first in the lead's notes · metaLeadId: the Facebook lead it came from
+//   status: the new lead's status (default "new") · dedupeEmail: the same email also counts as the
+//   same person (not only the same mobile)
+export async function submitEntry({ db, tenant }, form, values, { channel = null, pageId = null, test = false, by = null, notes = [], metaLeadId = null, status = "new", dedupeEmail = false } = {}) {
   if (form.status !== "active" && !test) return { error: "This form isn't accepting entries right now." }
   const fieldErrors = validateEntry(form, values)
   if (Object.keys(fieldErrors).length) return { fieldErrors }
@@ -173,7 +181,7 @@ export async function submitEntry({ db, tenant }, form, values, { channel = null
     else if (f.type === "phone") lead.phone = normalizePhone(v)
     else if (f.type === "email") lead.email = String(v).trim().slice(0, 150)
     else if (f.type === "city") lead.city = String(v).slice(0, 80)
-    else if (f.type === "consent") continue
+    else if (f.type === "consent" || f.mapTo === "skip") continue
     else if (f.mapTo === "overseas") lead.overseas = Boolean(v)
     else if (f.mapTo === "unitType") lead.unitType = lists["unit-type"].find((t) => t.label.toLowerCase() === String(v).toLowerCase() || t.value === String(v).toLowerCase())?.value ?? null
     else if (f.mapTo === "size") {
@@ -186,6 +194,7 @@ export async function submitEntry({ db, tenant }, form, values, { channel = null
     else if (f.mapTo === "notes") extra.unshift(String(v).trim())
     else if (f.type !== "checkbox" || v) extra.push(`${f.label}: ${v === true ? "Yes" : v}`)
   }
+  extra.unshift(...notes)
   if (test) extra.unshift("Test entry from the form builder.")
   if (!lead.phone) return { fieldErrors: { phone: "Enter a mobile number, e.g. 0300 1234567" } }
   if (!lead.name) lead.name = "Website enquiry"
@@ -194,11 +203,11 @@ export async function submitEntry({ db, tenant }, form, values, { channel = null
 
   // The same person with an open lead for the same project: a note on that lead instead
   const open = await live(db, "leads")
-    .where({ phone: lead.phone })
+    .where((q) => (dedupeEmail && lead.email ? q.where({ phone: lead.phone }).orWhere({ email: lead.email }) : q.where({ phone: lead.phone })))
     .whereNotIn("status", ["booked", "lost"])
     .whereNull("archivedAt")
     .modify((q) => (form.projectId ? q.where({ projectId: form.projectId }) : q))
-    .first("id", "code")
+    .first("id", "code", "assignedTo")
   const now = new Date()
   if (open) {
     await db("leadActivities").insert({
@@ -211,7 +220,7 @@ export async function submitEntry({ db, tenant }, form, values, { channel = null
       notes: `Filled in “${form.name}” again${extra.length ? `\n${extra.join("\n")}` : ""}`,
       createdBy: by,
     })
-    return { ok: true, duplicate: true }
+    return { ok: true, duplicate: true, leadId: open.id, code: open.code, assignedTo: open.assignedTo ?? null }
   }
 
   // Who gets it: a set person, or the CRM assignment rules then the round-robin
@@ -222,14 +231,14 @@ export async function submitEntry({ db, tenant }, form, values, { channel = null
   if (assignTo && assignTo !== "round-robin" && Number(assignTo)) assignedTo = Number(assignTo)
   else if (assignTo === "round-robin") assignedTo = (await pickByRules(ctx, row))?.userId ?? (await nextInTurn(ctx)) ?? null
 
-  let code
+  let code, leadId
   await db.transaction(async (trx) => {
     code = await nextCode(trx, "lead")
     const team = assignedTo ? ((await live(trx, "members").where({ userId: assignedTo }).first("teamId"))?.teamId ?? null) : null
     const [id] = await trx("leads").insert({
       ...row,
       code,
-      status: "new",
+      status,
       priority: "warm",
       notes: extra.join("\n") || null,
       assignedTo,
@@ -237,12 +246,14 @@ export async function submitEntry({ db, tenant }, form, values, { channel = null
       campaignId: form.campaignId ?? null,
       formId: form.id,
       landingPageId: pageId,
+      metaLeadId,
       createdBy: by,
     })
+    leadId = id
     await linkContact(trx, await ensureContact(trx, row, by), { type: "lead", id, role: "lead" }, by)
     // Fresh web leads go cold fast: a call within 15 minutes for whoever has it
     if (assignedTo) await trx("leadActivities").insert({ leadId: id, type: "call", status: "planned", at: new Date(now.getTime() + 15 * 60_000), by: assignedTo, notes: `New enquiry from “${form.name}”`, createdBy: by })
   })
   await logActivity(db, { type: "campaigns", action: "form.entry", actorUserId: by, summary: `${lead.name} filled in the form ${form.name} (${code})` })
-  return { ok: true, duplicate: false }
+  return { ok: true, duplicate: false, leadId, code, assignedTo }
 }

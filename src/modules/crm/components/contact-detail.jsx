@@ -195,6 +195,11 @@ export function ContactDetail({ contact: c }) {
                 Email
               </Button>
             )}
+            {c.fullHref && (
+              <Button variant="outline" rightIcon="arrow-right-up-line" nativeButton={false} render={<Link href={c.fullHref} />}>
+                Full contact
+              </Button>
+            )}
           </div>
         </div>
       </div>

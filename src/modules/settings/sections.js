@@ -9,6 +9,9 @@ import { canEditSalesRules } from "@/modules/operations/server/settings"
 import { servicesContext } from "@/modules/estate/server/context"
 import { usersContext } from "@/modules/users/server/context"
 import { financeContext } from "@/modules/finance/server/context"
+import { contactsContext } from "@/modules/contacts/server/context"
+import { hrContext } from "@/modules/hr/server/context"
+import { documentsContext } from "@/modules/documents/server/context"
 import FinanceSettings from "@/app/portal/finance/customize/settings/page"
 import PortfolioUnits from "@/app/portal/project-portfolio/customize/units/page"
 import PortfolioFeatures from "@/app/portal/project-portfolio/customize/features/page"
@@ -21,6 +24,8 @@ import OperationsSettings from "@/app/portal/operations/customize/settings/page"
 import OperationsAssignment from "@/app/portal/operations/customize/assignment/page"
 import OperationsDocuments from "@/app/portal/operations/customize/documents/page"
 import EstateSettings from "@/app/portal/estate-management/customize/settings/page"
+import HrRules from "@/app/portal/hrm/customize/rules/page"
+import DocumentTypes from "@/app/portal/documents/customize/types/page"
 
 // Settings › App Settings: each app's settings beyond plain pick-lists (rules, assignment, fees,
 // and lists with their own fields such as unit sizes, activity points or follow-up days),
@@ -79,6 +84,22 @@ const APPS = [
     context: () => financeContext("/settings/apps"),
     sections: [{ key: "settings", label: "Books & defaults", icon: "safe-2-line", Page: FinanceSettings, allowed: (c) => c.can("view") }],
   },
+  {
+    app: "hr",
+    base: "/hrm/customize",
+    context: () => hrContext("/settings/apps"),
+    sections: [{ key: "rules", label: "Payroll rules", icon: "scales-3-line", Page: HrRules, allowed: (c) => c.can("view") && Boolean(c.grant("hr.payroll")) }],
+  },
+  {
+    app: "documents",
+    base: "/documents/customize",
+    context: () => documentsContext("/settings/apps"),
+    // Document types are its only list so far (their own tab)
+    listsAllowed: () => false,
+    sections: [{ key: "types", label: "Document types", icon: "folder-settings-line", Page: DocumentTypes, lists: ["document-type"], allowed: (c) => c.can("view") }],
+  },
+  // Lists only: contact types and cities (general lists shared by every app)
+  { app: "contacts", base: "/contacts/customize", context: () => contactsContext("/settings/apps"), sections: [] },
   // Lists only for now (designations, departments, member statuses)
   { app: "users", base: "/users/customize", context: () => usersContext("/settings/apps"), sections: [] },
 ]

@@ -19,6 +19,14 @@ export const SERVICES_NAV = [
     items: [{ label: "Complaints", icon: "error-warning-line", to: "/estate-management/complaints", feature: "complaints", description: "Maintenance and site complaints, by category and priority" }],
   },
   {
+    label: "Resale & rentals",
+    items: [
+      { label: "Listings", icon: "home-4-line", to: "/estate-management/listings", feature: "resale", description: "Owners' plots and houses for resale or rent, and their enquiries" },
+      { label: "Rentals", icon: "key-2-line", to: "/estate-management/rentals", feature: "resale", description: "Tenancies, rent schedules and renewals" },
+      { label: "Owners", icon: "contacts-book-2-line", to: "/estate-management/owners", feature: "resale", description: "Property owners and landlords with their CNIC and documents" },
+    ],
+  },
+  {
     label: "Setup",
     items: [{ label: "Customize", icon: "equalizer-line", to: "/estate-management/customize", description: "Fees and timelines per request, and this app's lists & labels" }],
   },

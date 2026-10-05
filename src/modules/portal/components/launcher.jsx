@@ -161,7 +161,7 @@ function Row({ href, children }) {
   )
 }
 
-function DeskColumn({ user, role, tenant, desk, apps, greeting, today, setupSteps, team }) {
+function DeskColumn({ user, role, tenant, desk, apps, greeting, today, setupSteps, team, selfService }) {
   const appOf = (code) => apps.find((a) => a.code === code)
   const { counts } = desk
   const [allTasks, setAllTasks] = useState(false)
@@ -185,6 +185,22 @@ function DeskColumn({ user, role, tenant, desk, apps, greeting, today, setupStep
             Approvals
             {counts.approvals > 0 && <span className="ml-0.5 rounded-full bg-primary px-1.5 text-[11px] leading-4 font-semibold text-primary-foreground tabular-nums">{counts.approvals}</span>}
           </Button>
+          {/* HR self-service, for people on the payroll */}
+          {selfService?.leave && (
+            <Button variant="outline" size="sm" leftIcon="plane-line" nativeButton={false} render={<Link href="/my-leave" />}>
+              My leave
+            </Button>
+          )}
+          {selfService?.pay && (
+            <Button variant="outline" size="sm" leftIcon="money-rupee-circle-line" nativeButton={false} render={<Link href="/my-pay" />}>
+              My pay
+            </Button>
+          )}
+          {selfService?.roster && (
+            <Button variant="outline" size="sm" leftIcon="calendar-schedule-line" nativeButton={false} render={<Link href="/my-roster" />}>
+              My roster
+            </Button>
+          )}
           {desk.hasTeam && (
             <Button variant="outline" size="sm" leftIcon="team-line" nativeButton={false} render={<Link href="/my-team" />}>
               My team
@@ -352,14 +368,14 @@ function ResizableColumns({ apps, desk }) {
   )
 }
 
-export function Launcher({ user, role, tenant, apps, desk, greeting, today, setupSteps = null, team = null, startTour = false }) {
+export function Launcher({ user, role, tenant, apps, desk, greeting, today, setupSteps = null, team = null, selfService = null, startTour = false }) {
   const router = useRouter()
   // Side by side from 56rem (896px): a ~1000px laptop window shouldn't fall back to the stacked layout
   const lg = useMediaQuery("(min-width: 56rem)")
   // The guided tour: right after setup (?tour=1) or from the account menu
   const [touring, setTouring] = useState(startTour)
   const appsColumn = <AppsColumn apps={apps} userId={user.id} tenantId={tenant.id} />
-  const deskColumn = <DeskColumn user={user} role={role} tenant={tenant} desk={desk} apps={apps} greeting={greeting} today={today} setupSteps={setupSteps} team={team} />
+  const deskColumn = <DeskColumn user={user} role={role} tenant={tenant} desk={desk} apps={apps} greeting={greeting} today={today} setupSteps={setupSteps} team={team} selfService={selfService} />
 
   return (
     <main>

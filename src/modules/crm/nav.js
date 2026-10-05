@@ -1,5 +1,5 @@
 // CRM sidebar; description is the page subtitle. soon: a ComingSoon placeholder until it's built.
-// setup: needs rights to change CRM (crmNav locks it for everyone else, so they still see it).
+// need: what the role must have, as the page checks it (AppShell locks it otherwise, see portal/nav-access.js)
 export const CRM_NAV = [
   { items: [{ label: "Overview", icon: "dashboard-line", to: "/crm", end: true, description: "Your pipeline at a glance: new leads, follow-ups due, conversions and top prospects" }] },
   {
@@ -29,12 +29,10 @@ export const CRM_NAV = [
         label: "Customize",
         icon: "equalizer-line",
         to: "/crm/customize",
-        setup: true,
+        // Every Customize tab needs rights to change CRM (canEditCrmRules: setup rights or crm edit)
+        need: { any: [{ setup: true }, { action: "edit" }] },
         description: "Pipeline rules, lead scoring, assignment rules, and lead statuses, sources and other lists",
       },
     ],
   },
 ]
-
-// The sidebar for this person: Setup pages locked unless they may change CRM
-export const crmNav = (canSetUp) => CRM_NAV.map((g) => ({ ...g, items: g.items.map((i) => (i.setup && !canSetUp ? { ...i, locked: true, lockedReason: "Ask an administrator for access" } : i)) }))

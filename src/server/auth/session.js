@@ -48,6 +48,38 @@ export async function createSession({ userId, kind, tenantId = null, remember })
   jar.set(COOKIE(), token, { ...cookieOptions(), ...(remember ? { maxAge: Math.floor(ms / 1000) } : {}) })
 }
 
+// ---------- signing in as a member (console staff, from a workspace's page) ----------
+// The staff member's own console token is kept in a second httpOnly cookie while they're signed
+// in as someone else, and put back when they exit, so they don't have to sign in again.
+const STAFF_COOKIE = () => `${COOKIE()}_console`
+export const IMPERSONATION_MINUTES = 60
+
+export async function createImpersonationSession({ userId, tenantId, impersonatorUserId, impersonationId }) {
+  const jar = await cookies()
+  const staffToken = jar.get(COOKIE())?.value
+  if (staffToken) jar.set(STAFF_COOKIE(), staffToken, { ...cookieOptions(), maxAge: SHORT_HOURS * 3600 })
+  const token = newToken()
+  const { ip, userAgent } = await requestInfo()
+  const expiresAt = new Date(Date.now() + IMPERSONATION_MINUTES * 60_000)
+  await authDb()("sessions").insert({ tokenHash: hashToken(token), userId, kind: "tenant", tenantId, impersonatorUserId, impersonationId, ip, userAgent, lastSeenAt: new Date(), expiresAt })
+  jar.set(COOKIE(), token, cookieOptions())
+  return expiresAt
+}
+
+// End the member session and give the staff member their console session back
+export async function restoreStaffSession() {
+  const jar = await cookies()
+  const token = jar.get(COOKIE())?.value
+  if (token)
+    await authDb()("sessions")
+      .where({ tokenHash: hashToken(token) })
+      .whereNull("revokedAt")
+      .update({ revokedAt: new Date() })
+  const staffToken = jar.get(STAFF_COOKIE())?.value
+  jar.set(COOKIE(), staffToken ?? "", { ...cookieOptions(), ...(staffToken ? {} : { maxAge: 0 }) })
+  jar.set(STAFF_COOKIE(), "", { ...cookieOptions(), maxAge: 0 })
+}
+
 // The signed-in session for this request, or null. Checks expiry, revocation and the user's status.
 export async function readSession() {
   const token = (await cookies()).get(COOKIE())?.value
@@ -60,7 +92,22 @@ export async function readSession() {
     .where("s.expiresAt", ">", new Date())
     .whereNull("u.deletedAt")
     .where("u.status", "active")
-    .first("s.id", "s.kind", "s.tenantId", "s.impersonatorUserId", "s.lastSeenAt", "s.expiresAt", "u.id as userId", "u.name", "u.email", "u.avatarUrl", "u.mustChangePassword")
+    .first(
+      "s.id",
+      "s.kind",
+      "s.tenantId",
+      "s.impersonatorUserId",
+      "s.impersonationId",
+      "s.lastSeenAt",
+      "s.expiresAt",
+      "s.lockedAt",
+      "s.unlockAttempts",
+      "u.id as userId",
+      "u.name",
+      "u.email",
+      "u.avatarUrl",
+      "u.mustChangePassword",
+    )
   if (!row) return null
   if (!row.lastSeenAt || Date.now() - row.lastSeenAt.getTime() > TOUCH_MS) {
     await db("sessions").where({ id: row.id }).update({ lastSeenAt: new Date() })
@@ -70,7 +117,11 @@ export async function readSession() {
     kind: row.kind,
     tenantId: row.tenantId,
     impersonatorUserId: row.impersonatorUserId,
+    impersonationId: row.impersonationId,
     expiresAt: row.expiresAt,
+    // Screen lock (portal): set while this browser is locked, until the passcode or password is entered
+    lockedAt: row.lockedAt,
+    unlockAttempts: row.unlockAttempts,
     user: { id: row.userId, name: row.name, email: row.email, avatarUrl: row.avatarUrl, mustChangePassword: row.mustChangePassword },
   }
 }

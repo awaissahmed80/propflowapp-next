@@ -1,5 +1,6 @@
 "use client"
 
+import { formatCnic } from "@/lib/cnic"
 import { useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -25,10 +26,6 @@ import { createRequest } from "../server/actions"
 //   types: the types the plan has on · canAssign: services.assign · settings: servicesSettings() for the fee hint · me: { id, name }
 
 const RELATIONS = ["S/O", "D/O", "W/O"].map((r) => ({ value: r, label: r }))
-const formatCnic = (v) => {
-  const d = v.replace(/\D/g, "").slice(0, 13)
-  return [d.slice(0, 5), d.slice(5, 12), d.slice(12)].filter(Boolean).join("-")
-}
 const EMPTY_PURCHASER = { name: "", cnic: "", phone: "", relation: "S/O", guardian: "", address: "" }
 
 // Title suggested for each type until the person types their own
