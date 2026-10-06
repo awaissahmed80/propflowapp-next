@@ -3,6 +3,7 @@ export const AUTH_ERRORS = {
   "google-off": "Google sign-in isn't set up yet. Use your email and password.",
   "google-cancelled": "Google sign-in was canceled.",
   "google-failed": "We couldn't sign you in with Google. Please try again.",
+  "desktop-expired": "That sign-in link for the app has expired or was already used. Please try Continue with Google again.",
   "google-expired": "That Google sign-in took too long or was already used. Please try again.",
   "google-no-account": "There's no PropFlow account for that Google email. Sign-up is by invitation: ask your company admin, or PropFlow, to invite you.",
   "google-mismatch": "That email is linked to a different Google account. Sign in with the Google account you used before, or use your password.",
