@@ -11,6 +11,7 @@ import { joinWorkspace } from "@/server/auth/workspace-join"
 import { logAttempt } from "@/server/auth/password-check"
 import { readSigned } from "@/server/auth/secrets"
 import { finishSignIn } from "@/server/auth/sign-in"
+import { createHandoff } from "@/server/auth/desktop-handoff"
 import { siteForHost, siteUrl } from "@/lib/sites"
 
 // Google sends the visitor back here with ?code=…&state=…
@@ -107,6 +108,12 @@ export async function GET(request) {
   // Keep their Google photo current, unless they have their own photo
   if (profile.picture && user.avatarUrl !== profile.picture && (!user.avatarUrl || isGooglePhoto(user.avatarUrl))) {
     await auth("users").where({ id: user.id }).update({ avatarUrl: profile.picture, updatedAt: new Date() })
+  }
+
+  // Started in the desktop app: the browser isn't signed in; the app is, with a one-time code
+  if (saved.desktop) {
+    const code = await createHandoff(user, { challenge: saved.desktop, ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || null })
+    return NextResponse.redirect(siteUrl("auth", `/desktop?code=${encodeURIComponent(code)}`))
   }
 
   const result = await finishSignIn(user, { method: "google", remember: true, redirectTo: saved.redirectTo || undefined, tenantId: joinedTenantId })

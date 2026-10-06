@@ -4,10 +4,13 @@ import { GOOGLE_COOKIE as COOKIE, googleEnabled, startGoogleSignIn } from "@/ser
 import { findConsoleInvite } from "@/server/auth/invitations"
 import { findWorkspaceInvite } from "@/server/tenants/invitations"
 import { signValue } from "@/server/auth/secrets"
+import { isChallenge } from "@/server/auth/desktop-handoff"
 import { siteForHost, siteUrl } from "@/lib/sites"
 
 // GET /api/auth/google/start?intent=signin&redirect=…  |  ?intent=invite&token=…  |  ?intent=setup&token=…
 // Remembers what the visitor was doing in a short-lived signed cookie, then sends them to Google.
+// &desktop=<challenge>: started from the desktop app, which opened this in the browser; the
+// callback hands the sign-in back to the app (server/auth/desktop-handoff.js).
 
 export async function GET(request) {
   const url = request.nextUrl
@@ -17,6 +20,7 @@ export async function GET(request) {
   const intent = ["invite", "setup"].includes(url.searchParams.get("intent")) ? url.searchParams.get("intent") : "signin"
   const token = url.searchParams.get("token") ?? ""
   const redirectTo = url.searchParams.get("redirect") ?? ""
+  const desktop = isChallenge(url.searchParams.get("desktop")) ? url.searchParams.get("desktop") : null
   const pages = { invite: `/invite/${encodeURIComponent(token)}`, setup: `/setup/${encodeURIComponent(token)}`, signin: "/" }
   const back = (error) => NextResponse.redirect(siteUrl("auth", `${pages[intent]}?error=${error}`))
 
@@ -30,7 +34,7 @@ export async function GET(request) {
 
   const { url: googleUrl, secrets } = startGoogleSignIn({ loginHint })
   const jar = await cookies()
-  jar.set(COOKIE, signValue({ ...secrets, intent, token, redirectTo: redirectTo.slice(0, 2000), exp: Date.now() + 10 * 60_000 }), {
+  jar.set(COOKIE, signValue({ ...secrets, intent, token, desktop, redirectTo: redirectTo.slice(0, 2000), exp: Date.now() + 10 * 60_000 }), {
     httpOnly: true,
     secure: (process.env.APP_PROTOCOL || "https") === "https",
     sameSite: "lax",

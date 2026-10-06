@@ -1,0 +1,538 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>PropFlow intro</title>
+<style>
+  html, body { margin: 0; background: #000; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// PropFlow intro videos, drawn on a canvas from the product screenshots and recorded with
+// MediaRecorder (marketing/video/record.mjs opens this page in headless Chrome).
+//   intro.html?format=landscape   1920×1080, ~44 s, for the website
+//   intro.html?format=story       1080×1920, ~19 s, for an Instagram story
+//   &t=12.5                       draw one still at 12.5 s (for checking)
+
+const params = new URLSearchParams(location.search)
+const FORMAT = params.get("format") === "story" ? "story" : "landscape"
+const W = FORMAT === "story" ? 1080 : 1920
+const H = FORMAT === "story" ? 1920 : 1080
+const FPS = 30
+const SCREENS = "../../public/images/screens/"
+const BLUE = "#0270D2"
+
+const canvas = document.getElementById("c")
+canvas.width = W
+canvas.height = H
+const ctx = canvas.getContext("2d")
+
+// ---------- helpers ----------
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v))
+const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+const out = (t) => 1 - Math.pow(1 - t, 3)
+const back = (t) => {
+  const c1 = 1.5, c3 = c1 + 1
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2)
+}
+const prog = (t, a, b) => clamp((t - a) / (b - a))
+const lerp = (a, b, p) => a + (b - a) * p
+
+function rr(x, y, w, h, r) {
+  ctx.beginPath()
+  ctx.roundRect(x, y, w, h, r)
+}
+function font(size, weight = 700) {
+  ctx.font = `${weight} ${size}px Inter, system-ui, sans-serif`
+}
+// Text wrapped to a width; returns the height used
+function wrap(text, x, y, maxW, lineH, align = "left") {
+  const words = text.split(" ")
+  const lines = []
+  let line = ""
+  for (const w of words) {
+    const test = line ? `${line} ${w}` : w
+    if (ctx.measureText(test).width > maxW && line) {
+      lines.push(line)
+      line = w
+    } else line = test
+  }
+  lines.push(line)
+  ctx.textAlign = align
+  lines.forEach((l, i) => ctx.fillText(l, x, y + i * lineH))
+  return lines.length * lineH
+}
+
+// ---------- assets ----------
+const IMG = {}
+const MAP = {}
+async function load() {
+  const ff = new FontFace("Inter", "url(font-a.woff2)", { weight: "100 900" })
+  try {
+    document.fonts.add(await ff.load())
+  } catch {}
+  const map = await (await fetch("../../src/modules/web/screens.json")).json()
+  Object.assign(MAP, map)
+  const ids = new Set(SCENES.filter((s) => s.screen).map((s) => s.screen))
+  await Promise.all(
+    [...ids].map(async (id) => {
+      const res = await fetch(SCREENS + id + ".webp")
+      IMG[id] = await createImageBitmap(await res.blob())
+    }),
+  )
+  const svg = await (await fetch("../../public/logo.svg")).text()
+  for (const [name, color] of [["logo", "#0049B5"], ["logoWhite", "#ffffff"]]) {
+    const blob = new Blob([svg.replace(/#0049B5/gi, color)], { type: "image/svg+xml" })
+    const img = new Image()
+    img.src = URL.createObjectURL(blob)
+    await img.decode()
+    IMG[name] = img
+  }
+}
+
+// ---------- backgrounds ----------
+function background(t) {
+  const g = ctx.createLinearGradient(0, 0, W, H)
+  g.addColorStop(0, "#04122e")
+  g.addColorStop(1, "#071d4a")
+  ctx.fillStyle = g
+  ctx.fillRect(0, 0, W, H)
+  // Slow-moving glows
+  const blobs = [
+    [0.15 + 0.05 * Math.sin(t * 0.3), 0.2, 0.55, "rgba(2,112,210,0.45)"],
+    [0.85, 0.8 + 0.05 * Math.cos(t * 0.25), 0.6, "rgba(56,189,248,0.22)"],
+    [0.6 + 0.04 * Math.cos(t * 0.2), 0.1, 0.4, "rgba(99,102,241,0.25)"],
+  ]
+  for (const [x, y, r, c] of blobs) {
+    const R = r * Math.max(W, H)
+    const rg = ctx.createRadialGradient(x * W, y * H, 0, x * W, y * H, R)
+    rg.addColorStop(0, c)
+    rg.addColorStop(1, "rgba(0,0,0,0)")
+    ctx.fillStyle = rg
+    ctx.fillRect(0, 0, W, H)
+  }
+  // Fine grid
+  ctx.strokeStyle = "rgba(255,255,255,0.035)"
+  ctx.lineWidth = 1
+  const step = 64
+  const off = (t * 8) % step
+  ctx.beginPath()
+  for (let x = -step + off; x < W; x += step) {
+    ctx.moveTo(x, 0)
+    ctx.lineTo(x, H)
+  }
+  for (let y = -step + off; y < H; y += step) {
+    ctx.moveTo(0, y)
+    ctx.lineTo(W, y)
+  }
+  ctx.stroke()
+}
+
+// A screenshot in a browser window, at x,y with width w (height from the screen's aspect)
+function browser(id, x, y, w, { alpha = 1, crop = null, radius = 18 } = {}) {
+  const img = IMG[id]
+  const src = crop ?? { x: 0, y: 0, w: img.width, h: img.height }
+  const bar = Math.round(w * 0.028)
+  const h = (w * src.h) / src.w + bar
+  ctx.save()
+  ctx.globalAlpha = alpha
+  ctx.shadowColor = "rgba(0,0,0,0.55)"
+  ctx.shadowBlur = 60
+  ctx.shadowOffsetY = 24
+  rr(x, y, w, h, radius)
+  ctx.fillStyle = "#ffffff"
+  ctx.fill()
+  ctx.shadowColor = "transparent"
+  ctx.save()
+  rr(x, y, w, h, radius)
+  ctx.clip()
+  ctx.fillStyle = "#eef1f5"
+  ctx.fillRect(x, y, w, bar)
+  const dot = bar * 0.28
+  ;["#ff5f57", "#febc2e", "#28c840"].forEach((c, i) => {
+    ctx.beginPath()
+    ctx.arc(x + bar * 0.7 + i * dot * 3, y + bar / 2, dot, 0, Math.PI * 2)
+    ctx.fillStyle = c
+    ctx.fill()
+  })
+  ctx.drawImage(img, src.x, src.y, src.w, src.h, x, y + bar, w, h - bar)
+  ctx.restore()
+  ctx.restore()
+  return { x, y: y + bar, w, h: h - bar, sx: w / src.w, src }
+}
+
+// The box of a callout in screen pixels
+function calloutBox(id, callout) {
+  const c = MAP[id]?.callouts.find((k) => k.id === callout && !k.missing)
+  const img = IMG[id]
+  if (!c) return { x: img.width * 0.3, y: img.height * 0.3, w: img.width * 0.4, h: img.height * 0.3 }
+  return { x: (c.x / 100) * img.width, y: (c.y / 100) * img.height, w: (c.w / 100) * img.width, h: (c.h / 100) * img.height }
+}
+
+// A highlighted area on a drawn browser, plus a magnified card of it
+function lens(frame, id, callout, p, card) {
+  if (p <= 0) return
+  const b = calloutBox(id, callout)
+  const fx = frame.x + (b.x - frame.src.x) * frame.sx
+  const fy = frame.y + (b.y - frame.src.y) * frame.sx
+  const fw = b.w * frame.sx
+  const fh = b.h * frame.sx
+  // Outline on the screen
+  ctx.save()
+  ctx.globalAlpha = out(clamp(p * 2))
+  ctx.lineWidth = 4
+  ctx.strokeStyle = "#38bdf8"
+  ctx.shadowColor = "rgba(56,189,248,0.9)"
+  ctx.shadowBlur = 24
+  rr(fx - 4, fy - 4, fw + 8, fh + 8, 10)
+  ctx.stroke()
+  ctx.restore()
+  if (!card) return
+  // Magnified card
+  const q = back(clamp((p - 0.15) / 0.85))
+  if (q <= 0) return
+  const scale = Math.min(card.maxW / b.w, card.maxH / b.h)
+  const cw = b.w * scale
+  const ch = b.h * scale
+  const cx = card.x - cw / 2
+  const cy = card.y - ch / 2
+  ctx.save()
+  ctx.globalAlpha = clamp(q)
+  ctx.translate(card.x, card.y)
+  ctx.scale(0.6 + 0.4 * q, 0.6 + 0.4 * q)
+  ctx.translate(-card.x, -card.y)
+  ctx.shadowColor = "rgba(0,0,0,0.6)"
+  ctx.shadowBlur = 50
+  ctx.shadowOffsetY = 20
+  rr(cx - 10, cy - 10, cw + 20, ch + 20, 22)
+  ctx.fillStyle = "#ffffff"
+  ctx.fill()
+  ctx.shadowColor = "transparent"
+  ctx.save()
+  rr(cx, cy, cw, ch, 14)
+  ctx.clip()
+  ctx.drawImage(IMG[id], b.x, b.y, b.w, b.h, cx, cy, cw, ch)
+  ctx.restore()
+  ctx.lineWidth = 3
+  ctx.strokeStyle = "#38bdf8"
+  rr(cx - 10, cy - 10, cw + 20, ch + 20, 22)
+  ctx.stroke()
+  ctx.restore()
+}
+
+function pill(text, x, y, color = "#38bdf8", size = 22) {
+  font(size, 700)
+  const tw = ctx.measureText(text.toUpperCase()).width
+  const padX = size * 0.8
+  const h = size * 1.9
+  rr(x, y, tw + padX * 2, h, h / 2)
+  ctx.fillStyle = "rgba(56,189,248,0.14)"
+  ctx.fill()
+  ctx.strokeStyle = "rgba(56,189,248,0.45)"
+  ctx.lineWidth = 2
+  ctx.stroke()
+  ctx.fillStyle = color
+  ctx.textAlign = "left"
+  ctx.textBaseline = "middle"
+  ctx.fillText(text.toUpperCase(), x + padX, y + h / 2 + 1)
+  ctx.textBaseline = "alphabetic"
+  return h
+}
+
+function logoMark(x, y, size, white = true, alpha = 1) {
+  ctx.save()
+  ctx.globalAlpha = alpha
+  ctx.drawImage(white ? IMG.logoWhite : IMG.logo, x, y, size, size)
+  ctx.restore()
+}
+
+// ---------- scenes ----------
+// Feature scenes: eyebrow, title, text, a screen and the callout to magnify
+const FEATURES = [
+  { screen: "inventory", callout: "stock", eyebrow: "Projects & inventory", title: "Every plot, file and shop, live", text: "Marla, Kanal and sq ft, premiums, open files and balloting." },
+  { screen: "crm-board", callout: "card", eyebrow: "CRM", title: "A sales pipeline your agents actually use", text: "Leads from ads and walk-ins, follow-ups and site visits." },
+  { screen: "campaign", callout: "cpl", eyebrow: "Campaigns", title: "Know what every lead and booking cost", text: "Lead forms, landing pages and Facebook lead ads." },
+  { screen: "booking", callout: "progress", eyebrow: "Bookings & installments", title: "Every booking, from token to handover", text: "Payment plans, cheques, receipts and SMS reminders." },
+  { screen: "estate-request", callout: "checklist", eyebrow: "Estate Management", title: "Transfers and NDCs without the chasing", text: "Checklists, fees, possession and complaints." },
+  { screen: "finance-overview", callout: "tiles", eyebrow: "Finance", title: "Books that post themselves", text: "Receipts, vouchers, approvals and reports in Lac and Crore." },
+  { screen: "guide-payroll", callout: "totals", eyebrow: "HR & Payroll", title: "Payroll, leave and rosters", text: "Payslips, loans and attendance in one place." },
+  { screen: "guide-dashboard", callout: "card", eyebrow: "Dashboards", title: "The whole business at a glance", text: "Sales, collections, stock and people, live." },
+  { screen: "guide-roles", callout: "matrix", eyebrow: "Roles & approvals", title: "Everyone sees only what their role allows", text: "Approvals, audit log and your own secure database." },
+]
+const STORY_FEATURES = [0, 1, 3, 4, 7].map((i) => FEATURES[i])
+
+let SCENES = []
+function build() {
+  const list = []
+  let at = 0
+  const add = (dur, draw, extra = {}) => {
+    list.push({ start: at, dur, draw, ...extra })
+    at += dur
+  }
+  if (FORMAT === "landscape") {
+    add(3.6, introScene)
+    add(4.2, painScene)
+    for (const f of FEATURES) add(3.7, (t, d) => featureLandscape(f, t, d), { screen: f.screen })
+    add(5.5, endScene)
+  } else {
+    add(2.8, introScene)
+    for (const f of STORY_FEATURES) add(2.9, (t, d) => featureStory(f, t, d), { screen: f.screen })
+    add(3.8, endScene)
+  }
+  SCENES = list
+  return at
+}
+
+// Fade a scene in and out
+const fade = (t, d, inn = 0.35, outt = 0.35) => Math.min(clamp(t / inn), clamp((d - t) / outt))
+
+function introScene(t, d) {
+  const a = fade(t, d, 0.3, 0.45)
+  const story = FORMAT === "story"
+  const s = story ? 220 : 200
+  const p = back(prog(t, 0.1, 0.9))
+  const cx = W / 2
+  const cy = H / 2 - (story ? 140 : 90)
+  ctx.save()
+  ctx.globalAlpha = a
+  // Glow behind the mark
+  const rg = ctx.createRadialGradient(cx, cy, 0, cx, cy, s * 1.6)
+  rg.addColorStop(0, "rgba(56,189,248,0.35)")
+  rg.addColorStop(1, "rgba(0,0,0,0)")
+  ctx.fillStyle = rg
+  ctx.fillRect(0, 0, W, H)
+  const sz = s * p
+  logoMark(cx - sz / 2, cy - sz / 2, sz)
+  const tp = out(prog(t, 0.6, 1.3))
+  ctx.globalAlpha = a * tp
+  ctx.fillStyle = "#ffffff"
+  font(story ? 110 : 96, 800)
+  ctx.textAlign = "center"
+  ctx.fillText("PropFlow", cx, cy + s * 0.75 + 70 + (1 - tp) * 30)
+  const sp = out(prog(t, 1.1, 1.9))
+  ctx.globalAlpha = a * sp
+  ctx.fillStyle = "rgba(255,255,255,0.78)"
+  font(story ? 50 : 40, 500)
+  if (story) {
+    wrap("The real estate CRM & ERP,", cx, cy + s * 0.75 + 170, W - 160, 64, "center")
+    ctx.fillStyle = "#38bdf8"
+    font(54, 700)
+    ctx.fillText("built for Pakistan", cx, cy + s * 0.75 + 250)
+  } else {
+    // Two weights on one centered line
+    const a1 = "The real estate CRM & ERP, "
+    const a2 = "built for Pakistan"
+    const w1 = ctx.measureText(a1).width
+    font(40, 700)
+    const w2 = ctx.measureText(a2).width
+    const x0 = cx - (w1 + w2) / 2
+    ctx.textAlign = "left"
+    font(40, 500)
+    ctx.fillText(a1, x0, cy + s * 0.75 + 150)
+    ctx.fillStyle = "#38bdf8"
+    font(40, 700)
+    ctx.fillText(a2, x0 + w1, cy + s * 0.75 + 150)
+  }
+  ctx.restore()
+}
+
+function painScene(t, d) {
+  const a = fade(t, d, 0.3, 0.4)
+  const items = ["Paper registers.", "Excel sheets.", "Files chased by hand."]
+  ctx.save()
+  ctx.globalAlpha = a
+  ctx.textAlign = "center"
+  items.forEach((s, i) => {
+    const p = out(prog(t, 0.2 + i * 0.5, 0.7 + i * 0.5))
+    const struck = prog(t, 1.9, 2.4)
+    ctx.globalAlpha = a * p * (1 - 0.55 * struck)
+    font(84, 800)
+    ctx.fillStyle = "#ffffff"
+    const y = H / 2 - 170 + i * 110
+    ctx.fillText(s, W / 2, y + (1 - p) * 30)
+    if (struck > 0) {
+      const tw = ctx.measureText(s).width
+      ctx.strokeStyle = "#f87171"
+      ctx.lineWidth = 8
+      ctx.beginPath()
+      ctx.moveTo(W / 2 - tw / 2, y - 28)
+      ctx.lineTo(W / 2 - tw / 2 + tw * out(struck), y - 28)
+      ctx.stroke()
+    }
+  })
+  const fp = out(prog(t, 2.6, 3.2))
+  ctx.globalAlpha = a * fp
+  font(64, 800)
+  ctx.fillStyle = "#38bdf8"
+  ctx.fillText("Now it all runs in one place.", W / 2, H / 2 + 230 + (1 - fp) * 20)
+  ctx.restore()
+}
+
+function featureLandscape(f, t, d) {
+  const a = fade(t, d, 0.35, 0.35)
+  ctx.save()
+  ctx.globalAlpha = a
+  // Text column
+  const tx = 110
+  const tp = out(prog(t, 0.05, 0.6))
+  ctx.translate((1 - tp) * -40, 0)
+  const ph = pill(f.eyebrow, tx, 300, "#7dd3fc", 22)
+  ctx.fillStyle = "#ffffff"
+  font(64, 800)
+  const th = wrap(f.title, tx, 300 + ph + 90, 560, 76)
+  ctx.fillStyle = "rgba(255,255,255,0.72)"
+  font(30, 500)
+  wrap(f.text, tx, 300 + ph + 90 + th + 20, 540, 42)
+  ctx.restore()
+  // Screen: slides in, drifts slowly
+  const sp = out(prog(t, 0, 0.7))
+  const w = 1100 + t * 14
+  const x = 740 + (1 - sp) * 120 - t * 10
+  const y = 150 - t * 4
+  ctx.save()
+  ctx.globalAlpha = a
+  const frame = browser(f.screen, x, y, w, { alpha: sp })
+  lens(frame, f.screen, f.callout, prog(t, 1.0, 1.8), { x: x + w * 0.42, y: 820, maxW: 760, maxH: 330 })
+  ctx.restore()
+}
+
+function featureStory(f, t, d) {
+  const a = fade(t, d, 0.3, 0.3)
+  ctx.save()
+  ctx.globalAlpha = a
+  const tp = out(prog(t, 0.05, 0.5))
+  ctx.translate(0, (1 - tp) * 30)
+  const ph = pill(f.eyebrow, 90, 250, "#7dd3fc", 30)
+  ctx.fillStyle = "#ffffff"
+  font(86, 800)
+  const th = wrap(f.title, 90, 250 + ph + 110, W - 180, 100)
+  ctx.fillStyle = "rgba(255,255,255,0.72)"
+  font(40, 500)
+  wrap(f.text, 90, 250 + ph + 110 + th + 20, W - 180, 54)
+  ctx.restore()
+  // A crop around the callout, big enough to read
+  const img = IMG[f.screen]
+  const b = calloutBox(f.screen, f.callout)
+  const cw = Math.min(img.width, Math.max(b.w * 1.5, img.width * 0.42))
+  const ch = Math.min(img.height, cw * 0.95)
+  const cx = clamp(b.x + b.w / 2 - cw / 2, 0, img.width - cw)
+  const cy = clamp(b.y + b.h / 2 - ch / 2, 0, img.height - ch)
+  const sp = out(prog(t, 0.1, 0.7))
+  const w = W - 120 + t * 10
+  ctx.save()
+  ctx.globalAlpha = a
+  const frame = browser(f.screen, 60 - t * 5, 760 + (1 - sp) * 120, w, { alpha: sp, crop: { x: cx, y: cy, w: cw, h: ch }, radius: 26 })
+  lens(frame, f.screen, f.callout, prog(t, 0.9, 1.6), null)
+  ctx.restore()
+}
+
+function endScene(t, d) {
+  const a = Math.min(clamp(t / 0.4), 1)
+  const story = FORMAT === "story"
+  const cx = W / 2
+  const cy = H / 2 - (story ? 200 : 120)
+  ctx.save()
+  ctx.globalAlpha = a
+  const p = back(prog(t, 0.05, 0.7))
+  const s = (story ? 180 : 150) * p
+  logoMark(cx - s / 2, cy - s / 2, s)
+  ctx.fillStyle = "#ffffff"
+  ctx.textAlign = "center"
+  font(story ? 100 : 84, 800)
+  const tp = out(prog(t, 0.4, 1.0))
+  ctx.globalAlpha = a * tp
+  ctx.fillText("PropFlow", cx, cy + (story ? 190 : 160))
+  font(story ? 48 : 40, 600)
+  ctx.fillStyle = "rgba(255,255,255,0.8)"
+  const lp = out(prog(t, 0.8, 1.4))
+  ctx.globalAlpha = a * lp
+  if (story) wrap("Pick only the apps you need.", cx, cy + 290, W - 160, 60, "center")
+  else ctx.fillText("Pick only the apps you need. Pay only for what you use.", cx, cy + 240)
+  // Button
+  const bp = back(prog(t, 1.2, 1.9))
+  if (bp > 0) {
+    ctx.globalAlpha = a * clamp(bp)
+    const bw = story ? 640 : 520
+    const bh = story ? 120 : 96
+    const by = cy + (story ? 420 : 320)
+    ctx.save()
+    ctx.translate(cx, by + bh / 2)
+    ctx.scale(0.8 + 0.2 * bp, 0.8 + 0.2 * bp)
+    rr(-bw / 2, -bh / 2, bw, bh, bh / 2)
+    ctx.fillStyle = BLUE
+    ctx.shadowColor = "rgba(2,112,210,0.8)"
+    ctx.shadowBlur = 40
+    ctx.fill()
+    ctx.shadowColor = "transparent"
+    ctx.fillStyle = "#ffffff"
+    font(story ? 48 : 38, 700)
+    ctx.textBaseline = "middle"
+    ctx.fillText("Book a free demo", 0, 2)
+    ctx.textBaseline = "alphabetic"
+    ctx.restore()
+    font(story ? 44 : 34, 600)
+    ctx.fillStyle = "#7dd3fc"
+    ctx.fillText("propflowapp.com", cx, by + bh + (story ? 110 : 90))
+  }
+  ctx.restore()
+}
+
+// ---------- frame ----------
+function frame(t) {
+  background(t)
+  for (const s of SCENES) if (t >= s.start && t < s.start + s.dur) s.draw(t - s.start, s.dur)
+}
+
+let TOTAL = build()
+window.ready = load().then(() => {
+  const at = params.get("t")
+  frame(at != null ? Number(at) : 0)
+  return { total: TOTAL, width: W, height: H }
+})
+
+// Record in real time → base64 of the video
+window.record = async () => {
+  await window.ready
+  const types = ["video/mp4;codecs=avc1.640028", "video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm"]
+  const mimeType = types.find((m) => MediaRecorder.isTypeSupported(m))
+  const stream = canvas.captureStream(FPS)
+  const rec = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: FORMAT === "story" ? 10_000_000 : 2_500_000 })
+  const chunks = []
+  rec.ondataavailable = (e) => e.data.size && chunks.push(e.data)
+  const done = new Promise((r) => (rec.onstop = r))
+  frame(0)
+  rec.start(1000)
+  const t0 = performance.now()
+  // Timers, not requestAnimationFrame: headless Chrome may not paint a tab nobody looks at
+  let n = 0
+  await new Promise((resolve) => {
+    const tick = () => {
+      const t = (performance.now() - t0) / 1000
+      frame(Math.min(t, TOTAL - 0.001))
+      if (++n % (FPS * 5) === 0) console.log(`${t.toFixed(0)} / ${TOTAL.toFixed(0)} s`)
+      if (t >= TOTAL + 0.3) resolve()
+      else setTimeout(tick, Math.max(0, (n + 1) * (1000 / FPS) - (performance.now() - t0)))
+    }
+    tick()
+  })
+  rec.stop()
+  await done
+  const blob = new Blob(chunks, { type: mimeType })
+  const buf = new Uint8Array(await blob.arrayBuffer())
+  let bin = ""
+  for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000))
+  return { mimeType, base64: btoa(bin), seconds: TOTAL }
+}
+
+// One still as a PNG → base64 (for checking frames)
+window.still = async (t) => {
+  await window.ready
+  frame(t)
+  return canvas.toDataURL("image/jpeg", 0.85).split(",")[1]
+}
+</script>
+</body>
+</html>
