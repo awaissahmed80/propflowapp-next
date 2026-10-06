@@ -255,8 +255,8 @@ export function RolesView({ roles, apps, canEdit }) {
           )
         }
       />
-      <div className="grid min-h-0 flex-1 overflow-hidden rounded-xl border bg-background shadow-xs md:grid-cols-[16rem_minmax(0,1fr)]">
-        <nav aria-label="Roles" className="border-b md:border-r md:border-b-0">
+      <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-xl border bg-background shadow-xs md:grid-cols-[16rem_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)]">
+        <nav aria-label="Roles" className="min-h-0 border-b md:border-r md:border-b-0">
           <ScrollView className="h-full max-h-60 md:max-h-none" viewportClassName="p-2">
             {roles.map((r) => (
               <button
