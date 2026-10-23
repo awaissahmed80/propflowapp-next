@@ -1,0 +1,41 @@
+---
+subject: "Your PropFlow demo: sign-ins for {{ company }}"
+preheader: "One password for every role. Sign in and look around; the demo resets from time to time."
+---
+{%- comment -%}
+  The demo workspace's sign-ins for a prospective customer (Console › Workspaces › Demo
+  workspace). Data: name, company, link (sign-in), password, people [{ label, email, try: [text] }],
+  note (optional, from the sender), sent_by
+{%- endcomment -%}
+{% layout "email" %}
+{% block content %}
+<p style="margin:0 0 8px;{{ style.eyebrow }}">PropFlow demo</p>
+<h1 style="margin:0 0 20px;{{ style.h1 }}">Try PropFlow with {{ company }}</h1>
+<p style="margin:0 0 16px;{{ style.p }}">Hi {{ name | first_name | default: "there" }},</p>
+<p style="margin:0 0 16px;{{ style.p }}"><strong>{{ company }}</strong> is a sample developer with projects, inventory, leads, bookings, installments, transfers, accounts and payroll already filled in. Sign in as any role below to see PropFlow the way that person would.</p>
+{%- if note %}
+<p style="margin:0 0 20px;padding:12px 16px;border-left:3px solid {{ color.brand }};background:#f9fafb;white-space:pre-line;{{ style.p }}">{{ note }}{% if sent_by %}<br><span style="{{ style.small }}">{{ sent_by }}</span>{% endif %}</p>
+{%- endif %}
+{% render "button", label: "Sign in to the demo", href: link %}
+
+<div style="margin:0 0 20px;padding:16px;border:1px solid #e5e7eb;border-radius:8px;">
+  <p style="margin:0 0 4px;{{ style.small }}">Password for every sign-in below</p>
+  <p style="margin:0;font:700 22px/1.3 ui-monospace,Menlo,monospace;color:{{ color.ink }};letter-spacing:1px;">{{ password }}</p>
+</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;border-collapse:collapse;">
+  {%- for p in people %}
+  <tr>
+    <td style="padding:12px 0;border-top:1px solid #f3f4f6;vertical-align:top;">
+      <p style="margin:0;{{ style.label }}">{{ p.label }}</p>
+      <p style="margin:2px 0 6px;font:400 14px/1.4 ui-monospace,Menlo,monospace;color:{{ color.body }};">{{ p.email }}</p>
+      {%- if p.try.size > 0 %}<p style="margin:0;{{ style.small }}">Try: {{ p.try | join: " · " }}</p>{% endif %}
+    </td>
+  </tr>
+  {%- endfor %}
+</table>
+
+{% capture reset_note %}The demo is shared and resets from time to time: anything you change may be wiped, and the password changes when it does. Please don't enter real customer details.{% endcapture %}
+{% render "security", title: "A shared demo", body: reset_note %}
+<p style="margin:0;{{ style.small }}">Questions, or ready to set up your own workspace? Just reply to this email.</p>
+{% endblock %}

@@ -162,3 +162,7 @@ The Vite demo (`../propflowapp`) has these; the Next app doesn't.
 - [ ] Booking numbering per project or company-wide; FY vs calendar resets; whether code formats are editable.
 - [ ] Recycle-bin retention period.
 - [ ] One app vs monorepo; MySQL version and hosting for scale.
+
+- [x] **Console demo workspace (23 Oct 2026)**: Console › Workspaces › Demo workspace card: Install / Reset (new shared password) / Remove "Skyline Developers", progress while it builds, the shared password and one sign-in per role with copy buttons, Copy details and Send demo details (email `demo-details`). Built by src/server/tenants/demo-workspace (seed.js + data/); `yarn demo:seed` uses the same module.
+- [x] **Profile (23 Oct 2026)**: My Desk › Profile: change name and photo (cropped to 256 px WebP, served at /api/avatars/…), change or set a password (other browsers signed out, email notice), signed-in browsers with Sign out / Sign out everywhere else. Nothing can be changed while console staff are signed in as the person.
+- [ ] Profile: change email address (with a code sent to the new address).
