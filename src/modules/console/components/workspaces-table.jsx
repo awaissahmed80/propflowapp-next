@@ -7,6 +7,7 @@ import { formatDate, formatPkr } from "@/lib/format"
 import { DataTable } from "@/components/data-table"
 import { ActiveFilters, FilterMenu } from "@/components/filter-menu"
 import { PageHeader } from "@/components/page-header"
+import { DemoWorkspaceCard } from "./demo-workspace-card"
 import { TenantMark } from "@/components/tenant-mark"
 import { Icon } from "@/components/ui/icon"
 import { Input } from "@/components/ui/input"
@@ -16,7 +17,7 @@ import { InviteWorkspaceButton, PendingWorkspaceInvites } from "./workspace-invi
 import { urlCode } from "@/lib/url"
 
 // invite: { plans, defaults } when the person may invite workspaces, else null
-export function WorkspacesTable({ rows, plans, initialStatus, invites, invite }) {
+export function WorkspacesTable({ rows, plans, initialStatus, invites, invite, demo, demoAccess }) {
   const router = useRouter()
   const [search, setSearch] = useState("")
   const [filters, setFilters] = useState({ status: initialStatus ? [initialStatus] : [], plan: [] })
@@ -97,6 +98,7 @@ export function WorkspacesTable({ rows, plans, initialStatus, invites, invite })
         }
         actions={invite && <InviteWorkspaceButton plans={invite.plans} defaults={invite.defaults} apps={invite.apps} />}
       />
+      {demo && <DemoWorkspaceCard demo={demo} manage={demoAccess?.manage} canSend={demoAccess?.send} />}
       <PendingWorkspaceInvites invites={invites} manage={Boolean(invite)} />
       <ActiveFilters groups={groups} value={filters} onChange={setFilters} />
       <div className="min-h-0 flex-1">

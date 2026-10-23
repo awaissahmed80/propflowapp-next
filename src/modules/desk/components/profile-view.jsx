@@ -7,10 +7,10 @@ import { labelOf } from "@/modules/lookups/options"
 import { TeamChip } from "@/modules/users/components/user-parts"
 import { InlinePhone } from "@/components/inline-phone"
 import { PageHeader } from "@/components/page-header"
-import { Avatar } from "@/components/ui/avatar"
 import { Icon } from "@/components/ui/icon"
 import { updateMyPhone } from "../server/actions"
 import { ScreenLockSettings } from "./screen-lock-settings"
+import { PasswordSection, ProfileHeader, SessionsSection } from "./account-settings"
 
 function Row({ icon, label, children }) {
   return (
@@ -26,9 +26,10 @@ function Row({ icon, label, children }) {
   )
 }
 
-// My Desk › Profile: your details in this workspace. You can change your own mobile number;
-// your role, team, designation and department are set by an administrator.
-export function ProfileView({ me, user, workspace, lists, lock }) {
+// My Desk › Profile: your details in this workspace. You change your own name, photo, mobile
+// number and password, and sign out other browsers; your role, team, designation and department
+// are set by an administrator. readOnly: console staff signed in as this person.
+export function ProfileView({ me, user, workspace, lists, lock, account, sessions = [], readOnly = false }) {
   const router = useRouter()
   const none = <span className="font-normal text-muted-foreground">Not set</span>
   const savePhone = async (phone) => {
@@ -42,16 +43,7 @@ export function ProfileView({ me, user, workspace, lists, lock }) {
   return (
     <div className="w-full min-w-0 space-y-6 p-4 sm:p-6 lg:p-8">
       <PageHeader title="Profile" description="Your details in this workspace. Ask an administrator to change your role, team or designation." />
-      <div className="flex items-center gap-4 rounded-xl border bg-background p-5 shadow-xs">
-        <Avatar name={user.name} source={user.avatarUrl} size="xl" />
-        <div className="min-w-0">
-          <p className="text-xl font-semibold">{user.name}</p>
-          <p className="text-sm text-muted-foreground">
-            {[me?.role, workspace].filter(Boolean).join(" · ")}
-            {me?.code && <span className="ml-2 font-mono text-xs">{me.code}</span>}
-          </p>
-        </div>
-      </div>
+      <ProfileHeader user={user} subtitle={[me?.role, workspace].filter(Boolean).join(" · ")} code={me?.code} readOnly={readOnly} />
       <div className="grid gap-6 md:grid-cols-2">
         <section className="rounded-xl border bg-background p-4 shadow-xs">
           <h2 className="mb-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Account</h2>
@@ -60,13 +52,13 @@ export function ProfileView({ me, user, workspace, lists, lock }) {
               {user.email}
             </Row>
             <Row icon="phone-line" label="Mobile">
-              <InlinePhone value={me?.phone} editable onSave={savePhone} />
+              <InlinePhone value={me?.phone} editable={!readOnly} onSave={savePhone} />
             </Row>
             <Row icon="shield-user-line" label="Role">
               {me?.role ?? none}
             </Row>
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">Change your password or theme from the menu under your name.</p>
+          <p className="mt-3 text-xs text-muted-foreground">To change your email address, ask an administrator.</p>
         </section>
         <section className="rounded-xl border bg-background p-4 shadow-xs">
           <h2 className="mb-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Work</h2>
@@ -92,6 +84,12 @@ export function ProfileView({ me, user, workspace, lists, lock }) {
           </div>
         </section>
       </div>
+      {account && (
+        <div className="grid gap-6 md:grid-cols-2">
+          <PasswordSection account={account} readOnly={readOnly} />
+          <SessionsSection sessions={sessions} readOnly={readOnly} />
+        </div>
+      )}
       {/* Not while console staff are signed in as this member */}
       {lock && <ScreenLockSettings settings={lock} />}
     </div>

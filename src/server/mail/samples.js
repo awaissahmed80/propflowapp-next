@@ -54,6 +54,22 @@ export const EMAIL_SAMPLES = {
     when: "Someone in a workspace invites a person from Users & Teams",
     data: { name: "Farhan Saeed", inviter: "Awais Ahmed", workspace: "Skyline Developers", role: "Sales Agent", link: siteUrl("auth", "/invite/example-link"), days: 7 },
   },
+  "demo-details": {
+    title: "Demo details",
+    when: "The demo workspace's sign-ins are sent from Workspaces › Demo workspace",
+    data: {
+      name: "Usman Tariq",
+      company: "Skyline Developers",
+      link: siteUrl("auth", "/"),
+      password: "Demo-K7QM-4TXP",
+      note: "Lovely to speak with you today. Here's the demo we went through.",
+      sent_by: "Awais Ahmed, PropFlow",
+      people: [
+        { label: "Owner", email: "owner@skyline-demo.test", try: ["Dashboards", "Approvals on My Desk"] },
+        { label: "Sales Manager", email: "kamran.akmal@skyline-demo.test", try: ["Lead board", "Discount approvals"] },
+      ],
+    },
+  },
   "workspace-invite": {
     title: "Workspace invitation",
     when: "Someone is invited from Workspaces to set up a new workspace",
