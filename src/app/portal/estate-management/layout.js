@@ -12,7 +12,8 @@ export const metadata = { title: { default: "Estate Management", template: "%s Â
 
 // Estate Management: transfers, NDCs, possession, documents, record updates and complaints. Pages and actions check permissions themselves.
 export default async function ServicesLayout({ children }) {
-  const [portal, jar] = await Promise.all([getPortal(), cookies()])
+  // The app's own context and lists load alongside the portal frame
+  const [portal, jar, [ctx, lists]] = await Promise.all([getPortal(), cookies(), servicesContext().then((c) => Promise.all([c, serviceLists(c)]))])
   if (!portal.setupCompleted) redirect("/setup")
   if (!portal.apps.some((a) => a.code === "estate"))
     return (
@@ -20,8 +21,6 @@ export default async function ServicesLayout({ children }) {
         <NoAccess />
       </PortalShell>
     )
-  const ctx = await servicesContext()
-  const lists = await serviceLists(ctx)
   return (
     <AppShell portal={portal} appCode="estate" nav={SERVICES_NAV} defaultOpen={jar.get("sidebar_state")?.value !== "false"}>
       <LookupsProvider lists={lists} app="estate" canAdd={ctx.can("edit")}>

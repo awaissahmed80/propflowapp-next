@@ -88,6 +88,8 @@ export async function readSession() {
   const row = await db("sessions as s")
     .join("users as u", "u.id", "s.userId")
     .where("s.tokenHash", hashToken(token))
+    // Browsers only: a mobile app token never works as a cookie
+    .whereIn("s.kind", ["tenant", "console"])
     .whereNull("s.revokedAt")
     .where("s.expiresAt", ">", new Date())
     .whereNull("u.deletedAt")

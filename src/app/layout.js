@@ -1,7 +1,7 @@
 import { Inter } from "next/font/google"
 import { cookies, headers } from "next/headers"
 import { siteForHost } from "@/lib/sites"
-import "remixicon/fonts/remixicon.css"
+import "./icons.css"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"

@@ -1,6 +1,7 @@
 import "server-only"
 import { cache } from "react"
 import { notFound } from "next/navigation"
+import { after } from "next/server"
 import { platformDb, tenantDb } from "@/server/db/connections"
 import { live } from "@/server/db/records"
 import { requireTenant } from "@/server/auth/dal"
@@ -43,8 +44,8 @@ export const crmContext = cache(async (path = "/crm") => {
 export async function crmPage(path, feature) {
   const ctx = await crmContext(path)
   if (!ctx.can("view") || (feature && !ctx.has(feature))) notFound()
-  // Leads nobody reached in time move on (Assignment rules); never in the way of the page
-  await import("./assignment").then((m) => m.reassignUnreached(ctx)).catch((err) => console.error("Reassign check failed:", err.message))
+  // Leads nobody reached in time move on (Assignment rules): after the page is sent, never in its way
+  after(() => import("./assignment").then((m) => m.reassignUnreached(ctx)).catch((err) => console.error("Reassign check failed:", err.message)))
   return ctx
 }
 

@@ -1,5 +1,5 @@
 import { crmPage } from "@/modules/crm/server/context"
-import { assignableAgents, crmProjects, listLeads } from "@/modules/crm/server/queries"
+import { assignableAgents, boardLeads, crmProjects, pageLeads } from "@/modules/crm/server/queries"
 import { crmSettings } from "@/modules/crm/server/settings"
 import { getWorkspaceBrand } from "@/server/tenants/brand"
 import { live } from "@/server/db/records"
@@ -11,14 +11,26 @@ import { LeadsView } from "@/modules/crm/components/leads-view"
 export const metadata = { title: "Leads" }
 
 // Leads list and board. ?lead=ld-00001 opens a lead; ?new=1 opens the new-lead form (with
-// &contact=ct-00012, filled in with that contact's details).
+// &contact=ct-00012, filled in with that contact's details). Search, filters, tab, sort and page
+// are in the address too (?q=…&status=new,contacted&tab=due&sort=next&page=2), and only that page
+// of leads (or the board's columns) comes from the server.
 export default async function LeadsPage({ searchParams }) {
   const ctx = await crmPage("/crm/leads")
-  const [leads, agents, projects, prefs, brand] = await Promise.all([listLeads(ctx), assignableAgents(ctx), crmProjects(ctx), crmSettings(ctx.db), getWorkspaceBrand(ctx.tenant)])
-  const prefill = await contactPrefill(ctx, (await searchParams).contact)
+  const sp = await searchParams
+  const list = (k) => (sp[k] ? String(sp[k]).split(",").filter(Boolean) : [])
+  const query = { q: sp.q ?? "", status: list("status"), source: list("source"), priority: list("priority"), project: list("project"), agent: list("agent") }
+  const board = sp.view === "board"
+  const [data, agents, projects, prefs, brand, prefill] = await Promise.all([
+    board ? boardLeads(ctx, query) : pageLeads(ctx, { ...query, tab: sp.tab, sort: sp.sort, dir: sp.dir, page: sp.page, size: sp.size }),
+    assignableAgents(ctx),
+    crmProjects(ctx),
+    crmSettings(ctx.db),
+    getWorkspaceBrand(ctx.tenant),
+    contactPrefill(ctx, sp.contact),
+  ])
   return (
     <LeadsView
-      leads={leads}
+      data={data}
       agents={agents}
       projects={projects}
       me={ctx.user.id}

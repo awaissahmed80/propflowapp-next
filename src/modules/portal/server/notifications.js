@@ -18,12 +18,6 @@ export async function loadNotifications() {
   return { items: rows.map((r) => ({ id: r.id, app: r.app, title: r.title, body: r.body, href: r.href, icon: r.icon, read: Boolean(r.readAt), at: r.createdAt })), unread: Number(unread?.n ?? 0) }
 }
 
-export async function unreadNotifications() {
-  const { db, userId } = await me()
-  const r = await db("notifications").where({ userId }).whereNull("readAt").count({ n: "id" }).first()
-  return Number(r?.n ?? 0)
-}
-
 // Mark these read (or all of this person's when ids is empty) → { ok }
 export async function markNotificationsRead(ids = []) {
   const { db, userId } = await me()

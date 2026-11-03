@@ -13,7 +13,8 @@ export const metadata = { title: { default: "Contacts", template: "%s · Contact
 // Contacts: one directory of everyone the business deals with, shared by every app. The sidebar's
 // "By type" group comes from the contact-type list, with how many contacts each has.
 export default async function ContactsLayout({ children }) {
-  const [portal, jar] = await Promise.all([getPortal(), cookies()])
+  // The app's own context and lists load alongside the portal frame
+  const [portal, jar, [ctx, lists]] = await Promise.all([getPortal(), cookies(), contactsContext().then((c) => Promise.all([c, contactLists(c)]))])
   if (!portal.setupCompleted) redirect("/setup")
   if (!portal.apps.some((a) => a.code === "contacts"))
     return (
@@ -21,8 +22,6 @@ export default async function ContactsLayout({ children }) {
         <NoAccess />
       </PortalShell>
     )
-  const ctx = await contactsContext()
-  const lists = await contactLists(ctx)
   const counts = ctx.can("view")
     ? await scoped(ctx, ctx.db("contacts").whereNull("contacts.deletedAt"))
         .join("contactLinks as l", "l.contactId", "contacts.id")
