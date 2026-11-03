@@ -2,8 +2,8 @@
 // text, to be reviewed by a lawyer before launch. Bump LEGAL_VERSION when either changes; the
 // version someone accepted is saved with their workspace request. No public contact email yet:
 // add one to "Your choices" and the end of the terms when there is.
-export const LEGAL_VERSION = "2026-10-01"
-export const LEGAL_UPDATED = "1 October 2026"
+export const LEGAL_VERSION = "2026-11-03"
+export const LEGAL_UPDATED = "3 November 2026"
 const COMPANY = "PropFlow (Pvt) Ltd"
 
 export const LEGAL = {
@@ -36,6 +36,16 @@ export const LEGAL = {
           "Our website uses Google Analytics to understand how visitors find and use it: pages viewed, buttons pressed and roughly where visitors are. It never receives your name, email or phone number, and we don't use it for advertising.",
           "Where we ask for consent, analytics cookies are set only after you accept. You can also block them in your browser, or use Google's opt-out browser add-on.",
           "Google Analytics is not used inside workspaces, so your business data and your customers' data are never sent to it.",
+        ],
+      },
+      {
+        heading: "The PropFlow mobile app",
+        items: [
+          "The app signs you in to an existing PropFlow account, with your email and password or with Google. It doesn't create accounts; your workspace owner adds you.",
+          "Microphone: used only while you record a voice note on a lead. The recording is saved to your workspace with the lead's history.",
+          "Camera and photos: used only when you choose to take or pick a photo, such as a profile picture or a document.",
+          "Notifications: if you allow them, we save your device's notification token so your workspace can send you alerts such as approvals and follow-ups, delivered through Google's Firebase Cloud Messaging. Signing out removes it.",
+          "Usage analytics: the app uses Google's Firebase Analytics to count which screens are opened and events such as signing in, with an app instance identifier. It never receives your name, email, phone number or your customers' data, and it isn't used for advertising or to track you across other apps or websites.",
         ],
       },
       {
