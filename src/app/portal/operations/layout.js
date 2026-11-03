@@ -13,7 +13,8 @@ export const metadata = { title: { default: "Operations", template: "%s · Opera
 
 // Sales: bookings, payment schedules, receipts and allotments. Pages and actions check sales permissions themselves.
 export default async function SalesLayout({ children }) {
-  const [portal, jar] = await Promise.all([getPortal(), cookies()])
+  // The app's own context and lists load alongside the portal frame
+  const [portal, jar, [ctx, lists]] = await Promise.all([getPortal(), cookies(), salesContext().then((c) => Promise.all([c, salesLists(c)]))])
   if (!portal.setupCompleted) redirect("/setup")
   if (!portal.apps.some((a) => a.code === "operations"))
     return (
@@ -21,8 +22,6 @@ export default async function SalesLayout({ children }) {
         <NoAccess />
       </PortalShell>
     )
-  const ctx = await salesContext()
-  const lists = await salesLists(ctx)
   return (
     <AppShell portal={portal} appCode="operations" nav={SALES_NAV} defaultOpen={jar.get("sidebar_state")?.value !== "false"}>
       <LookupsProvider lists={lists} app="operations" canAdd={ctx.can("edit")}>

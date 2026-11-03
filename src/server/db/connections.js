@@ -9,11 +9,11 @@ import { AUTH_DB, PLATFORM_DB, POOL_MAX, TENANT_POOL_MAX, connection } from "./c
 // Every connection works in UTC, whatever the server's own time zone is
 const afterCreate = (conn, done) => conn.query("SET time_zone = '+00:00'", (err) => done(err, conn))
 
-function create({ database, max, host, mapCase = true, provision = false }) {
+function create({ database, max, host, mapCase = true, provision = false, min = 0 }) {
   return knex({
     client: "mysql2",
     connection: connection({ database, host, provision }),
-    pool: { min: 0, max, afterCreate },
+    pool: { min, max, afterCreate },
     ...(mapCase ? caseMapping : {}),
   })
 }
@@ -21,13 +21,15 @@ function create({ database, max, host, mapCase = true, provision = false }) {
 // Kept on globalThis so Next's dev reloads reuse pools instead of opening new ones
 const store = (globalThis.__pfDb ??= { central: new Map(), tenants: new Map() })
 
+// The two central databases are on every request: keep one connection open so a quiet spell
+// doesn't cost a reconnect (and its time-zone setup) on the next page
 export function platformDb() {
-  if (!store.central.has("platform")) store.central.set("platform", create({ database: PLATFORM_DB(), max: POOL_MAX() }))
+  if (!store.central.has("platform")) store.central.set("platform", create({ database: PLATFORM_DB(), max: POOL_MAX(), min: 1 }))
   return store.central.get("platform")
 }
 
 export function authDb() {
-  if (!store.central.has("auth")) store.central.set("auth", create({ database: AUTH_DB(), max: POOL_MAX() }))
+  if (!store.central.has("auth")) store.central.set("auth", create({ database: AUTH_DB(), max: POOL_MAX(), min: 1 }))
   return store.central.get("auth")
 }
 

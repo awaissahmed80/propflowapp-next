@@ -118,3 +118,8 @@ export const LAUNCHER_TOUR = [
   { target: "account", icon: "user-settings-line", title: "Your account", text: "Change the theme, switch workspace, revisit workspace setup, replay this tour, or sign out." },
   { icon: "rocket-2-line", title: "You're all set", text: "Next, invite your team once Users & Teams is available, and start adding your projects." },
 ]
+
+// The launcher's tour, loaded only when it starts (the launcher imports it lazily)
+export function LauncherTour(props) {
+  return <Tour steps={LAUNCHER_TOUR} {...props} />
+}

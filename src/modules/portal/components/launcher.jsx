@@ -1,5 +1,6 @@
 "use client"
 
+import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
@@ -14,9 +15,11 @@ import { ScrollView } from "@/components/ui/scroll-view"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup, useDefaultLayout } from "@/components/ui/resizable"
 import { groupApps } from "../access"
 import { GettingStarted } from "./getting-started"
-import { LAUNCHER_TOUR, Tour } from "./tour"
 import { appPath } from "@/modules/portal/app-paths"
 import { usePinnedApps } from "./use-pinned-apps"
+
+// The tour (and its library) loads only when someone starts it
+const LauncherTour = dynamic(() => import("./tour").then((m) => m.LauncherTour), { ssr: false })
 
 // The launcher, in two columns: apps on the left, My Desk on the right. On large screens each
 // scrolls on its own and the divider can be dragged to make the apps column wider or narrower
@@ -395,8 +398,7 @@ export function Launcher({ user, role, tenant, apps, desk, greeting, today, setu
       )}
 
       {touring && (
-        <Tour
-          steps={LAUNCHER_TOUR}
+        <LauncherTour
           onClose={() => {
             setTouring(false)
             // Drop ?tour=1 so a reload doesn't start it again

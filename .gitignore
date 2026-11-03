@@ -47,3 +47,6 @@ next-env.d.ts
 
 # Uploaded files (local storage driver)
 /storage/
+
+# Firebase service account keys (FCM_SERVICE_ACCOUNT points at one outside the repo)
+*firebase-adminsdk*.json

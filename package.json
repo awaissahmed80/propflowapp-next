@@ -19,7 +19,8 @@
     "finance:post": "node scripts/finance-post.mjs",
     "demo:seed": "node scripts/demo-seed.mjs",
     "storage:copy": "node scripts/storage-copy.mjs",
-    "screens": "node scripts/capture-screens.mjs"
+    "screens": "node scripts/capture-screens.mjs",
+    "icons": "node scripts/build-icons.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1146.0",

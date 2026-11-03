@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { formatDateTime, timeAgo } from "@/lib/format"
-import { loadNotifications, markNotificationsRead, unreadNotifications } from "@/modules/portal/server/notifications"
+import { loadNotifications, markNotificationsRead } from "@/modules/portal/server/notifications"
 import { IconButton, iconButtonVariants } from "@/components/ui/icon-button"
 import { Icon } from "@/components/ui/icon"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -32,7 +32,7 @@ function EmptyPanel({ icon, label, title, text }) {
   )
 }
 
-// The bell: unread count (checked every minute), and the latest notifications when opened.
+// The bell: unread count (checked every minute while the tab is in view), and the latest notifications when opened.
 // Clicking one marks it read and goes where it points.
 function NotificationsPanel() {
   const router = useRouter()
@@ -43,17 +43,32 @@ function NotificationsPanel() {
 
   useEffect(() => {
     let live = true
-    const check = () =>
-      unreadNotifications()
-        .then((n) => live && setUnread(n))
-        .catch(() => {})
+    let timer = null
+    let wait = 60_000
+    // Only while the tab is in view; after a failed check, wait longer each time (up to 10 minutes)
+    const check = async () => {
+      clearTimeout(timer)
+      if (document.hidden) return
+      try {
+        const r = await fetch("/api/notifications/unread", { redirect: "manual", cache: "no-store" })
+        if (!r.ok) throw new Error(String(r.status))
+        const { unread: n } = await r.json()
+        if (live) setUnread(n)
+        wait = 60_000
+      } catch {
+        wait = Math.min(wait * 2, 600_000)
+      }
+      if (live) timer = setTimeout(check, wait)
+    }
     check()
-    const timer = setInterval(check, 60_000)
+    document.addEventListener("visibilitychange", check)
     return () => {
       live = false
-      clearInterval(timer)
+      clearTimeout(timer)
+      document.removeEventListener("visibilitychange", check)
     }
   }, [])
+
 
   const show = (next) => {
     setOpen(next)

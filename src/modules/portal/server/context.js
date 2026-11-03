@@ -19,7 +19,9 @@ export const getPortal = cache(async () => {
   const tdb = tenantDb({ dbName: s.tenant.dbName, dbHost: s.tenant.dbHost })
   const platform = platformDb()
 
-  const [role, apps, plan, memberships, setupRow] = await Promise.all([
+  const auth = authDb()
+  // One round of queries: the other workspaces chain off memberships, the rest stand alone
+  const [role, apps, plan, workspaces, setupRow, impersonation, lockSettings] = await Promise.all([
     live(tdb, "roles").where({ id: s.membership.roleId }).first("id", "code", "name", "permissions", "scope", "grants"),
     platform("tenantApps as ta")
       .join("apps as a", "a.id", "ta.appId")
@@ -29,26 +31,30 @@ export const getPortal = cache(async () => {
       .orderBy("a.sortOrder")
       .select("a.code", "a.name", "a.description", "a.icon", "a.color", "a.category", "a.alwaysOn", "ta.offFeatures"),
     platform("plans").where({ id: s.tenant.planId }).first("name"),
-    authDb()("memberships").where({ userId: s.user.id, status: "active" }).whereNull("deletedAt").select("tenantId"),
+    auth("memberships")
+      .where({ userId: s.user.id, status: "active" })
+      .whereNot({ tenantId: s.tenant.id })
+      .whereNull("deletedAt")
+      .pluck("tenantId")
+      .then((ids) => (ids.length ? live(platform, "tenants").whereIn("id", ids).orderBy("name").select("id", "code", "name", "status") : [])),
     tdb("settings").where({ key: "setup_completed_at" }).first("value"),
+    // Console staff signed in as this member: who, why, and until when (for the banner)
+    s.impersonatorUserId
+      ? Promise.all([auth("users").where({ id: s.impersonatorUserId }).first("name"), s.impersonationId ? platform("impersonations").where({ id: s.impersonationId }).first("reason") : null]).then(
+          ([staff, imp]) => ({
+            staffName: staff?.name ?? "PropFlow support",
+            reason: imp?.reason ?? null,
+            expiresAt: s.expiresAt,
+          }),
+        )
+      : null,
+    // Screen lock (never while staff are signed in as the member)
+    s.impersonatorUserId ? null : getLockSettings(s.user.id),
   ])
 
-  const others = memberships.filter((m) => m.tenantId !== s.tenant.id).map((m) => m.tenantId)
-  const workspaces = others.length ? await live(platform, "tenants").whereIn("id", others).orderBy("name").select("id", "code", "name", "status") : []
-
   const permissions = role?.permissions ?? []
-  // Console staff signed in as this member: who, why, and until when (for the banner)
-  const impersonation = s.impersonatorUserId
-    ? await Promise.all([authDb()("users").where({ id: s.impersonatorUserId }).first("name"), s.impersonationId ? platform("impersonations").where({ id: s.impersonationId }).first("reason") : null]).then(
-        ([staff, imp]) => ({
-          staffName: staff?.name ?? "PropFlow support",
-          reason: imp?.reason ?? null,
-          expiresAt: s.expiresAt,
-        }),
-      )
-    : null
-  // Screen lock (never while staff are signed in as the member): starts locked if this session is
-  const lock = impersonation ? null : { ...(await getLockSettings(s.user.id)), lockedAt: s.lockedAt ? s.lockedAt.toISOString() : null }
+  // Starts locked if this session is
+  const lock = impersonation ? null : { ...lockSettings, lockedAt: s.lockedAt ? s.lockedAt.toISOString() : null }
   return {
     user: s.user,
     sessionId: s.id,

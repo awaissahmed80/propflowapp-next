@@ -12,7 +12,8 @@ export const metadata = { title: { default: "HR & Payroll", template: "%s · HR 
 
 // HR & Payroll: employees, leave, duty roster and attendance, loans and payroll. Pages and actions check permissions themselves.
 export default async function HrLayout({ children }) {
-  const [portal, jar] = await Promise.all([getPortal(), cookies()])
+  // The app's own context and lists load alongside the portal frame
+  const [portal, jar, [ctx, lists]] = await Promise.all([getPortal(), cookies(), hrContext().then((c) => Promise.all([c, hrLists(c)]))])
   if (!portal.setupCompleted) redirect("/setup")
   if (!portal.apps.some((a) => a.code === "hr"))
     return (
@@ -20,8 +21,6 @@ export default async function HrLayout({ children }) {
         <NoAccess />
       </PortalShell>
     )
-  const ctx = await hrContext()
-  const lists = await hrLists(ctx)
   return (
     <AppShell portal={portal} appCode="hr" nav={HR_NAV} defaultOpen={jar.get("sidebar_state")?.value !== "false"}>
       <LookupsProvider lists={lists} app="hr" canAdd={ctx.can("edit")}>

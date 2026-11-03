@@ -12,7 +12,8 @@ export const metadata = { title: { default: "Campaigns", template: "%s · Campai
 
 // Campaigns: launches and drives, lead forms and landing pages. Pages and actions check permissions themselves.
 export default async function CampaignsLayout({ children }) {
-  const [portal, jar] = await Promise.all([getPortal(), cookies()])
+  // The app's own context and lists load alongside the portal frame
+  const [portal, jar, [ctx, lists]] = await Promise.all([getPortal(), cookies(), campaignsContext().then((c) => Promise.all([c, campaignLists(c)]))])
   if (!portal.setupCompleted) redirect("/setup")
   if (!portal.apps.some((a) => a.code === "campaigns"))
     return (
@@ -20,8 +21,6 @@ export default async function CampaignsLayout({ children }) {
         <NoAccess />
       </PortalShell>
     )
-  const ctx = await campaignsContext()
-  const lists = await campaignLists(ctx)
   return (
     <AppShell portal={portal} appCode="campaigns" nav={CAMPAIGNS_NAV} defaultOpen={jar.get("sidebar_state")?.value !== "false"}>
       <LookupsProvider lists={lists} app="campaigns" canAdd={ctx.can("edit")}>

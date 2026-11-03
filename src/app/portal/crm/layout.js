@@ -13,7 +13,8 @@ export const metadata = { title: { default: "CRM", template: "%s · CRM · PropF
 
 // CRM: leads and what happens with them. Pages and actions check CRM permissions themselves.
 export default async function CrmLayout({ children }) {
-  const [portal, jar] = await Promise.all([getPortal(), cookies()])
+  // The app's own context and lists load alongside the portal frame
+  const [portal, jar, [ctx, lists]] = await Promise.all([getPortal(), cookies(), crmContext().then((c) => Promise.all([c, crmLists(c)]))])
   if (!portal.setupCompleted) redirect("/setup")
   if (!portal.apps.some((a) => a.code === "crm"))
     return (
@@ -21,8 +22,6 @@ export default async function CrmLayout({ children }) {
         <NoAccess />
       </PortalShell>
     )
-  const ctx = await crmContext()
-  const lists = await crmLists(ctx)
   return (
     <AppShell portal={portal} appCode="crm" nav={CRM_NAV} defaultOpen={jar.get("sidebar_state")?.value !== "false"}>
       <LookupsProvider lists={lists} app="crm" canAdd={ctx.can("edit") || ctx.can("create")}>

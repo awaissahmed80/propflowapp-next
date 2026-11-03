@@ -4,7 +4,7 @@ A running list of what's still missing or worth improving across the SaaS. Tick 
 land, add new ones as they come up, and keep each item short enough to act on. Newest decisions
 win: if something here contradicts the code, the code is the source of truth.
 
-Last reviewed: 3 October 2026 (Sales)
+Last reviewed: 2 November 2026 (speed, mobile API)
 
 ---
 
@@ -108,7 +108,8 @@ The Vite demo (`../propflowapp`) has these; the Next app doesn't.
 
 - [ ] `must_change_password` page.
 - [ ] Two-factor sign-in for owners and admins.
-- [ ] Session list ("signed in on these devices") with sign-out.
+- [x] Session list ("signed in on these devices") with sign-out (My Desk › Profile; phones too, via the mobile API).
+- [ ] Console › sessions: show mobile sessions as their own kind (device, app version).
 
 ## 7. Platform and quality
 
@@ -119,9 +120,22 @@ The Vite demo (`../propflowapp`) has these; the Next app doesn't.
 - [ ] File storage: decide disk vs S3-compatible; today files are on disk.
 - [ ] Rate limits on public forms and server actions beyond sign-in/reset.
 - [ ] Audit: every gated action logged to `activity_log` (most are; review Sales/Finance when built).
-- [ ] Performance: leads list loads up to 5,000 rows and scores them on each request; paginate or cache once workspaces grow.
+- [x] Performance: leads list is paged on the server (25 a page; the board 50 a column).
+- [ ] Performance: page the other big lists the same way (bookings and dues, finance, employees, estate, documents).
+- [ ] Performance: trim the props the app layouts send (portal, lookups).
+
+## 7a. Mobile app (PropFlow app, `~/Documents/MobileApps/propflow-app`)
+
+- [x] Mobile API `/api/mobile/v1` on the auth host (docs/mobile-api.md): sign-in steps, Google, account, My Desk, leads, follow-ups, projects and units, approvals, notifications, contacts. `node scripts/mobile-smoke.mjs` checks it against the demo workspace.
+- [x] Pushes through FCM from every `notify()` (off until `FCM_SERVICE_ACCOUNT` is set).
+- [x] The app (2 Nov 2026): forked from `school360-app` on Expo SDK 58, English only, one PropFlow app. Home, Leads (log sheet with icon dropdowns), Follow-ups, Inventory, Approvals, Notifications, Profile and Contacts (list with a call/WhatsApp button per contact, detail, add/edit); Pakistani mobiles shown and dialed as 0300 1234567.
+- [ ] App: Plan and Change status sheets in the same icon-dropdown style as the log sheet.
+- [ ] App: bookings and Estate requests open nothing from a contact (no screens for them yet); contact merge, delete and "Possible duplicates" are web-only; city is a long chip list in the contact form (a dropdown would fit better).
+- [ ] App: try calling and WhatsApp on a real phone (the simulator has neither); App Store / Play Store builds.
+- [ ] Voice notes on logged activities from the phone (multipart upload).
+- [ ] Forgot password from the app; Sign in with Apple (needed on iOS once Google is offered).
+- [ ] Firebase project and service account for pushes; Google iOS/Android client ids.
 - [ ] Accessibility pass (keyboard, focus, contrast) on the newer CRM screens.
-- [ ] Urdu: UI strings are English and not yet central; plan extraction before it grows further.
 
 ## 8. Marketing website & SEO
 

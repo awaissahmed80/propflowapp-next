@@ -8,6 +8,7 @@ import { scoped } from "./context"
 import { priceIndex, scoreLead, scoringActivities } from "./scoring"
 import { crmSettings } from "./settings"
 import { canTagLead } from "./tagging"
+import { OPEN_STEPS } from "../constants"
 
 // Reads for CRM. Leads only ever come through scoped(), so people see what their role allows.
 
@@ -84,7 +85,11 @@ async function projectsById(ctx) {
 
 // Every lead this person may see, newest first, with its next planned follow-up
 export async function listLeads(ctx) {
-  const leads = await scoped(ctx, live(ctx.db, "leads")).orderBy("createdAt", "desc").limit(5000)
+  return shapeRows(ctx, await scoped(ctx, live(ctx.db, "leads")).orderBy("createdAt", "desc").limit(5000))
+}
+
+// Lead rows → what lists and boards show: agent, tags, project, next follow-up, score
+async function shapeRows(ctx, leads) {
   const ids = leads.map((l) => l.id)
   const allTags = ids.length ? await live(ctx.db, "leadTags").whereIn("leadId", ids).select("leadId", "userId") : []
   const [people, projects, planned, kit] = await Promise.all([
@@ -96,7 +101,7 @@ export async function listLeads(ctx) {
   const next = new Map()
   for (const a of planned) if (!next.has(a.leadId)) next.set(a.leadId, a)
   // The list only needs the number and grade
-  const acts = kit ? await scoringActivities(ctx.db, ids, kit.rules.engagementDays) : null
+  const acts = kit && ids.length ? await scoringActivities(ctx.db, ids, kit.rules.engagementDays) : null
   const brief = (l) => {
     if (!kit) return null
     const s = scoreLead(l, acts.get(l.id), kit)
@@ -105,6 +110,138 @@ export async function listLeads(ctx) {
   const tagsOf = new Map()
   for (const t of allTags) tagsOf.set(t.leadId, [...(tagsOf.get(t.leadId) ?? []), t.userId])
   return leads.map((l) => shapeLead(l, { people, projects, next: next.get(l.id), score: brief(l), tags: tagsOf.get(l.id) }))
+}
+
+// ---------- the Leads page: one page of the list, or the board, worked out on the server ----------
+
+const OPEN = OPEN_STEPS
+export const LEAD_TABS = ["open", "due", "booked", "lost", "archived"]
+export const LEAD_SORTS = ["name", "status", "next", "added"]
+const CLOSED_ON_BOARD_DAYS = 30
+const BOARD_PER_COLUMN = 50
+
+// The end of today in Pakistan, for "Due today"
+function endOfToday(now = new Date()) {
+  return new Date(new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi" }).format(now) + "T23:59:59+05:00")
+}
+
+// The earliest planned follow-up of the lead in the outer query
+const nextAt = (ctx) => ctx.db("leadActivities as na").min("na.at").whereColumn("na.leadId", "leads.id").where("na.status", "planned").whereNull("na.deletedAt")
+const hasPlanned = (ctx, before) => (q) => q.select(ctx.db.raw("1")).from("leadActivities as pa").whereColumn("pa.leadId", "leads.id").where("pa.status", "planned").whereNull("pa.deletedAt").where("pa.at", "<=", before)
+
+// Search and filters, the same for the list, its tab counts and the board.
+// f: { q, status[], source[], priority[], project[] (codes, "none"), agent[] (ids, "none") }
+// Project codes become ids first (resolve), so building the query stays synchronous: an awaited
+// Knex builder would run it.
+async function resolve(ctx, f) {
+  const codes = (f.project ?? []).filter((c) => c !== "none")
+  const projectIds = codes.length ? await live(ctx.db, "projects").whereIn("code", codes).pluck("id") : []
+  return { ...f, projectIds }
+}
+function filtered(ctx, f) {
+  const query = scoped(ctx, live(ctx.db, "leads"))
+  const term = String(f.q ?? "").trim()
+  if (term) {
+    const digits = term.replace(/\D/g, "").replace(/^0/, "")
+    query.where((w) => {
+      w.where("leads.name", "like", `%${term}%`)
+        .orWhere("leads.code", "like", `%${term}%`)
+        .orWhere("leads.city", "like", `%${term}%`)
+      if (digits.length >= 3) w.orWhere("leads.phone", "like", `%${digits}%`)
+    })
+  }
+  for (const key of ["status", "source", "priority"]) if (f[key]?.length) query.whereIn(`leads.${key}`, f[key])
+  if (f.project?.length)
+    query.where((w) => {
+      w.whereIn("leads.projectId", f.projectIds.length ? f.projectIds : [0])
+      if (f.project.includes("none")) w.orWhereNull("leads.projectId")
+    })
+  if (f.agent?.length) {
+    const ids = f.agent.filter((a) => a !== "none").map(Number).filter(Boolean)
+    query.where((w) => {
+      w.whereIn("leads.assignedTo", ids.length ? ids : [0])
+      if (f.agent.includes("none")) w.orWhereNull("leads.assignedTo")
+    })
+  }
+  return query
+}
+
+function inTab(ctx, query, tab, now) {
+  if (tab === "archived") return query.whereNotNull("leads.archivedAt")
+  query.whereNull("leads.archivedAt")
+  if (tab === "booked" || tab === "lost") return query.where("leads.status", tab)
+  query.whereIn("leads.status", OPEN)
+  if (tab === "due") query.whereExists(hasPlanned(ctx, endOfToday(now)))
+  return query
+}
+
+// One page of the list → { rows, total, counts: { open, due, booked, lost, archived }, overdue, any, scoring }
+//   q: filters (see filtered) + { tab, sort, dir, page, size }
+export async function pageLeads(ctx, q = {}) {
+  const now = new Date()
+  const tab = LEAD_TABS.includes(q.tab) ? q.tab : "open"
+  const size = Math.min(100, Math.max(10, Number(q.size) || 25))
+  const page = Math.max(1, Number(q.page) || 1)
+  const f = await resolve(ctx, q)
+  const base = () => filtered(ctx, f)
+  const count = async (t, extra) => {
+    const query = inTab(ctx, base(), t, now)
+    if (extra) extra(query)
+    const r = await query.clearSelect().clearOrder().count({ n: "leads.id" }).first()
+    return Number(r?.n ?? 0)
+  }
+  const [open, due, booked, lost, archived, overdue, anyRow, rules] = await Promise.all([
+    count("open"),
+    count("due"),
+    count("booked"),
+    count("lost"),
+    count("archived"),
+    count("due", (query) => query.whereExists(hasPlanned(ctx, now))),
+    scoped(ctx, live(ctx.db, "leads")).first("leads.id"),
+    crmSettings(ctx.db),
+  ])
+  const counts = { open, due, booked, lost, archived }
+
+  const query = inTab(ctx, base(), tab, now).select("leads.*")
+  const dir = q.dir === "asc" ? "asc" : q.dir === "desc" ? "desc" : null
+  const sort = LEAD_SORTS.includes(q.sort) ? q.sort : null
+  if (sort === "name") query.orderBy("leads.name", dir ?? "asc")
+  else if (sort === "status") query.orderByRaw(`FIELD(leads.status, ${OPEN.map(() => "?").join(", ")}) ${dir === "desc" ? "desc" : "asc"}`, OPEN)
+  else if (sort === "added") query.orderBy("leads.createdAt", dir ?? "desc")
+  else if (sort === "next" || (!sort && tab === "due")) {
+    // Follow-up time; on the closed tabs, when it closed; archived, when it was archived
+    if (tab === "archived") query.orderBy("leads.archivedAt", dir ?? "desc")
+    else if (tab === "booked" || tab === "lost") query.orderBy("leads.closedAt", dir ?? "desc")
+    else query.select({ nextAt: nextAt(ctx) }).orderByRaw(`next_at is null, next_at ${dir ?? "asc"}`)
+  } else if (tab === "archived") query.orderBy("leads.archivedAt", "desc")
+  else query.orderBy("leads.createdAt", "desc")
+  query.orderBy("leads.id", "desc")
+
+  const total = counts[tab]
+  const last = Math.max(1, Math.ceil(total / size))
+  const current = Math.min(page, last)
+  const rows = await query.limit(size).offset((current - 1) * size)
+  return { rows: await shapeRows(ctx, rows), total, page: current, size, counts, overdue, any: Boolean(anyRow), scoring: Boolean(rules.scoring) }
+}
+
+// The board: each open status, then Booked and Lost from the last 30 days; up to 50 cards a
+// column (newest first), with each column's full count → { columns: { status: { rows, total } }, any }
+export async function boardLeads(ctx, filters = {}) {
+  const since = new Date(Date.now() - CLOSED_ON_BOARD_DAYS * 86_400_000)
+  const f = await resolve(ctx, filters)
+  const column = async (status) => {
+    const query = () => {
+      const q = filtered(ctx, f).whereNull("leads.archivedAt").where("leads.status", status)
+      return ["booked", "lost"].includes(status) ? q.where("leads.closedAt", ">=", since) : q
+    }
+    const [rows, n] = await Promise.all([query().orderBy("leads.createdAt", "desc").limit(BOARD_PER_COLUMN), query().count({ n: "leads.id" }).first()])
+    return [status, { rows, total: Number(n?.n ?? 0) }]
+  }
+  const [cols, anyRow] = await Promise.all([Promise.all([...OPEN, "booked", "lost"].map(column)), scoped(ctx, live(ctx.db, "leads")).first("leads.id")])
+  // Shape every card in one go
+  const shaped = await shapeRows(ctx, cols.flatMap(([, c]) => c.rows))
+  const byCode = new Map(shaped.map((l) => [l.code, l]))
+  return { columns: Object.fromEntries(cols.map(([st, c]) => [st, { rows: c.rows.map((r) => byCode.get(r.code)), total: c.total }])), any: Boolean(anyRow) }
 }
 
 // One lead (if this person may see it) with its activities, newest first; planned ones apart

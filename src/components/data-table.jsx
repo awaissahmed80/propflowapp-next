@@ -60,6 +60,9 @@ function SortHeader({ column, sort, onSort }) {
 // The first column gets the primary hover accent; row clicks ignore links, buttons and menus.
 // Selection (optional): pass selectedIds (Set) + onSelectionChange(Set). The header box
 // selects every row that passes the current filters, not just the visible page.
+// Server paging (optional): server = { page, pageSize, total, sort: { key, dir }, onSort(key),
+// onPageChange(n), onPageSizeChange(n) }; rows are then just that page, already sorted, and a
+// column is sortable with sortable: true (sortValue isn't used).
 export function DataTable({
   columns,
   rows,
@@ -71,6 +74,7 @@ export function DataTable({
   selectedIds,
   onSelectionChange,
   activeKey, // the row shown in a side panel, highlighted
+  server,
 }) {
   const selectable = Boolean(onSelectionChange)
   const [sort, setSort] = useState(defaultSort ?? null)
@@ -78,6 +82,7 @@ export function DataTable({
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
 
   const sorted = useMemo(() => {
+    if (server) return rows
     const column = columns.find((c) => c.key === sort?.key)
     if (!column?.sortValue) return rows
     const dir = sort.dir === "asc" ? 1 : -1
@@ -86,14 +91,15 @@ export function DataTable({
       const y = column.sortValue(b)
       return x > y ? dir : x < y ? -dir : 0
     })
-  }, [rows, columns, sort])
+  }, [rows, columns, sort, server])
 
   // Keep the page in range when filters shrink the list
   const pages = Math.max(1, Math.ceil(sorted.length / pageSize))
-  const current = Math.min(page, pages)
-  const visible = sorted.slice((current - 1) * pageSize, current * pageSize)
+  const current = server ? server.page : Math.min(page, pages)
+  const visible = server ? rows : sorted.slice((current - 1) * pageSize, current * pageSize)
 
-  const onSort = (key) => setSort((s) => (s?.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }))
+  const onSort = server ? server.onSort : (key) => setSort((s) => (s?.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }))
+  const sortable = (column) => (server ? column.sortable : column.sortValue)
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border bg-background shadow-xs">
@@ -108,8 +114,8 @@ export function DataTable({
                 </th>
               )}
               {columns.map((column) =>
-                column.sortValue ? (
-                  <SortHeader key={column.key} column={column} sort={sort} onSort={onSort} />
+                sortable(column) ? (
+                  <SortHeader key={column.key} column={column} sort={server ? server.sort : sort} onSort={onSort} />
                 ) : (
                   <th key={column.key} scope="col" className={cn("px-3 py-2.5 font-medium", ALIGN[alignOf(column)], column.headerClassName)}>
                     {column.header}
@@ -180,16 +186,20 @@ export function DataTable({
         </table>
       </ScrollView>
       <div className="shrink-0 border-t bg-background">
-        <Pagination
-          page={current}
-          pageSize={pageSize}
-          total={sorted.length}
-          onPageChange={setPage}
-          onPageSizeChange={(n) => {
-            setPageSize(n)
-            setPage(1)
-          }}
-        />
+        {server ? (
+          <Pagination page={server.page} pageSize={server.pageSize} total={server.total} onPageChange={server.onPageChange} onPageSizeChange={server.onPageSizeChange} />
+        ) : (
+          <Pagination
+            page={current}
+            pageSize={pageSize}
+            total={sorted.length}
+            onPageChange={setPage}
+            onPageSizeChange={(n) => {
+              setPageSize(n)
+              setPage(1)
+            }}
+          />
+        )}
       </div>
     </div>
   )

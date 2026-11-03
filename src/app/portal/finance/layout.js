@@ -12,7 +12,8 @@ export const metadata = { title: { default: "Finance", template: "%s · Finance 
 
 // Finance: vouchers, receipts and cheques, refunds, vendors, payment requests and the books. Pages and actions check permissions themselves.
 export default async function FinanceLayout({ children }) {
-  const [portal, jar] = await Promise.all([getPortal(), cookies()])
+  // The app's own context and lists load alongside the portal frame
+  const [portal, jar, [ctx, lists]] = await Promise.all([getPortal(), cookies(), financeContext().then((c) => Promise.all([c, financeLists(c)]))])
   if (!portal.setupCompleted) redirect("/setup")
   if (!portal.apps.some((a) => a.code === "finance"))
     return (
@@ -20,8 +21,6 @@ export default async function FinanceLayout({ children }) {
         <NoAccess />
       </PortalShell>
     )
-  const ctx = await financeContext()
-  const lists = await financeLists(ctx)
   return (
     <AppShell portal={portal} appCode="finance" nav={FINANCE_NAV} defaultOpen={jar.get("sidebar_state")?.value !== "false"}>
       <LookupsProvider lists={lists} app="finance" canAdd={ctx.can("edit")}>

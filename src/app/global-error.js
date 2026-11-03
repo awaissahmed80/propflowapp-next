@@ -1,6 +1,6 @@
 "use client"
 
-import "remixicon/fonts/remixicon.css"
+import "./icons.css"
 import "./globals.css"
 import { ErrorPage } from "@/components/error-pages"
 

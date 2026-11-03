@@ -13,7 +13,8 @@ export const metadata = { title: { default: "Project Portfolio", template: "%s Â
 
 // Project Portfolio: projects and inventory. Pages and actions check estate permissions themselves.
 export default async function EstateLayout({ children }) {
-  const [portal, jar] = await Promise.all([getPortal(), cookies()])
+  // The app's own context and lists load alongside the portal frame
+  const [portal, jar, [ctx, lists]] = await Promise.all([getPortal(), cookies(), estateContext().then((c) => Promise.all([c, estateLists(c)]))])
   if (!portal.setupCompleted) redirect("/setup")
   if (!portal.apps.some((a) => a.code === "portfolio"))
     return (
@@ -21,8 +22,6 @@ export default async function EstateLayout({ children }) {
         <NoAccess />
       </PortalShell>
     )
-  const ctx = await estateContext()
-  const lists = await estateLists(ctx)
   return (
     <AppShell portal={portal} appCode="portfolio" nav={ESTATE_NAV} defaultOpen={jar.get("sidebar_state")?.value !== "false"}>
       <LookupsProvider lists={lists} app="portfolio" canAdd={ctx.can("edit") || ctx.can("create")}>

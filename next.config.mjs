@@ -15,6 +15,11 @@ const nextConfig = {
   experimental: {
     // Uploads through server actions (e.g. proof of payment, up to 10 MB plus form overhead)
     serverActions: { bodySizeLimit: "11mb" },
+    // Going back to a page seen in the last 30 seconds shows it at once instead of fetching it
+    // again (saves and router.refresh() still fetch fresh data)
+    staleTimes: { dynamic: 30 },
+    // Import only the parts of these packages a page uses
+    optimizePackageImports: ["recharts", "react-joyride", "sonner"],
   },
 }
 
