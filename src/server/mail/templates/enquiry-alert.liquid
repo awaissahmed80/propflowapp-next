@@ -10,7 +10,7 @@ preheader: "{{ name }} · {{ phone }}{% if city %} · {{ city }}{% endif %}"
 {% block content %}
 <h1 style="margin:0 0 20px;{{ style.h1 }}">{{ kind_label }} from {{ company }}</h1>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;">
-  <tr><td style="padding:4px 16px 4px 0;vertical-align:top;{{ style.small }}">Contact</td><td style="padding:4px 0;{{ style.p }}">{{ name }}<br><a href="mailto:{{ email }}" style="color:{{ color.brand }};">{{ email }}</a> · {{ phone }}</td></tr>
+  <tr><td style="padding:4px 16px 4px 0;vertical-align:top;{{ style.small }}">Contact</td><td style="padding:4px 0;{{ style.p }}">{{ name }}<br>{% if email %}<a href="mailto:{{ email }}" style="color:{{ color.brand }};">{{ email }}</a> · {% endif %}{{ phone }}</td></tr>
   {%- if city %}<tr><td style="padding:4px 16px 4px 0;{{ style.small }}">City</td><td style="padding:4px 0;{{ style.p }}">{{ city }}</td></tr>{% endif %}
   {%- if plan %}<tr><td style="padding:4px 16px 4px 0;{{ style.small }}">Plan</td><td style="padding:4px 0;{{ style.p }}">{{ plan }}</td></tr>{% endif %}
   {%- if projects %}<tr><td style="padding:4px 16px 4px 0;{{ style.small }}">Projects</td><td style="padding:4px 0;{{ style.p }}">{{ projects }}</td></tr>{% endif %}

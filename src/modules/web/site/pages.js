@@ -1,0 +1,148 @@
+// The website's product pages: one per search people make (real estate CRM in Pakistan, housing
+// society software, installment management...). Each maps to the apps that do it and shows real
+// screenshots (screens.json callouts). Only claim what the product does today, never name
+// property portals, and keep US spelling. Titles stay under 60 characters and descriptions under
+// 155, so search results show them whole.
+
+export const PRODUCT_PAGES = [
+  {
+    slug: "real-estate-crm-pakistan",
+    menu: "Real estate CRM",
+    blurb: "Leads, follow-ups, site visits and the sales pipeline",
+    title: "Real Estate CRM Software in Pakistan",
+    description: "A real estate CRM for Pakistani developers: leads from ads and walk-ins, follow-ups, site visits, lead scores and a pipeline your agents use.",
+    keywords: ["real estate CRM Pakistan", "CRM for builders in Pakistan", "property CRM software", "real estate lead management software", "sales pipeline for developers"],
+    h1: ["Real estate CRM", "for Pakistan"],
+    lead: "Every lead from your ads, website, walk-ins and dealers on one board, with the next call planned and a manager who can see who's falling behind.",
+    hero: { screen: "crm-board", alt: "PropFlow CRM: leads on a board by status, each with size, project, budget, source, score and next call" },
+    modules: [
+      { screen: "crm-board", callout: "card", title: "Every card says what to do next", text: "Size, project, budget and source on each lead, with its score and the next follow-up. Agents open the board and know who to call." },
+      { screen: "lead", callout: "score", title: "Leads scored on what matters here", text: "Engagement, budget against your cheapest matching unit, and intent. A lead who can't afford what's left is flagged before a site visit is wasted." },
+      { screen: "lead", callout: "followups", title: "Follow-ups that don't slip", text: "Calls, WhatsApp, site visits and office meetings planned with a time. Overdue ones are flagged, and the mobile app reminds the agent." },
+      { screen: "guide-leads", callout: "row", title: "Teams see their own leads", text: "Agents see theirs, team leads see their team, managers see everything. Leads can be reassigned in bulk when someone leaves." },
+    ],
+    faq: [
+      { q: "Can leads from Facebook and Instagram come straight in?", a: "Yes. Lead forms and landing pages built in PropFlow send every entry to the CRM, tagged with the campaign and channel it came from. Meta lead ads can be connected in Integrations." },
+      { q: "Can we import our existing leads?", a: "Yes. Leads and their call history import from Excel or CSV in Settings › Import & export, with the agent and next follow-up kept." },
+      { q: "Does it work on phones?", a: "Agents use the PropFlow app for iPhone and Android to call leads, log what was said and see today's follow-ups." },
+    ],
+    related: ["property-marketing-software", "housing-society-management-software", "installment-management-software"],
+  },
+  {
+    slug: "housing-society-management-software",
+    menu: "Housing society software",
+    blurb: "Plots, open files, balloting, price lists and dealer quotas",
+    title: "Housing Society Management Software for Pakistan",
+    description: "Run your housing society on one system: blocks and plots in Marla and Kanal, open files and balloting, price lists with premiums, and dealer quotas.",
+    keywords: ["housing society management software", "plot inventory software Pakistan", "open file management software", "plot balloting software", "dealer quota management"],
+    h1: ["Housing society", "software"],
+    lead: "Phases, blocks, streets and every plot, file, house and shop in one live inventory, priced from your price list and sold without anyone selling the same plot twice.",
+    hero: { screen: "project", alt: "A housing project in PropFlow with its phases, approval status and live availability" },
+    modules: [
+      { screen: "project", callout: "availability", title: "Availability everyone agrees on", text: "Available, on hold, booked and sold for the whole project, live. The site office, head office and dealers all see the same stock." },
+      { screen: "inventory", callout: "premium", title: "Premiums and rate per marla", text: "Corner, park-facing, boulevard and west-open premiums added to each unit's price, with the rate per marla beside it, in Lac and Crore." },
+      { screen: "project", callout: "authority", title: "Your marla, your approvals", text: "Your society's marla size (225 or 272 sq ft), the approving authority and the NOC number, kept on the project where buyers ask first." },
+      { screen: "price-list", callout: "plan", title: "Payment plans from the price list", text: "Cash and 2-, 3- and 4-year plans with down payment, installments, balloon and on-possession payments. Draft next year's list and apply it in one click." },
+    ],
+    faq: [
+      { q: "Can we sell open files before balloting?", a: "Yes. Unballoted files and balloted plots sit in the same inventory, so a file can be held, booked and transferred like a plot." },
+      { q: "How do token holds work?", a: "A hold has an expiry time and a reason. When it lapses the unit is available again, so stock is never stuck on hold." },
+      { q: "Can dealers see our stock?", a: "Dealers get their own login limited to the units allocated to them, and can hold and sell only those." },
+    ],
+    related: ["installment-management-software", "transfer-ndc-management", "real-estate-crm-pakistan"],
+  },
+  {
+    slug: "installment-management-software",
+    menu: "Installment management",
+    blurb: "Bookings, payment schedules, receipts, cheques and defaulters",
+    title: "Installment Management Software for Developers",
+    description: "Payment schedules, receipts, cheques in clearing and defaulter alerts for every booking. Installment management built for Pakistani real estate.",
+    keywords: ["installment management software Pakistan", "installment plan software", "real estate collections software", "cheque clearing register", "defaulter list software"],
+    h1: ["Installment", "management"],
+    lead: "Every booking carries its payment plan from your price list. Receipts go to the oldest installment first, cheques wait in clearing, and overdue buyers show up before they become defaulters.",
+    hero: { screen: "installments", alt: "PropFlow installments: overdue, defaulters and what to collect across every booking" },
+    modules: [
+      { screen: "installments", callout: "tiles", title: "What to collect, at a glance", text: "Due this month, overdue and defaulters across every booking, so the recovery team starts the day knowing who to call." },
+      { screen: "booking", callout: "progress", title: "Each booking from token to handover", text: "Token, KYC, allotment and handover, with what's been received and what's still due on one screen." },
+      { screen: "cheques", callout: "clearing", title: "Cheques in clearing", text: "A cheque only counts once it clears. If it bounces, the installment is due again and the buyer is flagged." },
+      { screen: "installments", callout: "remind", title: "Reminders before they're late", text: "Send reminders for installments coming due, and see the overdue ones grouped by how late they are." },
+    ],
+    faq: [
+      { q: "Which payment plans are supported?", a: "Down payment, monthly or quarterly installments, balloon payments and on-possession amounts, worked out from your price list for each booking." },
+      { q: "Do receipts post to the accounts?", a: "Yes. Receipts, cleared and bounced cheques, refunds and cancellations post to Finance as they happen, in double entry." },
+      { q: "Can buyers get a printed receipt?", a: "Every receipt prints with your company name, and opens in a preview where it can be printed or saved as a PDF." },
+    ],
+    related: ["real-estate-accounting-software", "housing-society-management-software", "transfer-ndc-management"],
+  },
+  {
+    slug: "real-estate-accounting-software",
+    menu: "Real estate accounting",
+    blurb: "Vouchers, cheques, refunds, commissions and your books",
+    title: "Real Estate Accounting Software in Pakistan",
+    description: "Accounts that post themselves: bookings, receipts, cheques, refunds and commissions in double entry, with approvals and a trial balance that balances.",
+    keywords: ["real estate accounting software Pakistan", "developer accounting software", "voucher approval software", "commission with tax withheld", "trial balance software"],
+    h1: ["Real estate", "accounting"],
+    lead: "Bookings, receipts, cleared and bounced cheques, refunds, commissions and service fees post to your books as they happen. Payments wait for an approver, and the trial balance always balances.",
+    hero: { screen: "finance-overview", alt: "PropFlow Finance overview: cash and bank, cheques in clearing and receivables" },
+    modules: [
+      { screen: "finance-overview", callout: "tiles", title: "Cash, bank and what's owed", text: "Cash and bank balances, cheques in clearing and what buyers still owe, in Crore, on one screen." },
+      { screen: "approvals", callout: "refund", title: "Money signed off before it moves", text: "Payments, refunds and cheque decisions go to an approver first. Approvers act from the web or the mobile app." },
+      { screen: "trial-balance", callout: "totals", title: "Debits and credits that match", text: "Trial balance, profit and loss, balance sheet, ledgers and receivables aging, exported to Excel or PDF." },
+      { screen: "guide-vouchers", callout: "types", title: "Vouchers for everything else", text: "Payment, receipt, transfer and journal vouchers, with dealers and vendors paid net of income tax withheld." },
+    ],
+    faq: [
+      { q: "Do we still need a separate accounting package?", a: "PropFlow keeps double-entry books with a chart of accounts, vouchers, ledgers and the standard reports. Many developers run their project accounts entirely in it." },
+      { q: "Is tax withheld on commission?", a: "Yes. Dealer commission and vendor payments are worked out with income tax withheld, and the withholding is posted to its own account." },
+      { q: "Who can approve payments?", a: "You choose. Lower-access users send money actions for approval; approvers act on them directly from the approvals inbox." },
+    ],
+    related: ["installment-management-software", "transfer-ndc-management", "housing-society-management-software"],
+  },
+  {
+    slug: "transfer-ndc-management",
+    menu: "Transfers & NDC",
+    blurb: "Transfers, NDCs, possession, maintenance and complaints",
+    title: "Transfer & NDC Management Software",
+    description: "Transfers, NDCs and possession without the file chasing: checklists, dues checked automatically, fees recorded and letters printed at the end.",
+    keywords: ["NDC management software", "plot transfer software Pakistan", "possession letter software", "estate management software", "society complaints software"],
+    h1: ["Transfers", "and NDC"],
+    lead: "Every transfer, NDC, possession and complaint is a request with an owner, a due date and a checklist. Dues are checked automatically and the letter prints when the last box is ticked.",
+    hero: { screen: "estate-request", alt: "A transfer request in PropFlow with its checklist, NDC and what's still needed" },
+    modules: [
+      { screen: "estate-request", callout: "blocker", title: "What's still needed, up front", text: "The request says what's blocking it: a missing CNIC, an unpaid fee, an expired NDC. Nobody signs until it's clear." },
+      { screen: "estate-request", callout: "ndc", title: "NDCs only when dues are clear", text: "An NDC is issued only when the buyer owes nothing, with a validity date that the transfer checks." },
+      { screen: "estate-request", callout: "checklist", title: "A checklist for every transfer", text: "Application, CNICs and papers, NDC, fee and biometric verification, ticked off by the people who do them." },
+      { screen: "guide-transfers", callout: "tabs", title: "Possession, maintenance, complaints", text: "Possession with demarcation and the possession letter, plus maintenance requests and complaints, each with an owner and a due date." },
+    ],
+    faq: [
+      { q: "Are transfer fees recorded?", a: "Transfer, NDC and possession fees are recorded on the request and posted to your books when they're paid." },
+      { q: "Can owners raise complaints?", a: "Complaints and maintenance requests are logged against the unit and owner, assigned and tracked to closure." },
+      { q: "Do the letters print?", a: "Yes. Transfer, NDC and possession letters print when the request is complete, from a preview where they can also be saved as a PDF." },
+    ],
+    related: ["installment-management-software", "housing-society-management-software", "real-estate-accounting-software"],
+  },
+  {
+    slug: "property-marketing-software",
+    menu: "Campaigns & landing pages",
+    blurb: "Landing pages, lead forms and cost per booking",
+    title: "Property Marketing Software & Lead Forms",
+    description: "Launch landing pages and lead forms in minutes, track every lead to its campaign and channel, and see what each booking really cost, in Rupees.",
+    keywords: ["property marketing software", "real estate landing page builder", "cost per lead real estate Pakistan", "campaign ROI tracking real estate", "lead forms for developers"],
+    h1: ["Property", "marketing"],
+    lead: "Run launches, booking drives and expos with goals and budgets. Build a landing page from ready-made sections, and see cost per lead and cost per booking for every channel.",
+    hero: { screen: "campaign", alt: "A PropFlow campaign with goals, cost per lead and the lead-to-booking funnel" },
+    modules: [
+      { screen: "campaign", callout: "cpl", title: "What each lead and booking cost", text: "Every lead is tagged with its campaign and channel, so cost per lead and cost per booking are always up to date." },
+      { screen: "page-editor", callout: "sections", title: "Landing pages from ready-made sections", text: "Prices, payment plan, approvals, amenities and location, each in several layouts. Starting prices come from live inventory." },
+      { screen: "page-editor", callout: "phone", title: "Seen the way buyers see it", text: "Edit in place and preview on a phone before publishing, because most buyers will open it on one." },
+      { screen: "campaign", callout: "funnel", title: "From lead to booking", text: "Leads, site visits and bookings per campaign, with the top reasons leads were lost." },
+    ],
+    faq: [
+      { q: "Can we use our own website?", a: "Yes. Lead forms embed on any website with one line of code, and entries go straight to the CRM." },
+      { q: "Is spam kept out?", a: "Forms and pages have a captcha and spam checks, so only real enquiries reach your agents." },
+      { q: "Which channels are tracked?", a: "Facebook, Instagram, Google, SMS, expos, walk-ins and any channel you add, each with its own tracking link." },
+    ],
+    related: ["real-estate-crm-pakistan", "housing-society-management-software", "installment-management-software"],
+  },
+]
+
+export const pageBySlug = (slug) => PRODUCT_PAGES.find((p) => p.slug === slug)

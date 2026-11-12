@@ -1,558 +1,136 @@
+/* eslint-disable @next/next/no-img-element -- pre-sized webp */
 import { connection } from "next/server"
 import { cn } from "@/lib/utils"
-import { siteUrl } from "@/lib/sites"
-import { Logo } from "@/components/logo"
-import { Button } from "@/components/ui/button"
 import { Icon } from "@/components/ui/icon"
 import { CONTENT as m } from "@/modules/web/content"
 import { publicPricing } from "@/modules/web/server/pricing"
-import { EnquiryButton, EnquiryProvider, TrialButton } from "@/modules/web/components/enquiry"
-import { FeatureTabs } from "@/modules/web/components/features"
-import { Header } from "@/modules/web/components/header"
-import { PricingPlans } from "@/modules/web/components/pricing"
-import { GetStartedWizard } from "@/modules/web/components/get-started"
 import { getDynamicPricing } from "@/server/dynamic-pricing"
-import { Screen } from "@/modules/web/components/screen"
-import { Maintenance } from "@/modules/web/components/maintenance"
-import { LegalLink } from "@/modules/web/components/legal"
-import { StoreBadges } from "@/modules/web/components/store-badges"
 import { getSiteSettings } from "@/server/platform-settings"
+import { Maintenance } from "@/modules/web/components/maintenance"
+import { SiteShell } from "@/modules/web/site/shell"
+import { FlowSlider } from "@/modules/web/site/flow"
+import { PlanCalculator } from "@/modules/web/site/plan"
+import { PHOTOS } from "@/modules/web/site/photos"
+import { JsonLd, faqPage, pageMetadata, software, website } from "@/modules/web/site/seo"
+import { BuiltFor, Faq, FeatureRow, Hero, IconCards, MobileBand, Section, SectionHeading } from "@/modules/web/site/sections"
 
-const OG_IMAGE = { url: "/api/og", width: 1200, height: 630, alt: "PropFlow: real estate CRM & ERP, built for Pakistan" }
+export const metadata = pageMetadata({ title: m.title, description: m.description, path: "/", keywords: m.keywords, absolute: true })
 
-export const metadata = {
-  title: { absolute: m.title },
-  description: m.description,
-  keywords: m.keywords,
-  alternates: { canonical: "/" },
-  openGraph: { type: "website", url: "/", siteName: "PropFlow", title: m.title, description: m.description, locale: "en_PK", images: [OG_IMAGE] },
-  twitter: { card: "summary_large_image", title: m.title, description: m.description, images: [OG_IMAGE.url] },
-  category: "business",
-}
+// The feature rows, each linking to its product page
+const ROWS = [
+  ["inventory", "housing-society-management-software"],
+  ["crm", "real-estate-crm-pakistan"],
+  ["operations", "installment-management-software"],
+  ["estate", "transfer-ndc-management"],
+  ["finance", "real-estate-accounting-software"],
+  ["campaigns", "property-marketing-software"],
+]
 
-// Structured data for search engines: who we are, what PropFlow is, and the FAQ
-function StructuredData({ pricing, apps }) {
-  const home = siteUrl("web")
-  // Plan prices as an offer (Google shows software rich results only with an offer or rating)
-  const prices = pricing.showPrices ? pricing.plans.map((p) => Number(p.monthly)).filter((n) => n > 0) : []
-  const data = {
-    "@context": "https://schema.org",
-    "@graph": [
-      { "@type": "Organization", "@id": `${home}#organization`, name: "PropFlow", url: home, logo: siteUrl("web", "/images/propflow-logo-light.svg"), areaServed: "PK" },
-      { "@type": "WebSite", "@id": `${home}#website`, url: home, name: "PropFlow", inLanguage: "en-PK", publisher: { "@id": `${home}#organization` } },
-      {
-        "@type": "SoftwareApplication",
-        name: "PropFlow",
-        url: home,
-        description: m.description,
-        applicationCategory: "BusinessApplication",
-        applicationSubCategory: "Real estate ERP",
-        operatingSystem: ["Web browser", apps.appStore && "iOS", apps.playStore && "Android"].filter(Boolean).join(", "),
-        areaServed: "PK",
-        publisher: { "@id": `${home}#organization` },
-        ...(prices.length ? { offers: { "@type": "AggregateOffer", priceCurrency: "PKR", lowPrice: Math.min(...prices), highPrice: Math.max(...prices), offerCount: prices.length } } : {}),
-      },
-      { "@type": "FAQPage", mainEntity: m.faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) },
-    ],
-  }
-  // "<" escaped so the JSON can never close the script tag
-  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }} />
-}
-
-function Section({ id, className, children }) {
-  return (
-    <section id={id} className={cn("scroll-mt-20 px-4 py-20 sm:px-6 lg:py-28", className)}>
-      <div className="mx-auto max-w-6xl">{children}</div>
-    </section>
-  )
-}
-
-function Heading({ eyebrow, title, text, center, dark }) {
-  return (
-    <div data-reveal className={cn("max-w-2xl", center && "mx-auto text-center")}>
-      {eyebrow && <p className={cn("text-sm font-semibold tracking-wide", dark ? "text-brand-bright" : "text-primary")}>{eyebrow}</p>}
-      <h2 className="mt-2 text-3xl font-bold tracking-tight text-balance sm:text-4xl">{title}</h2>
-      {text && <p className={cn("mt-4 text-lg text-pretty", dark ? "text-slate-300" : "text-muted-foreground")}>{text}</p>}
-    </div>
-  )
-}
-
-function Hero({ trialDays, showPrices, quoteMode }) {
-  return (
-    <section id="top" className="relative overflow-hidden px-4 pt-32 pb-24 sm:px-6 lg:pt-40">
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-40 h-160 bg-[radial-gradient(ellipse_at_top,color-mix(in_oklab,var(--primary)_18%,transparent),transparent_65%)]" />
-      <div className="relative mx-auto max-w-6xl text-center">
-        <p className="inline-flex items-center gap-2 rounded-full border bg-background/70 px-3 py-1 text-sm text-muted-foreground">
-          <span className="size-1.5 rounded-full bg-emerald-500" />
-          {m.hero.eyebrow}
-        </p>
-        <h1 className="mx-auto mt-6 max-w-4xl text-4xl font-bold tracking-tight text-balance sm:text-5xl lg:text-6xl">
-          {m.hero.title} <span className="text-primary">{m.hero.highlight}</span>
-        </h1>
-        <p className="mx-auto mt-6 max-w-2xl text-lg text-pretty text-muted-foreground sm:text-xl">{m.hero.text}</p>
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <TrialButton source="Hero" size="lg" trialLabel={`Start ${trialDays}-day free trial`} />
-          <Button size="lg" variant="outline" leftIcon={quoteMode ? "apps-2-line" : "price-tag-3-line"} nativeButton={false} render={<a href={quoteMode ? "#features" : "#pricing"} />}>
-            {quoteMode ? "See features" : showPrices ? "See pricing" : "See plans"}
-          </Button>
-        </div>
-        <p className="mt-5 text-sm text-muted-foreground">{m.hero.note}</p>
-      </div>
-      <Screen
-        id="portfolio-overview"
-        alt="PropFlow Project Portfolio: projects, approvals, availability and stock at a glance"
-        priority
-        url="portal.propflowapp.com/project-portfolio"
-        className="relative mx-auto mt-20 max-w-5xl md:mb-16"
-        lenses={m.hero.lenses}
-      />
-    </section>
-  )
-}
-
-function BuiltFor() {
-  return (
-    <div className="border-y bg-muted/40 px-4 py-6 sm:px-6">
-      <ul className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-10 gap-y-3 text-sm font-medium text-muted-foreground">
-        {m.builtFor.map((b) => (
-          <li key={b.label} className="flex items-center gap-2">
-            <Icon name={b.icon} className="text-lg text-primary" /> {b.label}
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
-
-function Pains() {
-  return (
-    <Section>
-      <Heading center eyebrow="Sound familiar?" title={m.pains.title} />
-      <div className="mt-12 grid gap-6 md:grid-cols-3">
-        {m.pains.items.map((p, i) => (
-          <article key={p.title} data-reveal style={{ "--delay": `${(i % 3) * 110}ms` }} className="rounded-2xl border bg-card p-6 shadow-xs">
-            <span className="flex size-11 items-center justify-center rounded-xl bg-red-500/10 text-xl text-red-600 dark:text-red-400">
-              <Icon name={p.icon} />
-            </span>
-            <h3 className="mt-4 text-lg font-semibold">{p.title}</h3>
-            <p className="mt-2 text-sm text-muted-foreground">{p.before}</p>
-            <p className="mt-4 flex gap-2 border-t pt-4 text-sm">
-              <Icon name="checkbox-circle-fill" className="mt-0.5 text-emerald-600 dark:text-emerald-400" />
-              <span>{p.after}</span>
-            </p>
-          </article>
-        ))}
-      </div>
-    </Section>
-  )
-}
-
-// Only in PropFlow: what general CRMs and spreadsheets can't do, row by row
-const MARK = {
-  yes: { icon: "checkbox-circle-fill", tone: "text-emerald-600 dark:text-emerald-400", label: "Yes" },
-  partly: { icon: "indeterminate-circle-line", tone: "text-amber-500", label: "Partly, with workarounds" },
-  no: { icon: "close-circle-line", tone: "text-muted-foreground/60", label: "No" },
-}
-function Mark({ value }) {
-  const m = MARK[value]
-  return (
-    <span className="inline-flex justify-center" title={m.label}>
-      <Icon name={m.icon} className={cn("text-xl", m.tone)} aria-hidden />
-      <span className="sr-only">{m.label}</span>
-    </span>
-  )
-}
-function Different() {
-  const d = m.different
-  return (
-    <Section id="why">
-      <Heading center eyebrow={d.eyebrow} title={d.title} text={d.text} />
-      <div data-reveal className="mt-12 overflow-x-auto rounded-2xl border bg-card shadow-xs">
-        <table className="w-full min-w-[40rem] text-left text-sm">
-          <caption className="sr-only">PropFlow compared with general CRMs and spreadsheets</caption>
-          <thead>
-            <tr className="border-b bg-muted/40">
-              <th scope="col" className="px-5 py-4 font-medium text-muted-foreground">
-                What you need
-              </th>
-              {d.columns.map((c, i) => (
-                <th key={c} scope="col" className={cn("w-32 px-3 py-4 text-center font-semibold", i === 0 && "bg-primary/[0.06] text-primary")}>
-                  {c}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {d.rows.map((r) => (
-              <tr key={r.feature}>
-                <th scope="row" className="px-5 py-3.5 font-normal">
-                  <span className="block font-medium">{r.feature}</span>
-                  <span className="block text-xs text-muted-foreground">{r.detail}</span>
-                </th>
-                <td className="bg-primary/[0.06] px-3 text-center">
-                  <Mark value="yes" />
-                </td>
-                <td className="px-3 text-center">
-                  <Mark value={r.crm} />
-                </td>
-                <td className="px-3 text-center">
-                  <Mark value={r.sheet} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-xs text-muted-foreground">
-        {Object.values(MARK).map((x) => (
-          <span key={x.label} className="inline-flex items-center gap-1.5">
-            <Icon name={x.icon} className={cn("text-base", x.tone)} /> {x.label}
-          </span>
-        ))}
-      </p>
-    </Section>
-  )
-}
-
-function Features() {
-  return (
-    <Section id="features" className="bg-muted/40">
-      <Heading
-        center
-        eyebrow="Features"
-        title="One real estate ERP, from the first enquiry to possession"
-        text="One system for your projects, prices, sales pipeline, installments and marketing. Pick an area to see how it works."
-      />
-      <FeatureTabs features={m.features} />
-    </Section>
-  )
-}
-
-// The landing page builder, in its own spotlight
-function Builder() {
-  const b = m.builder
-  return (
-    <Section id="builder">
-      <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] lg:items-center">
-        <div>
-          <Heading eyebrow={b.eyebrow} title={b.title} text={b.text} />
-          <ul className="mt-8 space-y-3">
-            {b.points.map((p, i) => (
-              <li key={p.title} data-reveal style={{ "--delay": `${i * 90}ms` }} className="flex gap-3">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-lg text-primary">
-                  <Icon name={p.icon} />
-                </span>
-                <span>
-                  <span className="block font-semibold">{p.title}</span>
-                  <span className="block text-sm text-muted-foreground">{p.text}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <Screen id={b.screen} alt="PropFlow landing page builder: pick sections, edit in place and publish with a lead form" url={b.url} className="md:mb-20" lenses={b.lenses} />
-      </div>
-    </Section>
-  )
-}
-
-function Local() {
-  const l = m.local
-  return (
-    <Section id="local" className="bg-slate-950 text-white dark:bg-slate-900">
-      <Heading center dark eyebrow={l.eyebrow} title={l.title} text={l.text} />
-      <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {l.items.map((p, i) => (
-          <div key={p.title} data-reveal style={{ "--delay": `${(i % 4) * 90}ms` }} className="rounded-2xl bg-white/5 p-5 ring-1 ring-white/10">
-            <Icon name={p.icon} className="text-2xl text-brand-bright" />
-            <h3 className="mt-3 font-semibold">{p.title}</h3>
-            <p className="mt-1 text-sm text-slate-300">{p.text}</p>
-          </div>
-        ))}
-      </div>
-    </Section>
-  )
-}
-
-function Apps() {
-  return (
-    <Section id="apps">
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:items-start">
-        <div>
-          <Heading
-            eyebrow="One login, every app"
-            title="One login for every department"
-            text="Start with inventory, CRM and campaigns. Operations, estate management, finance and HR plug into the same data as you grow, with no double entry between departments."
-          />
-          <ul className="mt-8 grid gap-3 sm:grid-cols-2">
-            {m.apps.map((a, i) => (
-              <li key={a.name} data-reveal style={{ "--delay": `${(i % 2) * 90 + Math.floor(i / 2) * 60}ms` }} className="flex gap-3 rounded-xl border bg-card p-3">
-                <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg text-white", a.color)}>
-                  <Icon name={a.icon} />
-                </span>
-                <span className="min-w-0">
-                  <span className="flex flex-wrap items-center gap-x-2 text-sm font-semibold">
-                    {a.name}
-                    {!a.live && <span className="text-xs font-normal text-muted-foreground">Coming soon</span>}
-                  </span>
-                  <span className="block text-xs text-muted-foreground">{a.text}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <Screen
-          id="launcher"
-          alt="PropFlow app launcher with My Desk: today's to-dos and every app in one place"
-          url="portal.propflowapp.com"
-          className="md:mb-24 lg:mt-24"
-          lenses={[{ callout: "critical", label: "What needs you today, across every app", at: { left: "-6%", bottom: "-24%" }, width: "38%" }]}
-        />
-      </div>
-    </Section>
-  )
-}
-
-// The mobile app, once it has a store link (Console › Settings › Mobile app)
-function MobileApp({ apps }) {
-  const a = m.mobile
-  return (
-    <Section id="mobile" className="bg-muted/40">
-      <div className="grid gap-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-center">
-        <div>
-          <Heading eyebrow={a.eyebrow} title={a.title} text={a.text} />
-          <ul className="mt-8 grid gap-4 sm:grid-cols-2">
-            {a.points.map((p, i) => (
-              <li key={p.title} data-reveal style={{ "--delay": `${(i % 2) * 90 + Math.floor(i / 2) * 60}ms` }} className="flex gap-3">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-lg text-primary">
-                  <Icon name={p.icon} />
-                </span>
-                <span>
-                  <span className="block font-semibold">{p.title}</span>
-                  <span className="block text-sm text-muted-foreground">{p.text}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-          <StoreBadges links={apps} location="Mobile app section" className="mt-10" />
-        </div>
-        <div data-reveal className="relative mx-auto flex w-full max-w-md justify-center">
-          <div aria-hidden className="pointer-events-none absolute inset-0 -z-0 bg-[radial-gradient(circle,color-mix(in_oklab,var(--primary)_22%,transparent),transparent_65%)]" />
-          {[
-            { src: "/images/screens/mobile-lead.webp", alt: "A lead in the PropFlow app with calls, notes and follow-ups", className: "mt-14 -mr-10 w-[46%] rotate-[-4deg]" },
-            { src: "/images/screens/mobile-home.webp", alt: "The PropFlow app's home screen: today's follow-ups, new leads and approvals", className: "z-10 w-[52%]" },
-          ].map((s) => (
-            <div key={s.src} className={cn("relative rounded-[2rem] bg-slate-950 p-1.5 shadow-2xl ring-1 ring-black/10 dark:ring-white/15", s.className)}>
-              {/* eslint-disable-next-line @next/next/no-img-element -- small static screenshots */}
-              <img src={s.src} alt={s.alt} width={560} height={1217} loading="lazy" className="h-auto w-full rounded-[1.6rem]" />
-            </div>
-          ))}
-        </div>
-      </div>
-    </Section>
-  )
-}
-
-// Dynamic pricing on (console › Plans & Pricing): the create-workspace wizard with a "Your package"
-// step that prices what their answers need (they can change it), then the request
-function DynamicPricing({ config }) {
-  return (
-    <Section id="get-started" className="bg-muted/40">
-      <Heading
-        center
-        eyebrow="Pricing"
-        title="A package made for your business"
-        text={`Answer a few quick questions and we'll suggest the apps you need, priced as you go. Pay only for what you use, starting with a ${config.trialDays}-day free trial.`}
-      />
-      <GetStartedWizard trialDays={config.trialDays} pricing={config} />
-    </Section>
-  )
-}
-
-function Pricing({ pricing, quoteMode }) {
-  const notes = [
-    `${pricing.trialDays}-day free trial on every plan, no card needed`,
-    pricing.extraUser && `Extra users Rs ${new Intl.NumberFormat("en-PK").format(pricing.extraUser)} per user a month`,
-    pricing.showPrices && "Prices exclude taxes",
-  ].filter(Boolean)
-  // Get-started wizard on: no plan cards, just the modules to pick from
-  if (quoteMode)
-    return (
-      <Section id="get-started" className="bg-muted/40">
-        <Heading
-          center
-          eyebrow="Create your workspace"
-          title="What would you like PropFlow to do?"
-          text={`Answer a few quick questions and we'll set up a workspace with just what your business needs, starting with a ${pricing.trialDays}-day free trial.`}
-        />
-        <GetStartedWizard trialDays={pricing.trialDays} />
-      </Section>
-    )
-  return (
-    <Section id="pricing" className="bg-muted/40">
-      <Heading
-        center
-        eyebrow={pricing.showPrices ? "Pricing" : "Plans"}
-        title={pricing.showPrices ? `Start free for ${pricing.trialDays} days` : "A plan for every size of developer"}
-        text={
-          pricing.showPrices
-            ? "Every plan includes a free trial with all its features. No card needed, and your data stays if you continue."
-            : `Every plan includes a ${pricing.trialDays}-day free trial with all its features. Talk to our sales team for prices.`
-        }
-      />
-      {pricing.plans.length ? (
-        <PricingPlans plans={pricing.plans} yearlyMonths={pricing.yearlyMonths} popular={m.popularPlan} showPrices={pricing.showPrices} />
-      ) : (
-        <div className="mt-10 text-center">
-          <EnquiryButton kind="sales" source="Pricing" size="lg">
-            Ask for a quote
-          </EnquiryButton>
-        </div>
-      )}
-      <ul className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-muted-foreground">
-        {notes.map((n) => (
-          <li key={n} className="flex items-center gap-1.5">
-            <Icon name="information-line" /> {n}
-          </li>
-        ))}
-      </ul>
-    </Section>
-  )
-}
-
-function Trust() {
-  return (
-    <Section>
-      <Heading center eyebrow="Security" title="Your data stays yours" />
-      <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {m.trust.map((t) => (
-          <div key={t.title}>
-            <span className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-xl text-primary">
-              <Icon name={t.icon} />
-            </span>
-            <h3 className="mt-4 font-semibold">{t.title}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">{t.text}</p>
-          </div>
-        ))}
-      </div>
-    </Section>
-  )
-}
-
-function Faq() {
-  return (
-    <Section id="faq">
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
-        <Heading eyebrow="FAQ" title="Questions developers ask us" />
-        <div className="divide-y rounded-2xl border bg-card">
-          {m.faq.map((f) => (
-            <details key={f.q} className="group px-5 py-4">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium [&::-webkit-details-marker]:hidden">
-                {f.q}
-                <Icon name="add-line" className="shrink-0 text-muted-foreground transition-transform group-open:rotate-45" />
-              </summary>
-              <p className="mt-2 text-muted-foreground">{f.a}</p>
-            </details>
-          ))}
-        </div>
-      </div>
-    </Section>
-  )
-}
-
-function Cta({ signupOpen, trialDays, showPrices, quoteMode }) {
-  return (
-    <section className="px-4 pb-20 sm:px-6">
-      <div className="relative mx-auto max-w-6xl overflow-hidden rounded-3xl bg-primary px-6 py-14 text-center text-primary-foreground sm:px-12">
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_10%,rgb(255_255_255/0.2),transparent_45%)]" />
-        <h2 className="relative mx-auto max-w-2xl text-3xl font-bold tracking-tight text-balance sm:text-4xl">{m.cta.title}</h2>
-        <p className="relative mx-auto mt-4 max-w-xl text-lg text-primary-foreground/85">{signupOpen ? m.cta.textOpen.replace("{days}", trialDays) : m.cta.textInvite}</p>
-        <div className="relative mt-8 flex flex-wrap justify-center gap-3">
-          <TrialButton source="Closing call to action" size="lg" variant="secondary" />
-          <Button
-            size="lg"
-            variant="ghost"
-            leftIcon="price-tag-3-line"
-            className="text-primary-foreground hover:bg-white/10 hover:text-primary-foreground"
-            nativeButton={false}
-            render={<a href={quoteMode ? "#features" : "#pricing"} />}
-          >
-            {quoteMode ? "See features" : showPrices ? "See pricing" : "See plans"}
-          </Button>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function Footer({ apps }) {
-  return (
-    <footer className="border-t px-4 py-10 sm:px-6">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-6 text-sm text-muted-foreground">
-        <div className="flex items-center gap-3">
-          <Logo className="h-7" />
-          <span>© {new Date().getFullYear()} PropFlow</span>
-        </div>
-        <StoreBadges links={apps} location="Footer" size="sm" />
-        <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-2">
-          <LegalLink doc="terms" className="font-normal text-inherit hover:text-foreground hover:no-underline" />
-          <LegalLink doc="privacy" className="font-normal text-inherit hover:text-foreground hover:no-underline" />
-        </nav>
-      </div>
-    </footer>
-  )
-}
-
-// propflowapp.com: the marketing home page. Plans and trial length are read live from the console.
+// propflowapp.com: the home page. Every action leads to "Book a demo".
 export default async function HomePage({ searchParams }) {
   await connection()
   const site = await getSiteSettings()
   if (site.maintenance) return <Maintenance message={site.message} until={site.until} />
-  const [pricing, { request }, dynamic] = await Promise.all([publicPricing({ showPrices: site.pricesVisible }), searchParams, getDynamicPricing()])
-  // Dynamic pricing: the wizard with prices (a "Your package" step) replaces the plans
-  const builder =
-    dynamic.mode === "dynamic"
-      ? {
-          pricing: dynamic.pricing,
-          catalog: dynamic.catalog.filter((a) => dynamic.pricing.baseApps.includes(a.code) || dynamic.pricing.appPrices[a.code] != null),
-          yearlyMonths: dynamic.yearlyMonths,
-          trialDays: dynamic.trialDays,
-        }
-      : null
-  // With prices hidden the section is about what each plan includes
-  // Prices hidden with the get-started wizard on: no plans, just the modules they pick
-  const quoteMode = !builder && !site.pricesVisible && site.quoteRequests
-  const nav = builder
-    ? m.nav.map((n) => (n.href === "#pricing" ? { href: "#get-started", label: "Pricing" } : n))
-    : site.pricesVisible
-      ? m.nav
-      : m.nav.map((n) => (n.href === "#pricing" ? (quoteMode ? { href: "#get-started", label: "Get started" } : { ...n, label: "Plans" }) : n))
-  // Links like /?request=trial (from the sign-up page) open that form on arrival
-  const initial = ["trial", "sales", "quote"].includes(request) ? { kind: request, source: "Link" } : null
+  const [pricing, dynamic, { request }] = await Promise.all([publicPricing({ showPrices: site.pricesVisible }), getDynamicPricing(), searchParams])
   const apps = { appStore: site.appStoreUrl, playStore: site.playStoreUrl }
-  const hasApp = Boolean(apps.appStore || apps.playStore)
+  const prices =
+    dynamic.mode === "dynamic" ? [Number(dynamic.pricing.baseMonthly)].filter((n) => n > 0) : pricing.showPrices ? pricing.plans.map((p) => Number(p.monthly)).filter((n) => n > 0) : []
+  // Old links (/?request=trial, sales, quote) and new ones (/?request=demo) open the demo form
+  const initialDemo = ["demo", "trial", "sales", "quote"].includes(request)
+  const rows = ROWS.map(([id, slug]) => ({ ...m.features.find((f) => f.id === id), slug }))
+  const photo = PHOTOS.lahore
+
   return (
-    <EnquiryProvider trialDays={pricing.trialDays} signupOpen={site.signupOpen} quote={quoteMode || Boolean(builder)} initial={initial}>
-      <StructuredData pricing={builder ? { ...pricing, showPrices: true, plans: [{ monthly: builder.pricing.baseMonthly }] } : pricing} apps={apps} />
-      <div data-site="web" className="min-h-svh overflow-x-clip bg-background text-foreground">
-        <Header nav={nav} showSignIn={site.signInVisible} />
-        <main>
-          <Hero trialDays={pricing.trialDays} showPrices={pricing.showPrices || Boolean(builder)} quoteMode={quoteMode || Boolean(builder)} />
-          <BuiltFor />
-          <Pains />
-          <Different />
-          <Features />
-          <Builder />
-          <Local />
-          {hasApp && <MobileApp apps={apps} />}
-          <Apps />
-          {builder ? <DynamicPricing config={builder} /> : <Pricing pricing={pricing} quoteMode={quoteMode} />}
-          <Trust />
-          <Faq />
-          <Cta signupOpen={site.signupOpen} trialDays={pricing.trialDays} showPrices={pricing.showPrices} quoteMode={quoteMode} />
-        </main>
-        <Footer apps={apps} />
-      </div>
-    </EnquiryProvider>
+    <SiteShell site={site} initialDemo={initialDemo}>
+      <JsonLd graph={[website(), software({ description: m.description, apps, prices }), faqPage(m.faq)]} />
+
+      <Hero
+        badge="For developers, builders and housing societies"
+        title="The real estate CRM & ERP"
+        accent="built for Pakistan"
+        text="Run every project from the first enquiry to possession: plots and files in Marla and Kanal, bookings and installments, transfers, NDCs and the books. One system, one login."
+        secondary={{ href: "#how", label: "See how it works" }}
+        note="Free 30-minute demo · Set up with your own projects"
+        screen="portfolio-overview"
+        url="portal.propflowapp.com/project-portfolio"
+        alt="PropFlow Project Portfolio: projects, approvals, availability and stock at a glance"
+        lenses={[
+          { screen: "portfolio-overview", callout: "stock", label: "Available stock, valued in Crore", className: "-right-8 -top-8 w-[30%]" },
+          { screen: "portfolio-overview", callout: "approval", label: "LDA approval and NOC status", className: "-left-10 -bottom-8 w-[17%]" },
+        ]}
+      />
+      <BuiltFor items={m.builtFor} />
+
+      <Section labelledBy="pains-title">
+        <SectionHeading center id="pains-title" eyebrow="Why developers switch" title="Registers, Excel and WhatsApp groups only go so far" />
+        <div className="mt-14">
+          <IconCards items={m.pains.items.map((p) => ({ icon: p.icon, title: p.title, text: p.before, after: p.after }))} />
+        </div>
+      </Section>
+
+      <Section id="how" labelledBy="how-title" className="bg-[var(--surface)]">
+        <SectionHeading center id="how-title" eyebrow="How it works" title="One plot, from first enquiry to possession" text="Drag through the stages to see where each step happens in PropFlow." />
+        <div data-reveal className="mt-14">
+          <FlowSlider />
+        </div>
+      </Section>
+
+      <Section id="features" labelledBy="features-title">
+        <SectionHeading center id="features-title" eyebrow="Features" title="Everything a developer runs, in one system" text="Each part is built around how property is sold, collected and handed over in Pakistan." />
+        <div className="mt-20 space-y-28 lg:space-y-36">
+          {rows.map((f, i) => (
+            <FeatureRow key={f.id} index={i} reverse={i % 2 === 1} eyebrow={f.eyebrow} title={f.title} text={f.text} points={f.points} screen={f.screen} alt={`${f.eyebrow}: ${f.title}`} href={`/${f.slug}`} link={`More on ${f.eyebrow.toLowerCase()}`} />
+          ))}
+        </div>
+      </Section>
+
+      <section id="local" aria-labelledby="local-title" className="pf-navy relative overflow-hidden py-24 lg:py-32">
+        <img aria-hidden src={photo.src} alt="" width={photo.width} height={photo.height} loading="lazy" data-parallax="0.1" className="absolute inset-0 -top-[10%] h-[120%] w-full object-cover opacity-[0.12] mix-blend-luminosity" />
+        <div className="pf-container relative">
+          <SectionHeading center dark id="local-title" eyebrow={m.local.eyebrow} title={m.local.title} text={m.local.text} />
+          <div className="mt-14">
+            <IconCards dark columns={4} items={m.local.items} />
+          </div>
+          <p className="mt-10 text-center text-[13px] text-white/50">
+            Background: “{photo.credit.title}” by {photo.credit.by},{" "}
+            <a href={photo.credit.licenseUrl} target="_blank" rel="noopener" className="underline">
+              {photo.credit.license}
+            </a>
+            , via{" "}
+            <a href={photo.credit.page} target="_blank" rel="noopener" className="underline">
+              Wikimedia Commons
+            </a>
+          </p>
+        </div>
+      </section>
+
+      <Section id="plan" labelledBy="plan-title">
+        <SectionHeading center id="plan-title" eyebrow="Try it" title="Type the deal, get the payment plan" text="Change the booking note and watch the schedule PropFlow works out: down payment, installments and possession, in Lac and Crore." />
+        <div data-reveal className="mx-auto mt-14 max-w-5xl">
+          <PlanCalculator />
+        </div>
+      </Section>
+
+      <Section id="apps" labelledBy="apps-title" className="bg-[var(--surface)]">
+        <SectionHeading center id="apps-title" eyebrow="One login, every app" title="Every department on the same data" text="Start with inventory and CRM. Operations, estate management, finance and HR plug into the same records as you grow, so nothing is typed twice." />
+        <ul className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {m.apps.map((a, i) => (
+            <li key={a.name} data-reveal style={{ "--delay": `${(i % 3) * 70}ms` }} className="pf-card flex gap-4 p-5" data-hover="">
+              <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-xl text-xl text-white", a.color)}>
+                <Icon name={a.icon} aria-hidden />
+              </span>
+              <span>
+                <span className="block font-bold">{a.name}</span>
+                <span className="mt-0.5 block text-[15px] text-[var(--text-2)]">{a.text}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </Section>
+
+      {(apps.appStore || apps.playStore) && <MobileBand apps={apps} text={m.mobile.text} points={m.mobile.points} />}
+
+      <Faq faq={m.faq} />
+    </SiteShell>
   )
 }

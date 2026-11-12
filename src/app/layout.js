@@ -31,13 +31,14 @@ export default async function RootLayout({ children }) {
   // Public landing pages and forms (campaigns.<domain>) are the customer's brand: always light
   const [jar, head] = await Promise.all([cookies(), headers()])
   const site = siteForHost(head.get("host"))
-  const campaigns = site === "campaigns"
-  const resolved = campaigns ? "light" : parseThemeCookie(jar.get(THEME_COOKIE)?.value).resolved
+  // The marketing website (propflowapp.com) has one theme too: light
+  const light = site === "campaigns" || site === "web"
+  const resolved = light ? "light" : parseThemeCookie(jar.get(THEME_COOKIE)?.value).resolved
   return (
     // ThemeProvider may switch the class after loading (system theme changed), so it can differ
     <html lang={site === "web" ? "en-PK" : "en"} className={`${inter.variable} ${resolved} h-full antialiased`} style={{ colorScheme: resolved }} suppressHydrationWarning>
       <body className="min-h-full font-sans">
-        <ThemeProvider forced={campaigns ? "light" : null}>
+        <ThemeProvider forced={light ? "light" : null}>
           <AlertProvider>
             {children}
             <Toaster />

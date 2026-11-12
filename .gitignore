@@ -50,3 +50,5 @@ next-env.d.ts
 
 # Firebase service account keys (FCM_SERVICE_ACCOUNT points at one outside the repo)
 *firebase-adminsdk*.json
+.taste-skill/
+/.next-*/

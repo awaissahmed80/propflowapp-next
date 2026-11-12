@@ -14,7 +14,9 @@ const APPS = [
   { name: "Operations", icon: "flow-chart", color: "bg-blue-600", text: "Bookings, installment plans, allotments, KYC, handover and dealer commissions", live: true },
   { name: "Estate Management", icon: "home-gear-line", color: "bg-teal-600", text: "Transfers, NDC, possession, maintenance and complaints", live: true },
   { name: "Finance", icon: "bank-line", color: "bg-emerald-600", text: "Receipts, cheques, vouchers, refunds, vendors and your books, posted automatically", live: true },
-  { name: "HR & Payroll", icon: "team-line", color: "bg-violet-600", text: "Employees, rosters, attendance and payroll" },
+  { name: "HR & Payroll", icon: "team-line", color: "bg-violet-600", text: "Employees, rosters, attendance, leave and payroll", live: true },
+  { name: "Documents", icon: "folder-3-line", color: "bg-amber-500", text: "Every file and image, with share links and expiry dates", live: true },
+  { name: "Dashboards & My Desk", icon: "dashboard-3-line", color: "bg-indigo-600", text: "Role dashboards and each person's to-dos from every app", live: true },
 ]
 
 const TRUST = [
@@ -22,16 +24,6 @@ const TRUST = [
   { icon: "shield-keyhole-line", title: "Roles for every app", text: "Decide who can view, edit, approve and export in each app, down to brokers." },
   { icon: "history-line", title: "Activity log", text: "Sign-ins, role changes and sensitive actions are recorded with who did what, and when." },
   { icon: "building-4-line", title: "Several companies, one login", text: "Groups with more than one company switch between workspaces without signing out." },
-]
-
-const NAV = [
-  { href: "#why", label: "Why PropFlow" },
-  { href: "#features", label: "Features" },
-  { href: "#builder", label: "Page builder" },
-  { href: "#local", label: "Made for Pakistan" },
-  { href: "#apps", label: "Apps" },
-  { href: "#pricing", label: "Pricing" },
-  { href: "#faq", label: "FAQ" },
 ]
 
 const BUILT_FOR = [
@@ -328,20 +320,20 @@ const FAQ = [
     a: "Yes. Share your spreadsheets of projects, units and leads, and they'll be loaded into your workspace during setup.",
   },
   {
-    q: "Does it work on mobile?",
-    a: "Yes. PropFlow works in the browser on phones and tablets, so agents at the site office or out on site visits can log calls and hold units.",
+    q: "Is there a mobile app?",
+    a: "Yes. The PropFlow app for iPhone and Android lets agents call leads, log what was said, see today's follow-ups and check availability, and lets managers approve requests from anywhere. Everything else works in the browser on phones and tablets too.",
   },
   {
     q: "Can dealers use it?",
     a: "Dealers get their own login that shows only their allocated quota and their own leads, so they can hold and sell without seeing the rest of your stock.",
   },
   {
-    q: "How does the free trial work?",
-    a: "Every feature of the plan you choose, free for the trial period, no card needed. Request a trial and we'll set up your workspace and email you the link. Add your projects and team, and at the end pick a plan to keep your data, or walk away.",
+    q: "How do we get started?",
+    a: "Most developers start with a demo: we walk you through PropFlow with projects like yours, then set up a trial workspace with your own data. Every feature of your package is free for the trial period, no card needed.",
   },
   {
     q: "Which apps are available today?",
-    a: "Project Portfolio, Campaigns, CRM, Operations, Estate Management, Finance, Contacts and Users & Teams are live. HR & Payroll is coming next.",
+    a: "Project Portfolio, Campaigns, CRM, Contacts, Operations, Estate Management, Finance, HR & Payroll, Documents, Dashboards and Users & Teams are all live, with My Desk bringing each person's work from every app into one place.",
   },
   {
     q: "Who owns our data?",
@@ -373,7 +365,6 @@ export const CONTENT = {
     "landing page builder for real estate",
     "cost per lead real estate Pakistan",
   ],
-  nav: NAV,
   hero: {
     eyebrow: "Real estate CRM & ERP for developers, builders and housing societies",
     title: "The real estate CRM and ERP,",
