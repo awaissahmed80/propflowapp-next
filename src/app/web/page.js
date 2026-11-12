@@ -15,6 +15,7 @@ import { getDynamicPricing } from "@/server/dynamic-pricing"
 import { Screen } from "@/modules/web/components/screen"
 import { Maintenance } from "@/modules/web/components/maintenance"
 import { LegalLink } from "@/modules/web/components/legal"
+import { StoreBadges } from "@/modules/web/components/store-badges"
 import { getSiteSettings } from "@/server/platform-settings"
 
 const OG_IMAGE = { url: "/api/og", width: 1200, height: 630, alt: "PropFlow: real estate CRM & ERP, built for Pakistan" }
@@ -30,7 +31,7 @@ export const metadata = {
 }
 
 // Structured data for search engines: who we are, what PropFlow is, and the FAQ
-function StructuredData({ pricing }) {
+function StructuredData({ pricing, apps }) {
   const home = siteUrl("web")
   // Plan prices as an offer (Google shows software rich results only with an offer or rating)
   const prices = pricing.showPrices ? pricing.plans.map((p) => Number(p.monthly)).filter((n) => n > 0) : []
@@ -46,7 +47,7 @@ function StructuredData({ pricing }) {
         description: m.description,
         applicationCategory: "BusinessApplication",
         applicationSubCategory: "Real estate ERP",
-        operatingSystem: "Web browser",
+        operatingSystem: ["Web browser", apps.appStore && "iOS", apps.playStore && "Android"].filter(Boolean).join(", "),
         areaServed: "PK",
         publisher: { "@id": `${home}#organization` },
         ...(prices.length ? { offers: { "@type": "AggregateOffer", priceCurrency: "PKR", lowPrice: Math.min(...prices), highPrice: Math.max(...prices), offerCount: prices.length } } : {}),
@@ -312,6 +313,46 @@ function Apps() {
   )
 }
 
+// The mobile app, once it has a store link (Console › Settings › Mobile app)
+function MobileApp({ apps }) {
+  const a = m.mobile
+  return (
+    <Section id="mobile" className="bg-muted/40">
+      <div className="grid gap-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-center">
+        <div>
+          <Heading eyebrow={a.eyebrow} title={a.title} text={a.text} />
+          <ul className="mt-8 grid gap-4 sm:grid-cols-2">
+            {a.points.map((p, i) => (
+              <li key={p.title} data-reveal style={{ "--delay": `${(i % 2) * 90 + Math.floor(i / 2) * 60}ms` }} className="flex gap-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-lg text-primary">
+                  <Icon name={p.icon} />
+                </span>
+                <span>
+                  <span className="block font-semibold">{p.title}</span>
+                  <span className="block text-sm text-muted-foreground">{p.text}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <StoreBadges links={apps} location="Mobile app section" className="mt-10" />
+        </div>
+        <div data-reveal className="relative mx-auto flex w-full max-w-md justify-center">
+          <div aria-hidden className="pointer-events-none absolute inset-0 -z-0 bg-[radial-gradient(circle,color-mix(in_oklab,var(--primary)_22%,transparent),transparent_65%)]" />
+          {[
+            { src: "/images/screens/mobile-lead.webp", alt: "A lead in the PropFlow app with calls, notes and follow-ups", className: "mt-14 -mr-10 w-[46%] rotate-[-4deg]" },
+            { src: "/images/screens/mobile-home.webp", alt: "The PropFlow app's home screen: today's follow-ups, new leads and approvals", className: "z-10 w-[52%]" },
+          ].map((s) => (
+            <div key={s.src} className={cn("relative rounded-[2rem] bg-slate-950 p-1.5 shadow-2xl ring-1 ring-black/10 dark:ring-white/15", s.className)}>
+              {/* eslint-disable-next-line @next/next/no-img-element -- small static screenshots */}
+              <img src={s.src} alt={s.alt} width={560} height={1217} loading="lazy" className="h-auto w-full rounded-[1.6rem]" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </Section>
+  )
+}
+
 // Dynamic pricing on (console › Plans & Pricing): the create-workspace wizard with a "Your package"
 // step that prices what their answers need (they can change it), then the request
 function DynamicPricing({ config }) {
@@ -444,7 +485,7 @@ function Cta({ signupOpen, trialDays, showPrices, quoteMode }) {
   )
 }
 
-function Footer() {
+function Footer({ apps }) {
   return (
     <footer className="border-t px-4 py-10 sm:px-6">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-6 text-sm text-muted-foreground">
@@ -452,6 +493,7 @@ function Footer() {
           <Logo className="h-7" />
           <span>© {new Date().getFullYear()} PropFlow</span>
         </div>
+        <StoreBadges links={apps} location="Footer" size="sm" />
         <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-2">
           <LegalLink doc="terms" className="font-normal text-inherit hover:text-foreground hover:no-underline" />
           <LegalLink doc="privacy" className="font-normal text-inherit hover:text-foreground hover:no-underline" />
@@ -487,9 +529,11 @@ export default async function HomePage({ searchParams }) {
       : m.nav.map((n) => (n.href === "#pricing" ? (quoteMode ? { href: "#get-started", label: "Get started" } : { ...n, label: "Plans" }) : n))
   // Links like /?request=trial (from the sign-up page) open that form on arrival
   const initial = ["trial", "sales", "quote"].includes(request) ? { kind: request, source: "Link" } : null
+  const apps = { appStore: site.appStoreUrl, playStore: site.playStoreUrl }
+  const hasApp = Boolean(apps.appStore || apps.playStore)
   return (
     <EnquiryProvider trialDays={pricing.trialDays} signupOpen={site.signupOpen} quote={quoteMode || Boolean(builder)} initial={initial}>
-      <StructuredData pricing={builder ? { ...pricing, showPrices: true, plans: [{ monthly: builder.pricing.baseMonthly }] } : pricing} />
+      <StructuredData pricing={builder ? { ...pricing, showPrices: true, plans: [{ monthly: builder.pricing.baseMonthly }] } : pricing} apps={apps} />
       <div data-site="web" className="min-h-svh overflow-x-clip bg-background text-foreground">
         <Header nav={nav} showSignIn={site.signInVisible} />
         <main>
@@ -500,13 +544,14 @@ export default async function HomePage({ searchParams }) {
           <Features />
           <Builder />
           <Local />
+          {hasApp && <MobileApp apps={apps} />}
           <Apps />
           {builder ? <DynamicPricing config={builder} /> : <Pricing pricing={pricing} quoteMode={quoteMode} />}
           <Trust />
           <Faq />
           <Cta signupOpen={site.signupOpen} trialDays={pricing.trialDays} showPrices={pricing.showPrices} quoteMode={quoteMode} />
         </main>
-        <Footer />
+        <Footer apps={apps} />
       </div>
     </EnquiryProvider>
   )

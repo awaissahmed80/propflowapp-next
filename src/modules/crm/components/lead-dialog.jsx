@@ -173,7 +173,7 @@ function OutcomeCard({ title, type, onType, pending, onSave, onCancel, statusTo,
         </div>
       )}
       {/* 1. What was done */}
-      <header className="flex items-center gap-1 px-5 pt-2.5 sm:px-6">
+      <header className="flex items-center gap-1 px-5 pt-2.5 sm:px-6 short:pt-2">
         <span className="text-[13px] font-medium text-muted-foreground">Contacted via</span>
         <MenuPick aria-label="Contacted via" value={current} onChange={onType} options={typeOptions} />
         <span className="flex-1" />
@@ -204,7 +204,7 @@ function OutcomeCard({ title, type, onType, pending, onSave, onCancel, statusTo,
       </header>
 
       {/* 2. Note, with how it went and quick replies inside the box */}
-      <div className="px-5 py-2 sm:px-6">
+      <div className="px-5 py-2 sm:px-6 short:py-1.5">
         <div className="rounded-lg border border-input bg-background shadow-xs transition focus-within:border-ring focus-within:ring-1 focus-within:ring-ring/50 dark:bg-input/20">
           <textarea
             aria-label="Note"
@@ -212,7 +212,7 @@ function OutcomeCard({ title, type, onType, pending, onSave, onCancel, statusTo,
             placeholder="Add a note: what they said, what they want next…"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="block w-full resize-none bg-transparent px-3 pt-2.5 pb-1 text-[15px] outline-none placeholder:text-muted-foreground"
+            className="block w-full resize-none bg-transparent px-3 pt-2.5 pb-1 text-[15px] outline-none placeholder:text-muted-foreground short:pt-2 short:text-[14px]"
           />
           {voice && (
             <div className="mx-2 mb-1.5 flex items-center gap-2 rounded-lg bg-muted/60 py-1 pr-1 pl-2">
@@ -277,7 +277,7 @@ function OutcomeCard({ title, type, onType, pending, onSave, onCancel, statusTo,
 
       {/* 3. The next follow-up (when, how) and save */}
       {!closing && (
-        <footer className="flex flex-wrap items-center gap-1 px-5 pb-3 sm:px-6">
+        <footer className="flex flex-wrap items-center gap-1 px-5 pb-3 sm:px-6 short:pb-2">
           <>
             <span className="mr-0.5 text-[13px] font-medium text-muted-foreground">Next follow-up</span>
             <MenuPick aria-label="Next follow-up" side="top" value={next} onChange={(v) => setNext(v || "none")} options={whenOptions} />
@@ -560,7 +560,7 @@ function HistoryItem({ a }) {
     const [line, ...rest] = String(a.notes ?? "").split("\n\n")
     const update = rest.join("\n\n").trim()
     return (
-      <li className={cn("relative flex gap-3 last:pb-0", update ? "items-start pb-6" : "items-center pb-4")}>
+      <li className={cn("relative flex gap-3 last:pb-0", update ? "items-start pb-6 short:pb-3.5" : "items-center pb-4 short:pb-2.5")}>
         {/* Same 28px column as the avatars, so the timeline runs straight through */}
         <span className="relative z-10 flex size-7 shrink-0 items-center justify-center">
           <SystemIcon note={line} statuses={statuses} />
@@ -572,7 +572,7 @@ function HistoryItem({ a }) {
             <span>{line}</span>
             <span className="opacity-75">· {ago}</span>
           </p>
-          {update && <p className="mt-2 rounded-lg bg-muted/50 px-3.5 py-2.5 text-[15px] leading-relaxed whitespace-pre-line">{update}</p>}
+          {update && <p className="mt-2 rounded-lg bg-muted/50 px-3.5 py-2.5 text-[15px] leading-relaxed whitespace-pre-line short:mt-1 short:px-3 short:py-1.5 short:text-[14px] short:leading-snug">{update}</p>}
         </div>
       </li>
     )
@@ -580,7 +580,7 @@ function HistoryItem({ a }) {
   const missed = a.status === "missed"
   const color = missed ? "#dc2626" : (toHex(types.map[a.type]?.color) ?? "#2563eb")
   return (
-    <li className="relative flex gap-3 pb-7 last:pb-0">
+    <li className="relative flex gap-3 pb-7 last:pb-0 short:pb-4">
       {/* Who did it, with what they did as a badge on the corner */}
       <span className="relative z-10 size-7 shrink-0">
         <Avatar name={who} source={a.by?.avatarUrl} className="size-7 text-[11px] ring-4 ring-background" />
@@ -602,9 +602,13 @@ function HistoryItem({ a }) {
           {a.outcome && <span> · {outcomes.label(a.outcome)}</span>}
           {a.project && <span> · {a.project.name}</span>}
         </p>
-        {a.notes && <p className="mt-2.5 rounded-lg rounded-tl-sm bg-muted/50 px-3.5 py-2.5 text-[15px] leading-relaxed whitespace-pre-line">{a.notes}</p>}
+        {a.notes && (
+          <p className="mt-2.5 rounded-lg rounded-tl-sm bg-muted/50 px-3.5 py-2.5 text-[15px] leading-relaxed whitespace-pre-line short:mt-1.5 short:px-3 short:py-1.5 short:text-[14px] short:leading-snug">
+            {a.notes}
+          </p>
+        )}
         {a.voice && (
-          <div className="mt-2.5 flex max-w-sm items-center gap-2 rounded-lg bg-muted/60 py-1 pr-2 pl-2.5">
+          <div className="mt-2.5 flex max-w-sm items-center gap-2 rounded-lg bg-muted/60 py-1 pr-2 pl-2.5 short:mt-1.5">
             <VoicePlayer src={a.voice.url} className="flex-1" />
           </div>
         )}
@@ -749,7 +753,7 @@ export function LeadDialog({ code, agents, projects, access, me, onClose, onOpen
   const content = (
     <>
       {/* Top bar: the lead's code, with edit / more / close at the far end */}
-      <div className="flex h-11 shrink-0 items-center gap-0.5 border-b px-5 sm:px-6">
+      <div className="flex h-11 shrink-0 items-center gap-0.5 border-b px-5 sm:px-6 short:h-9">
         <p className="min-w-0 flex-1 truncate text-[12px] font-medium tracking-wide text-muted-foreground tabular-nums">{lead?.code ?? ""}</p>
         {/* Pulled right so the icons line up with the content's edge, not the buttons' padding */}
         <div className="-mr-2 flex items-center gap-0.5">
@@ -781,16 +785,16 @@ export function LeadDialog({ code, agents, projects, access, me, onClose, onOpen
           <IconButton icon="close-line" size="sm" aria-label="Close" onClick={onClose} />
         </div>
       </div>
-      <header className="shrink-0 border-b px-5 pt-4 pb-4 sm:px-6">
+      <header className="shrink-0 border-b px-5 pt-4 pb-4 sm:px-6 short:py-2.5">
         {/* Who, with call / WhatsApp / email at the right end */}
         <div className="flex items-center gap-3">
-          <Title className="min-w-0 flex-1 text-xl font-semibold tracking-tight">
+          <Title className="min-w-0 flex-1 text-xl font-semibold tracking-tight short:text-lg">
             {lead ? (
-              <span className="flex flex-wrap items-center gap-2">
-                <TempMenu value={lead.priority} disabled={!canEdit} className="text-xl" onChange={(v) => run(() => setLeadPriority(lead.code, v))} />
+              <span className="flex flex-wrap items-center gap-2 short:gap-1.5">
+                <TempMenu value={lead.priority} disabled={!canEdit} className="text-xl short:text-lg" onChange={(v) => run(() => setLeadPriority(lead.code, v))} />
                 {lead.name}
                 <ContactCardButton code={lead.code} onOpenLead={onOpenLead} onEmail={emailReady && lead.email && canEdit ? () => setDialog("email") : null} />
-                <StatusMenu status={lead.status} badgeClassName="h-7 px-2.5 text-sm" disabled={!canEdit} onPick={(st) => changeStatus(st)} />
+                <StatusMenu status={lead.status} badgeClassName="h-7 px-2.5 text-sm short:h-6 short:px-2 short:text-[13px]" disabled={!canEdit} onPick={(st) => changeStatus(st)} />
                 <AgentControl lead={lead} agents={agents} me={me} canEdit={canEdit} canReassign={access.reassign} run={run} />
               </span>
             ) : (
@@ -830,7 +834,7 @@ export function LeadDialog({ code, agents, projects, access, me, onClose, onOpen
             </div>
           )}
         </div>
-        <Description className={cn("mt-1", lead && !lead.city && !lead.overseas && !closed && "sr-only")}>
+        <Description className={cn("mt-1 short:mt-0.5 short:text-[13px]", lead && !lead.city && !lead.overseas && !closed && "sr-only")}>
           {lead
             ? [
                 lead.city,
@@ -847,21 +851,21 @@ export function LeadDialog({ code, agents, projects, access, me, onClose, onOpen
       {/* Tabs under the name: the bar stays put (full width, no side margins); content scrolls below */}
       <BaseTabs value={tab} onValueChange={setTab} className="flex min-h-0 flex-1 flex-col gap-0">
         {lead && (
-          <TabsList variant="line" className="w-full shrink-0 items-stretch justify-start gap-6 border-b px-5 py-0 group-data-horizontal/tabs:h-auto sm:px-6">
-            <TabsTrigger value="log" className="h-auto flex-none rounded-none px-0.5 py-3 text-[15px] group-data-horizontal/tabs:after:bottom-[-1px]">
+          <TabsList variant="line" className="w-full shrink-0 items-stretch justify-start gap-6 border-b px-5 py-0 group-data-horizontal/tabs:h-auto sm:px-6 short:gap-4">
+            <TabsTrigger value="log" className="h-auto flex-none rounded-none px-0.5 py-3 text-[15px] group-data-horizontal/tabs:after:bottom-[-1px] short:py-2 short:text-[14px]">
               <Icon name="history-line" className="text-base" /> Log &amp; history
             </TabsTrigger>
-            <TabsTrigger value="details" className="h-auto flex-none rounded-none px-0.5 py-3 text-[15px] group-data-horizontal/tabs:after:bottom-[-1px]">
+            <TabsTrigger value="details" className="h-auto flex-none rounded-none px-0.5 py-3 text-[15px] group-data-horizontal/tabs:after:bottom-[-1px] short:py-2 short:text-[14px]">
               <Icon name="file-list-3-line" className="text-base" /> Lead details
             </TabsTrigger>
             {(canEdit || closed) && (
-              <TabsTrigger value="deal" className="h-auto flex-none rounded-none px-0.5 py-3 text-[15px] group-data-horizontal/tabs:after:bottom-[-1px]">
+              <TabsTrigger value="deal" className="h-auto flex-none rounded-none px-0.5 py-3 text-[15px] group-data-horizontal/tabs:after:bottom-[-1px] short:py-2 short:text-[14px]">
                 <Icon name={lead.status === "booked" ? "trophy-line" : lead.status === "lost" ? "close-circle-line" : "flag-2-line"} className="text-base" /> {closed ? "Deal closed" : "Close deal"}
               </TabsTrigger>
             )}
           </TabsList>
         )}
-        <ScrollView className="min-h-0 flex-1" viewportRef={scroller} viewportClassName="space-y-4 px-5 py-5 sm:px-6">
+        <ScrollView className="min-h-0 flex-1" viewportRef={scroller} viewportClassName="space-y-4 px-5 py-5 sm:px-6 short:space-y-3 short:py-3">
           {error && <Notice tone="error">{error}</Notice>}
           {!lead && !error && (
             <div className="flex h-64 items-center justify-center text-muted-foreground">
@@ -899,7 +903,7 @@ export function LeadDialog({ code, agents, projects, access, me, onClose, onOpen
 
               {/* The tab bar sits above, under the name; the panels scroll with everything else */}
               <TabsContent value="log" className="text-[15px]">
-                <div className="space-y-4">
+                <div className="space-y-4 short:space-y-3">
                   {/* Next step: a card pinned near the top while the history scrolls, colored by how soon it's due */}
                   {(lead.planned.length > 0 || !closed) && (
                     <NextStepBar
@@ -975,9 +979,9 @@ export function LeadDialog({ code, agents, projects, access, me, onClose, onOpen
         {/* Log composer, pinned under the history: a slim bar until clicked, then the full form.
             Call / WhatsApp in the header and "Done" on a planned follow-up open it too. */}
         {lead && canEdit && (!closed || panel?.statusTo) && tab === "log" && (
-          <div className={cn("shrink-0 border-t", panel?.kind === "outcome" ? "bg-muted/60 dark:bg-muted/50" : "bg-background px-5 py-3 sm:px-6")}>
+          <div className={cn("shrink-0 border-t", panel?.kind === "outcome" ? "bg-muted/60 dark:bg-muted/50" : "bg-background px-5 py-3 sm:px-6 short:py-2")}>
             {panel?.kind === "outcome" ? (
-              <ScrollView className="max-h-[55svh]">
+              <ScrollView className="max-h-[55svh] short:max-h-[60svh]">
                 <OutcomeCard
                   key={`${panel.type}-${panel.plannedId ?? ""}-${panel.statusTo ?? ""}`}
                   statusTo={panel.statusTo}
@@ -1012,17 +1016,17 @@ export function LeadDialog({ code, agents, projects, access, me, onClose, onOpen
               <button
                 type="button"
                 onClick={() => setPanel({ kind: "outcome", type: "call", pick: true })}
-                className="group relative flex h-12 w-full cursor-pointer items-center gap-2.5 overflow-hidden rounded-lg border border-primary/15 bg-primary/[0.025] px-2.5 text-left text-base text-muted-foreground shadow-xs transition outline-none hover:-translate-y-px hover:border-primary/35 hover:text-foreground hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none motion-reduce:hover:translate-y-0 dark:bg-primary/[0.05]"
+                className="group relative flex h-12 w-full cursor-pointer short:h-10 items-center gap-2.5 overflow-hidden rounded-lg border border-primary/15 bg-primary/[0.025] px-2.5 text-left text-base text-muted-foreground shadow-xs transition outline-none hover:-translate-y-px hover:border-primary/35 hover:text-foreground hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none motion-reduce:hover:translate-y-0 dark:bg-primary/[0.05]"
               >
                 {/* Main action for agents: a soft sheen every few seconds and a breathing icon (off with reduced motion) */}
                 <span
                   aria-hidden="true"
                   className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-primary/[0.06] to-transparent motion-safe:animate-[cta-sheen_5s_ease-in-out_infinite] motion-reduce:hidden"
                 />
-                <span className="relative flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary motion-safe:animate-[cta-breathe_3.2s_ease-in-out_infinite]">
+                <span className="relative flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary short:size-7 motion-safe:animate-[cta-breathe_3.2s_ease-in-out_infinite]">
                   <Icon name="chat-check-line" className="text-lg" />
                 </span>
-                <span className="relative flex-1 font-medium">Log a call, message or visit…</span>
+                <span className="relative flex-1 font-medium short:text-[15px]">Log a call, message or visit…</span>
                 <Icon name="arrow-up-s-line" className="relative text-xl text-muted-foreground transition-transform group-hover:-translate-y-0.5" />
               </button>
             )}
@@ -1113,7 +1117,7 @@ function EmailDialog({ lead, onClose, onSent }) {
 // Round call / WhatsApp / email button in the lead header. A link when href is given.
 function ContactIcon({ icon, label, href, external = false, tone, onClick }) {
   const cls = cn(
-    "flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    "flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-lg transition-colors short:size-8 short:text-base outline-none focus-visible:ring-2 focus-visible:ring-ring",
     tone === "green" ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400" : "bg-primary/10 text-primary hover:bg-primary/20",
   )
   const inner = <Icon name={icon} />
@@ -1178,12 +1182,12 @@ function NextStepBar({ lead, projects, canEdit, types, followUps, pending, onDon
   const a = lead.planned[0]
   if (!a)
     return planning ? (
-      <div className="sticky top-3 z-30 rounded-xl border bg-background px-4 py-3 shadow-sm" style={{ borderColor: "color-mix(in oklab, var(--primary) 45%, var(--background))" }}>
+      <div className="sticky top-3 z-30 rounded-xl border bg-background px-4 py-3 shadow-sm short:top-0 short:px-3 short:py-2" style={{ borderColor: "color-mix(in oklab, var(--primary) 45%, var(--background))" }}>
         <PlanInline lead={lead} projects={projects} pending={pending} onCancel={() => setPlanning(false)} onSave={(v) => onPlan(v, () => setPlanning(false))} />
       </div>
     ) : (
       <div
-        className="sticky top-3 z-30 flex items-center gap-2 rounded-xl border px-4 py-2.5 text-[14px] text-muted-foreground shadow-sm"
+        className="sticky top-3 z-30 flex items-center gap-2 rounded-xl border px-4 py-2.5 text-[14px] text-muted-foreground shadow-sm short:top-0 short:rounded-lg short:px-3 short:py-1.5 short:text-[13px] short:shadow-xs"
         style={{ borderColor: "color-mix(in oklab, #f59e0b 55%, var(--background))", backgroundColor: "color-mix(in oklab, #f59e0b 6%, var(--background))" }}
       >
         <Icon name="alarm-warning-line" className="text-base text-amber-500" /> No follow-up planned.
@@ -1231,7 +1235,8 @@ function NextStepBar({ lead, projects, canEdit, types, followUps, pending, onDon
   )
   return (
     <div
-      className="sticky top-3 z-30 flex items-center gap-3 overflow-hidden rounded-xl border bg-background px-4 py-3 shadow-sm"
+      title={[extra, lead.planned.length > 1 && `+${lead.planned.length - 1} more planned`].filter(Boolean).join(" · ") || undefined}
+      className="sticky top-3 z-30 flex items-center gap-3 overflow-hidden rounded-xl border bg-background px-4 py-3 shadow-sm short:top-0 short:gap-2 short:rounded-lg short:py-1 short:pr-1 short:pl-2.5 short:shadow-xs"
       style={{
         // A colored outline: the urgency color when it's due soon or late, else the activity's color (softer)
         borderColor: c ? `color-mix(in oklab, ${c} 55%, var(--background))` : `color-mix(in oklab, ${typeColor} 35%, var(--border))`,
@@ -1240,13 +1245,13 @@ function NextStepBar({ lead, projects, canEdit, types, followUps, pending, onDon
     >
       <div className="min-w-0 flex-1">
         {/* Follow up [📞 Call] is due [today at 3:00 PM ▾] */}
-        <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[15px]">
-          <span className="text-muted-foreground">Follow up</span>
-          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[14px] font-semibold" style={{ color: typeColor, backgroundColor: `color-mix(in oklab, ${typeColor} 14%, var(--background))` }}>
+        <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[15px] short:flex-nowrap short:overflow-hidden short:text-[13px] short:whitespace-nowrap">
+          <span className="text-muted-foreground short:hidden">Follow up</span>
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[14px] font-semibold short:py-0 short:text-[12px]" style={{ color: typeColor, backgroundColor: `color-mix(in oklab, ${typeColor} 14%, var(--background))` }}>
             <Icon name={types.map[a.type]?.icon ?? "calendar-line"} className="text-[14px]" />
             {types.label(a.type)}
           </span>
-          <span className="text-muted-foreground">{overdue ? "was due" : "is due"}</span>
+          <span className="text-muted-foreground short:hidden">{overdue ? "was due" : "is due"}</span>
           {canEdit ? (
             <DropdownMenu
               align="start"
@@ -1255,7 +1260,7 @@ function NextStepBar({ lead, projects, canEdit, types, followUps, pending, onDon
                 <button
                   type="button"
                   aria-label={`Due ${dueWhen(a.at)}: move or remove`}
-                  className="inline-flex cursor-pointer items-center gap-0.5 rounded-md underline decoration-dotted underline-offset-4 outline-none hover:decoration-solid focus-visible:ring-2 focus-visible:ring-ring"
+                  className="inline-flex min-w-0 cursor-pointer items-center gap-0.5 rounded-md underline decoration-dotted underline-offset-4 outline-none hover:decoration-solid focus-visible:ring-2 focus-visible:ring-ring"
                   style={c ? { textDecorationColor: c } : undefined}
                 >
                   {due}
@@ -1267,14 +1272,14 @@ function NextStepBar({ lead, projects, canEdit, types, followUps, pending, onDon
             due
           )}
           {pill && (
-            <span className="rounded-full px-2 py-px text-[12px] font-semibold whitespace-nowrap" style={{ color: c, backgroundColor: `color-mix(in oklab, ${c} 16%, var(--background))` }}>
+            <span className="shrink-0 rounded-full px-2 py-px text-[12px] font-semibold whitespace-nowrap short:text-[11px]" style={{ color: c, backgroundColor: `color-mix(in oklab, ${c} 16%, var(--background))` }}>
               {pill}
             </span>
           )}
-          {lead.planned.length > 1 && <span className="text-[12px] text-muted-foreground">+{lead.planned.length - 1} more</span>}
+          {lead.planned.length > 1 && <span className="shrink-0 text-[12px] text-muted-foreground">+{lead.planned.length - 1}</span>}
         </p>
         {extra && (
-          <p className="mt-1 truncate text-[13px] text-muted-foreground" title={extra}>
+          <p className="mt-1 truncate text-[13px] text-muted-foreground short:hidden" title={extra}>
             {extra}
           </p>
         )}
@@ -1285,7 +1290,7 @@ function NextStepBar({ lead, projects, canEdit, types, followUps, pending, onDon
             type="button"
             aria-label="Mark done"
             onClick={() => onDone(a)}
-            className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-emerald-100 text-xl text-emerald-600 dark:bg-emerald-950 transition outline-none hover:bg-emerald-500 hover:text-white focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:text-emerald-400 dark:hover:text-white"
+            className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-emerald-100 text-xl short:size-7 short:text-base text-emerald-600 dark:bg-emerald-950 transition outline-none hover:bg-emerald-500 hover:text-white focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:text-emerald-400 dark:hover:text-white"
           >
             <Icon name="check-line" />
           </button>

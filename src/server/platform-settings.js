@@ -17,7 +17,7 @@ const store = (globalThis.__pfSiteSettings ??= { at: 0, value: null })
 
 export async function getSiteSettings() {
   if (store.value && Date.now() - store.at < CACHE_MS) return store.value
-  const rows = await platformDb()("settings").whereIn("key", ["site_status", "signup_mode", "prices_visible", "quote_requests", "signin_visible", "analytics_id", "analytics_consent"]).select("key", "value")
+  const rows = await platformDb()("settings").whereIn("key", ["site_status", "signup_mode", "prices_visible", "quote_requests", "signin_visible", "analytics_id", "analytics_consent", "app_store_url", "play_store_url"]).select("key", "value")
   const get = (key) => rows.find((r) => r.key === key)?.value
   const status = get("site_status") ?? {}
   store.value = {
@@ -34,6 +34,9 @@ export async function getSiteSettings() {
     analyticsId: get("analytics_id") || null,
     analyticsEnvId: envAnalyticsId(),
     analyticsConsent: get("analytics_consent") === true,
+    // The mobile app's store pages (null = not published there yet; the website hides that badge)
+    appStoreUrl: get("app_store_url") || null,
+    playStoreUrl: get("play_store_url") || null,
   }
   store.at = Date.now()
   return store.value

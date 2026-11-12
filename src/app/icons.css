@@ -21,6 +21,7 @@
 .ri-align-center:before { content: "\ea25"; }
 .ri-align-left:before { content: "\ea27"; }
 .ri-align-top:before { content: "\ea29"; }
+.ri-apple-fill:before { content: "\ea3f"; }
 .ri-apps-2-line:before { content: "\ea42"; }
 .ri-archive-line:before { content: "\ea48"; }
 .ri-arrow-down-line:before { content: "\ea4c"; }
@@ -177,6 +178,7 @@
 .ri-global-line:before { content: "\edcf"; }
 .ri-google-fill:before { content: "\edd4"; }
 .ri-google-line:before { content: "\edd5"; }
+.ri-google-play-fill:before { content: "\edd6"; }
 .ri-government-line:before { content: "\edd9"; }
 .ri-group-line:before { content: "\ede3"; }
 .ri-guide-line:before { content: "\ede5"; }

@@ -421,6 +421,17 @@ export const CONTENT = {
   apps: APPS.map((a) => ({ ...a, text: a.text.replace("brokers", "dealers").replace("broker", "dealer") })),
   trust: TRUST.map((t) => ({ ...t, text: t.text.replace("brokers", "dealers") })),
   faq: FAQ,
+  mobile: {
+    eyebrow: "Mobile app",
+    title: "Your sales desk, in every agent's pocket",
+    text: "The PropFlow app for iPhone and Android keeps your sales team on top of every lead away from the office: on site visits, at expos and on the road. It signs in to the same workspace, so everything they log is in the CRM straight away.",
+    points: [
+      { icon: "user-star-line", title: "Leads on the go", text: "Call a lead, log what they said and add a voice note in a few taps." },
+      { icon: "notification-3-line", title: "Follow-ups that don't slip", text: "Today's and overdue follow-ups, with a reminder when one is due." },
+      { icon: "checkbox-circle-line", title: "Approve from anywhere", text: "Discounts, refunds and other requests approved or rejected in one tap." },
+      { icon: "layout-grid-line", title: "Live availability", text: "Check which plots and units are free before promising one to a customer." },
+    ],
+  },
   cta: {
     title: "Ready to run your projects on PropFlow?",
     textOpen: "Start your {days}-day free trial today. No card needed, and your data stays if you continue.",

@@ -15,7 +15,8 @@ import { ImportDialog } from "./import-dialog"
 //   entity: leads | contacts | units | employees · can: { import, export }
 //   extra: more entities to import from here (Leads: their activities)
 
-export function DataMenu({ entity, can = {}, extra = [], size = "default" }) {
+// compact: just the icon below 2xl (the label stays for screen readers and as the tooltip)
+export function DataMenu({ entity, can = {}, extra = [], size = "default", compact = false }) {
   const router = useRouter()
   const [importing, setImporting] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -65,8 +66,8 @@ export function DataMenu({ entity, can = {}, extra = [], size = "default" }) {
         align="end"
         items={items}
         trigger={
-          <Button variant="outline" size={size} leftIcon="arrow-up-down-line" loading={busy}>
-            Import / Export
+          <Button variant="outline" size={size} leftIcon="arrow-up-down-line" loading={busy} title={compact ? "Import / Export" : undefined} className={compact ? "max-2xl:gap-0 max-2xl:px-2.5" : undefined}>
+            <span className={compact ? "max-2xl:sr-only" : undefined}>Import / Export</span>
           </Button>
         }
       />

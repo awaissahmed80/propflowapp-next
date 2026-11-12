@@ -434,16 +434,24 @@ export function LeadsView({ data, agents, projects, me, access, brand, userName,
   return (
     // The page fills the screen. List: the table scrolls inside it (sticky header, pagination at the
     // bottom, like Inventory and People). Board: full-height columns down to the window's bottom edge.
-    <div className={cn("p-4 transition-[padding] sm:p-6 lg:p-8", any ? "flex h-[calc(100svh-3.5rem)] flex-col gap-4" : "space-y-4", view === "board" && any && "pb-0 sm:pb-0 lg:pb-0")}>
+    <div
+      className={cn(
+        "p-4 transition-[padding] sm:p-6 lg:p-8",
+        any ? "flex h-[calc(100svh-3.5rem)] flex-col gap-4 short:gap-3" : "space-y-4",
+        // Laptop-height windows: less padding, so the table and the lead panel get the room
+        view === "board" && any ? "pb-0 sm:pb-0 lg:pb-0 short:lg:px-6 short:lg:pt-5" : "short:lg:p-5",
+      )}
+    >
       <PageHeader
         title="Leads"
+        oneRow
         toolbar={
           <>
             <Input
               type="search"
               aria-label="Search leads"
               placeholder="Search name, mobile, city…"
-              className="w-full max-w-60"
+              className="w-full max-w-60 min-w-28"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               startElement={<Icon name="search-line" />}
@@ -482,8 +490,10 @@ export function LeadsView({ data, agents, projects, me, access, brand, userName,
         }
         actions={
           <>
+            {/* Laptop widths: List / Board and Import / Export as icons, so the header stays one row */}
             <ToggleGroup
               aria-label="View"
+              responsiveLabels="2xl"
               value={view}
               onChange={(v) => v && setParam("view", v === "board" ? "board" : null)}
               options={[
@@ -491,7 +501,7 @@ export function LeadsView({ data, agents, projects, me, access, brand, userName,
                 { value: "board", label: "Board", icon: "kanban-view" },
               ]}
             />
-            <DataMenu entity="leads" can={{ import: access.create, export: access.export }} extra={["activities"]} />
+            <DataMenu entity="leads" compact can={{ import: access.create, export: access.export }} extra={["activities"]} />
             {access.create && (
               <Button leftIcon="add-line" onClick={() => setParam("new", "1")}>
                 New lead

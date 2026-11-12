@@ -204,6 +204,16 @@ export async function savePaymentSettings(input) {
 
 // ---------- site status and sign-up ----------
 
+// A store page link, or empty for "not published there yet"
+const storeUrl = (pattern, message) =>
+  z
+    .string()
+    .trim()
+    .max(300)
+    .refine((v) => !v || pattern.test(v), message)
+    .nullable()
+    .default(null)
+
 const siteSchema = z.object({
   maintenance: z.boolean(),
   message: z.string().trim().max(300).nullable(),
@@ -220,6 +230,8 @@ const siteSchema = z.object({
     .nullable()
     .default(null),
   analyticsConsent: z.boolean().default(false),
+  appStoreUrl: storeUrl(/^https:\/\/apps\.apple\.com\/.+/, "An App Store link starts with https://apps.apple.com/"),
+  playStoreUrl: storeUrl(/^https:\/\/play\.google\.com\/store\/apps\/details\?id=.+/, "A Google Play link looks like https://play.google.com/store/apps/details?id=…"),
 })
 
 // Maintenance mode, self sign-up, price visibility and custom quotes (owner and administrators)
@@ -228,11 +240,14 @@ export async function saveSiteSettings(input) {
   if (!can(staff.role, "settings")) return { error: "Only the owner or an administrator can change platform settings." }
   const parsed = siteSchema.safeParse(input)
   if (!parsed.success) {
-    const idIssue = parsed.error.issues.find((i) => i.path[0] === "analyticsId")
-    return idIssue ? { fieldErrors: { analyticsId: idIssue.message } } : { error: "Check the details and try again." }
+    const fieldErrors = {}
+    for (const i of parsed.error.issues) if (["analyticsId", "appStoreUrl", "playStoreUrl"].includes(i.path[0])) fieldErrors[i.path[0]] ??= i.message
+    return Object.keys(fieldErrors).length ? { fieldErrors } : { error: "Check the details and try again." }
   }
   const v = parsed.data
   v.analyticsId = v.analyticsId || null
+  v.appStoreUrl = v.appStoreUrl || null
+  v.playStoreUrl = v.playStoreUrl || null
   if (v.until && Number.isNaN(Date.parse(v.until))) return { fieldErrors: { until: "Pick a date and time." } }
 
   const before = await getSiteSettings()
@@ -248,6 +263,8 @@ export async function saveSiteSettings(input) {
       ["signin_visible", v.signInVisible],
       ["analytics_id", v.analyticsId],
       ["analytics_consent", v.analyticsConsent],
+      ["app_store_url", v.appStoreUrl],
+      ["play_store_url", v.playStoreUrl],
     ]) {
       await trx("settings")
         .insert({ key, value: JSON.stringify(value), updatedAt: now, updatedBy: staff.user.id })
@@ -292,6 +309,11 @@ export async function saveSiteSettings(input) {
     if (before.analyticsId !== v.analyticsId || before.analyticsConsent !== v.analyticsConsent) {
       const summary = v.analyticsId ? `Google Analytics ${v.analyticsId}${v.analyticsConsent ? ", visitors are asked first" : ""}` : "Google Analytics is off"
       await logAudit({ actorUserId: staff.user.id, action: v.analyticsId ? "analytics.updated" : "analytics.off", subjectType: "settings", details: { summary } }, trx)
+    }
+    if (before.appStoreUrl !== v.appStoreUrl || before.playStoreUrl !== v.playStoreUrl) {
+      const links = [v.appStoreUrl && "App Store", v.playStoreUrl && "Google Play"].filter(Boolean)
+      const summary = links.length ? `The website links to the mobile app on ${links.join(" and ")}` : "No mobile app links on the website"
+      await logAudit({ actorUserId: staff.user.id, action: "app_links.updated", subjectType: "settings", details: { summary } }, trx)
     }
     if (before.quoteRequests !== v.quoteRequests) {
       await logAudit(
