@@ -160,6 +160,7 @@
 .ri-focus-3-line:before { content: "\ed4c"; }
 .ri-folder-2-line:before { content: "\ed52"; }
 .ri-folder-3-fill:before { content: "\ed53"; }
+.ri-folder-3-line:before { content: "\ed54"; }
 .ri-folder-5-line:before { content: "\ed58"; }
 .ri-folder-image-line:before { content: "\f3ca"; }
 .ri-folder-line:before { content: "\ed6a"; }
@@ -363,6 +364,7 @@
 .ri-trophy-line:before { content: "\f22f"; }
 .ri-truck-line:before { content: "\f231"; }
 .ri-tv-2-line:before { content: "\f235"; }
+.ri-underline:before { content: "\f244"; }
 .ri-upload-2-line:before { content: "\f24a"; }
 .ri-upload-cloud-2-line:before { content: "\f24c"; }
 .ri-user-3-line:before { content: "\f256"; }

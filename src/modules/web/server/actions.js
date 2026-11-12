@@ -13,18 +13,26 @@ import { LEGAL_VERSION } from "../legal"
 // The website's "Talk to sales" / "Request a trial" form. Saves a sales
 // enquiry for the console team; nobody needs an account.
 
-const KINDS = { sales: "Sales enquiry", trial: "Trial request", quote: "Get-started request" }
+const KINDS = { demo: "Demo request", sales: "Sales enquiry", trial: "Trial request", quote: "Get-started request" }
 const MAX_PER_IP_HOUR = 5
 const trialDays = async (db) => Number((await db("settings").where({ key: "trial_days" }).first("value"))?.value) || 15
 
 const MAX_PER_EMAIL_DAY = 3
 
 const schema = z.object({
-  kind: z.enum(["sales", "trial", "quote"]),
+  kind: z.enum(["demo", "sales", "trial", "quote"]),
   businessType: z.enum(["developer", "builder", "agency", "marketing", "investor", "other"]).optional(),
   name: z.string().trim().min(2, "Enter your name.").max(120),
   company: z.string().trim().min(2, "Enter your company.").max(150),
-  email: z.string().trim().toLowerCase().pipe(z.email("Enter a valid email.")),
+  // Optional on a demo request (a phone number is enough to arrange it); required otherwise
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(150)
+    .optional()
+    .default("")
+    .refine((v) => !v || z.email().safeParse(v).success, "Enter a valid email."),
   // Required for sales and trial requests; optional when creating a workspace (email is enough)
   phone: z
     .string()
@@ -57,6 +65,7 @@ export async function submitEnquiry(input) {
   }
   const v = parsed.data
   if (v.kind !== "quote" && !v.phone) return { fieldErrors: { phone: "Enter a phone or WhatsApp number." } }
+  if (v.kind !== "demo" && !v.email) return { fieldErrors: { email: "Enter a valid email." } }
   const { ip, userAgent } = await requestInfo()
   const db = platformDb()
   // A get-started request lists what they'd like PropFlow to do (see NEEDS)
@@ -75,8 +84,9 @@ export async function submitEnquiry(input) {
           .count({ n: "*" })
           .first()
       : { n: 0 },
+    // Without an email (a demo request), the same phone number counts instead
     db("enquiries")
-      .where({ email: v.email })
+      .where(v.email ? { email: v.email } : { phone: v.phone })
       .where("createdAt", ">", new Date(Date.now() - 86_400_000))
       .count({ n: "*" })
       .first(),
@@ -93,7 +103,7 @@ export async function submitEnquiry(input) {
       businessType: v.kind === "quote" ? v.businessType : null,
       name: v.name,
       company: v.company,
-      email: v.email,
+      email: v.email || null,
       phone: v.phone || null,
       city: v.city || null,
       projects: v.projects || null,
@@ -116,7 +126,7 @@ export async function submitEnquiry(input) {
   // Creating a workspace: the thank-you also lists what they picked and the trial length
   const extra = v.kind === "quote" ? { company: v.company, needs: v.interests.map((x) => need(x).label), trial_days: await trialDays(db) } : {}
   const tasks = [
-    sendEmail("enquiry-received", { to: v.email, data: { name: v.name, code, kind: v.kind, ...extra } }),
+    v.email && sendEmail("enquiry-received", { to: v.email, data: { name: v.name, code, kind: v.kind, ...extra } }),
     // Counted from here, not the browser, so ad blockers don't hide leads (no personal data)
     sendServerEvent("generate_lead", {
       lead_type: v.kind === "quote" ? "get_started" : v.kind,
@@ -128,13 +138,13 @@ export async function submitEnquiry(input) {
     tasks.push(
       sendEmail("enquiry-alert", {
         to: process.env.SALES_NOTIFY_EMAIL,
-        replyTo: v.email,
+        replyTo: v.email || undefined,
         data: {
           kind_label: KINDS[v.kind],
           code,
           company: v.company,
           name: v.name,
-          email: v.email,
+          email: v.email || null,
           phone: v.phone || null,
           city: v.city,
           plan: v.plan,

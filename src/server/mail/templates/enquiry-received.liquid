@@ -4,7 +4,7 @@ preheader: "{% if kind == 'quote' %}We're putting the final touches on PropFlow.
 ---
 {%- comment -%}
   Thank-you to a website visitor.
-  Data: name, code, kind (sales | trial | quote: create workspace)
+  Data: name, code, kind (demo | sales | trial | quote: create workspace)
   For quote also: company, needs (labels they picked), trial_days
 {%- endcomment -%}
 {% layout "email" %}
@@ -61,7 +61,9 @@ preheader: "{% if kind == 'quote' %}We're putting the final touches on PropFlow.
 <p style="margin:28px 0 0;{{ style.small }}">Reference: <strong style="color:{{ color.ink }};">{{ code }}</strong>. Mention it if you get in touch.</p>
 {%- else %}
 <h1 style="margin:0 0 20px;{{ style.h1 }}">Thanks, {{ name | first_name }}</h1>
-{%- if kind == "trial" %}
+{%- if kind == "demo" %}
+<p style="margin:0 0 16px;{{ style.p }}">We've received your demo request. Someone from our team will call you to pick a time, then walk you through PropFlow with your own projects in mind: plots and files, bookings, installments and the rest.</p>
+{%- elsif kind == "trial" %}
 <p style="margin:0 0 16px;{{ style.p }}">We've received your trial request. We'll set up your PropFlow workspace and email you a link to get started when it's ready.</p>
 {%- else %}
 <p style="margin:0 0 16px;{{ style.p }}">We've received your message. Someone from our team will call you to talk it through.</p>

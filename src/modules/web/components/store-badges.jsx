@@ -22,17 +22,17 @@ export function StoreBadges({ links, location, size = "md", className }) {
           href={links[s.key]}
           target="_blank"
           rel="noopener"
-          aria-label={`${s.small} ${s.name}`}
           onClick={() => track("app_store_click", { store: s.store, cta_location: location })}
           className={cn(
-            "inline-flex items-center gap-2.5 rounded-xl bg-slate-950 text-white ring-1 ring-white/15 transition hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200",
-            size === "sm" ? "h-10 px-3" : "h-13 px-4",
+            // Styled like the official store badges: black, a thin grey outline, small corners
+            "inline-flex items-center gap-2.5 border border-[#a6a6a6] bg-black text-white transition duration-200 hover:-translate-y-0.5 hover:bg-[#1a1a1a] hover:shadow-[0_10px_24px_-12px_rgb(0_0_0/0.6)] focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+            size === "sm" ? "min-w-[10.5rem] gap-3 rounded-md px-5 py-2.5" : "min-w-[14rem] gap-3.5 rounded-lg px-8 py-4",
           )}
         >
           <Icon name={s.icon} className={size === "sm" ? "text-xl" : "text-[1.7rem]"} aria-hidden />
           <span className="text-left leading-none">
-            <span className={cn("block", size === "sm" ? "text-[0.6rem]" : "text-[0.7rem]")}>{s.small}</span>
-            <span className={cn("mt-0.5 block font-semibold tracking-tight", size === "sm" ? "text-sm" : "text-lg")}>{s.name}</span>
+            <span className={cn("block font-medium text-white/85", size === "sm" ? "text-[0.6875rem]" : "text-[0.8125rem]")}>{s.small}</span>{" "}
+            <span className={cn("mt-1 block font-semibold tracking-tight", size === "sm" ? "text-[0.9375rem]" : "text-[1.3rem]")}>{s.name}</span>
           </span>
         </a>
       ))}
