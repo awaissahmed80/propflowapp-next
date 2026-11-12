@@ -63,7 +63,8 @@ function ToggleGroupItem({ className, children, variant = "default", size = "def
 
 // Single-choice segmented control, same height as other form controls.
 // options: [{ value, label, icon? }]; iconOnly hides labels (kept as aria-label);
-// responsiveLabels shows labels from xl up and icons only below
+// responsiveLabels shows labels from xl up and icons only below ("2xl": from 2xl up, for crowded headers)
+const LABELS_FROM = { xl: "sr-only xl:not-sr-only", "2xl": "sr-only 2xl:not-sr-only" }
 function ToggleGroup({ options = [], value, onChange, iconOnly = false, responsiveLabels = false, className, ...props }) {
   return (
     <BaseToggleGroup value={[value]} onValueChange={(next) => next.length && onChange?.(next[0])} spacing={0} className={cn("h-control gap-0.5 rounded-md border bg-muted/60 p-0.5", className)} {...props}>
@@ -76,7 +77,7 @@ function ToggleGroup({ options = [], value, onChange, iconOnly = false, responsi
           className="h-full cursor-pointer rounded-[calc(var(--radius)-2px)]! border-0 px-2.5 text-muted-foreground data-pressed:bg-background data-pressed:text-foreground data-pressed:shadow-xs"
         >
           {o.icon && <Icon name={o.icon} className="text-base" />}
-          {!iconOnly && <span className={responsiveLabels ? "sr-only xl:not-sr-only" : undefined}>{o.label}</span>}
+          {!iconOnly && <span className={responsiveLabels ? LABELS_FROM[responsiveLabels === "2xl" ? "2xl" : "xl"] : undefined}>{o.label}</span>}
         </ToggleGroupItem>
       ))}
     </BaseToggleGroup>

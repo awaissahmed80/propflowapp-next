@@ -3,6 +3,8 @@
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
+/* Laptop-height windows (1366×768, 1440×900 and the like): compact panels, e.g. the lead panel */
+@custom-variant short (@media (max-height: 860px));
 
 :root {
   --background: oklch(1 0 0);

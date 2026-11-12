@@ -51,6 +51,8 @@ export function SettingsView({ site, updatedAt, editable }) {
     signInVisible: site.signInVisible,
     analyticsId: site.analyticsId ?? "",
     analyticsConsent: site.analyticsConsent,
+    appStoreUrl: site.appStoreUrl ?? "",
+    playStoreUrl: site.playStoreUrl ?? "",
   })
   const [errors, setErrors] = useState({})
   const [pending, startTransition] = useTransition()
@@ -71,6 +73,8 @@ export function SettingsView({ site, updatedAt, editable }) {
             signInVisible: form.signInVisible,
             analyticsId: form.analyticsId.trim() || null,
             analyticsConsent: form.analyticsConsent,
+            appStoreUrl: form.appStoreUrl.trim() || null,
+            playStoreUrl: form.playStoreUrl.trim() || null,
           }),
         { loading: "Saving…", success: form.maintenance ? "Saved. PropFlow is in maintenance mode: only the PropFlow team can sign in." : "Saved." },
       )
@@ -240,6 +244,38 @@ export function SettingsView({ site, updatedAt, editable }) {
               disabled={!editable || !(form.analyticsId.trim() || site.analyticsEnvId)}
               onChange={set("analyticsConsent")}
             />
+          </div>
+        </Card>
+
+        <Card
+          icon="smartphone-line"
+          on={Boolean(form.appStoreUrl.trim() || form.playStoreUrl.trim())}
+          title="Mobile app"
+          description="Store links for the PropFlow app. The website shows a download badge for each store that has a link, and hides the app section while both are empty."
+        >
+          <div className="grid gap-4 border-t px-5 py-4 sm:grid-cols-2">
+            <div>
+              <Input
+                label="App Store link"
+                placeholder="https://apps.apple.com/app/id…"
+                value={form.appStoreUrl}
+                disabled={!editable}
+                onChange={(e) => set("appStoreUrl")(e.target.value)}
+                error={errors.appStoreUrl}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">App Store Connect → the app → App Information → View on App Store, once it&apos;s approved.</p>
+            </div>
+            <div>
+              <Input
+                label="Google Play link"
+                placeholder="https://play.google.com/store/apps/details?id=com.propflowapp.app"
+                value={form.playStoreUrl}
+                disabled={!editable}
+                onChange={(e) => set("playStoreUrl")(e.target.value)}
+                error={errors.playStoreUrl}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">Add it once the app is live in production on Google Play.</p>
+            </div>
           </div>
         </Card>
 
